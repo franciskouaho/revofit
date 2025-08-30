@@ -1,8 +1,11 @@
+import { useDrawer } from '@/contexts/DrawerContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './ThemedText';
+
+const GLASS_BORDER = 'rgba(255,255,255,0.12)';
 
 interface HeaderProps {
   greeting?: string;
@@ -19,12 +22,19 @@ export default function Header({
   onNotificationPress,
   onProfilePress
 }: HeaderProps) {
+  const { openDrawer } = useDrawer();
+
+  const handleMenuPress = () => {
+    openDrawer();
+    onMenuPress?.();
+  };
+
   return (
     <View style={styles.header}>
       {/* Left side - Menu + Greeting */}
       <View style={styles.headerLeft}>
         <BlurView intensity={28} tint="dark" style={styles.menuButton}>
-          <TouchableOpacity style={styles.menuInner} onPress={onMenuPress} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.menuInner} onPress={handleMenuPress} activeOpacity={0.8}>
             <View style={styles.menuGrid}>
               <View style={styles.menuSquare} />
               <View style={styles.menuSquare} />
@@ -33,7 +43,7 @@ export default function Header({
             </View>
           </TouchableOpacity>
         </BlurView>
-
+        
         <View style={styles.greetingContainer}>
           <ThemedText style={styles.greeting}>{greeting}</ThemedText>
           <ThemedText style={styles.userName}>{userName}</ThemedText>
@@ -48,7 +58,7 @@ export default function Header({
             <View style={styles.notificationDot} />
           </TouchableOpacity>
         </BlurView>
-
+        
         <BlurView intensity={28} tint="dark" style={styles.iconGlass}>
           <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
             <Ionicons name="person" size={26} color="#FFD700" />
@@ -58,8 +68,6 @@ export default function Header({
     </View>
   );
 }
-
-const BORDER = 'rgba(255,255,255,0.12)';
 
 const styles = StyleSheet.create({
   header: {
@@ -78,7 +86,7 @@ const styles = StyleSheet.create({
   menuButton: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: GLASS_BORDER,
     overflow: 'hidden',
     marginRight: 14,
   },
@@ -110,8 +118,8 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
+    fontWeight: '700',
   },
   headerRight: {
     flexDirection: 'row',
@@ -123,7 +131,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: GLASS_BORDER,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',

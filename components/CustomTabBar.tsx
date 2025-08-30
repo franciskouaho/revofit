@@ -73,6 +73,7 @@ const styles = StyleSheet.create({
     bottom: 18,
     alignSelf: 'center',
     width: width - 24,
+    zIndex: 999999,
   },
   glassBar: {
     flexDirection: 'row',
