@@ -1,26 +1,55 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * RevoFit Color Palette
+ * Couleurs principales de l'application RevoFit
  */
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Couleurs principales RevoFit
+export const RevoColors = {
+  // Couleurs de base
+  primary: '#FFD700',      // Jaune signature RevoFit
+  background: '#000000',   // Noir profond
+  surface: '#2A2A2A',      // Gris foncé pour cartes
+  text: '#FFFFFF',         // Blanc principal
+  textSecondary: '#B0B0B0', // Gris clair pour sous-textes
+  
+  // Couleurs fitness
+  cardio: '#FF6B6B',       // Rouge énergique
+  strength: '#4ECDC4',     // Turquoise
+  hiit: '#FFD93D',         // Jaune vif
+  yoga: '#B388FF',         // Violet apaisant
+  
+  // Couleurs nutrition
+  calories: '#FFD700',     // Jaune (même que primary)
+  proteins: '#FF6B6B',     // Rouge
+  carbs: '#4ECDC4',        // Turquoise
+  fats: '#FFA726',         // Orange
+  
+  // Couleurs d'état
+  success: '#4CAF50',      // Vert
+  error: '#F44336',        // Rouge
+  warning: '#FF9800',      // Orange
+  info: '#2196F3',         // Bleu
+} as const;
+
+// Couleurs pour thème clair/sombre (compatibilité)
+const tintColorLight = RevoColors.primary;
+const tintColorDark = RevoColors.primary;
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: RevoColors.background,
+    background: RevoColors.text,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: RevoColors.textSecondary,
+    tabIconDefault: RevoColors.textSecondary,
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: RevoColors.text,
+    background: RevoColors.background,
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: RevoColors.textSecondary,
+    tabIconDefault: RevoColors.textSecondary,
     tabIconSelected: tintColorDark,
   },
 };

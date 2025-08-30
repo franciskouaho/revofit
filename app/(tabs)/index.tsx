@@ -1,75 +1,96 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { BodyText, SectionText, TitleText } from '@/components/ThemedText';
+import React from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TitleText color="#FFD700">RevoFit</TitleText>
+        <BodyText color="#FFFFFF" style={styles.subtitle}>
+          Your Fitness Journey Starts Here
+        </BodyText>
+      </View>
+
+      {/* Main Content */}
+      <View style={styles.content}>
+        <View style={styles.welcomeCard}>
+          <SectionText color="#FFFFFF" style={styles.welcomeTitle}>
+            Welcome to RevoFit!
+          </SectionText>
+          <BodyText color="#B0B0B0" style={styles.welcomeText}>
+            Your personalized fitness journey starts here. Track workouts, monitor nutrition, and get real-time coaching.
+          </BodyText>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity style={styles.actionButton}>
+            <BodyText color="#000000" style={styles.actionButtonText}>
+              Start Workout
+            </BodyText>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <BodyText color="#000000" style={styles.actionButtonText}>
+              Track Nutrition
+            </BodyText>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton}>
+            <BodyText color="#000000" style={styles.actionButtonText}>
+              Chat with Coach
+            </BodyText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  subtitle: {
+    textAlign: 'center',
+    marginTop: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+  },
+  welcomeCard: {
+    backgroundColor: '#2A2A2A',
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 32,
+  },
+  welcomeTitle: {
+    marginBottom: 16,
+  },
+  welcomeText: {
+    lineHeight: 24,
+  },
+  actionsContainer: {
+    gap: 16,
+  },
+  actionButton: {
+    backgroundColor: '#FFD700',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontWeight: 'bold',
   },
 });
