@@ -17,7 +17,7 @@ export default function FirstNameSelectionScreen() {
   const goBack = () => router.back();
   const goNext = () => {
     if (firstName.trim()) {
-      router.push("/onboarding/lastname-selection");
+      router.push("/onboarding/lastname");
     }
   };
 

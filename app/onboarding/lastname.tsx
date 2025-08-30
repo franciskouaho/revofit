@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function LastnameSelectionScreen() {
+export default function LastNameScreen() {
   const [lastName, setLastName] = useState("");
 
   const goBack = () => router.back();

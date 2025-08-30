@@ -11,7 +11,7 @@ export default function OnboardingLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="firstname-selection" />
-      <Stack.Screen name="lastname-selection" />
+      <Stack.Screen name="lastname" />
       <Stack.Screen name="gender-selection" />
       <Stack.Screen name="age-selection" />
       <Stack.Screen name="height-selection" />

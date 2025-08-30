@@ -1,63 +1,70 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ExploreScreen() {
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Explorer RevoFit</Text>
-        <Text style={styles.subtitle}>Découvrez toutes les fonctionnalités</Text>
-      </View>
+      {/* Fond avec gradient */}
+      <LinearGradient
+        colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
+        locations={[0, 0.15, 0.4, 0.7, 1]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={StyleSheet.absoluteFill}
+      />
 
-      {/* Features Grid */}
-      <View style={styles.content}>
-        <View style={styles.featuresGrid}>
-          {/* Workout Feature */}
-          <TouchableOpacity style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureIconText}>🏋️</Text>
-            </View>
-            <Text style={styles.featureTitle}>Entraînements personnalisés</Text>
-            <Text style={styles.featureDescription}>
-              Plans d&apos;entraînement alimentés par l&apos;IA adaptés à vos objectifs et niveau
-            </Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Features Grid */}
+        <View style={styles.content}>
+          <View style={styles.featuresGrid}>
+            {/* Workout Feature */}
+            <TouchableOpacity style={styles.featureCard}>
+              <View style={styles.featureIcon}>
+                <Text style={styles.featureIconText}>🏋️</Text>
+              </View>
+              <Text style={styles.featureTitle}>Entraînements personnalisés</Text>
+              <Text style={styles.featureDescription}>
+                Plans d&apos;entraînement alimentés par l&apos;IA adaptés à vos objectifs et niveau
+              </Text>
+            </TouchableOpacity>
 
-          {/* Nutrition Feature */}
-          <TouchableOpacity style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureIconText}>🍎</Text>
-            </View>
-            <Text style={styles.featureTitle}>Suivi nutritionnel</Text>
-            <Text style={styles.featureDescription}>
-              Suivez calories, macros et planifiez vos repas pour des résultats optimaux
-            </Text>
-          </TouchableOpacity>
+            {/* Nutrition Feature */}
+            <TouchableOpacity style={styles.featureCard}>
+              <View style={styles.featureIcon}>
+                <Text style={styles.featureIconText}>🍎</Text>
+              </View>
+              <Text style={styles.featureTitle}>Suivi nutritionnel</Text>
+              <Text style={styles.featureDescription}>
+                Suivez calories, macros et planifiez vos repas pour des résultats optimaux
+              </Text>
+            </TouchableOpacity>
 
-          {/* Coach Feature */}
-          <TouchableOpacity style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureIconText}>💬</Text>
-            </View>
-            <Text style={styles.featureTitle}>Coaching en temps réel</Text>
-            <Text style={styles.featureDescription}>
-              Discutez avec des coachs certifiés et obtenez des retours instantanés
-            </Text>
-          </TouchableOpacity>
+            {/* Coach Feature */}
+            <TouchableOpacity style={styles.featureCard}>
+              <View style={styles.featureIcon}>
+                <Text style={styles.featureIconText}>💬</Text>
+              </View>
+              <Text style={styles.featureTitle}>Coaching en temps réel</Text>
+              <Text style={styles.featureDescription}>
+                Discutez avec des coachs certifiés et obtenez des retours instantanés
+              </Text>
+            </TouchableOpacity>
 
-          {/* Progress Feature */}
-          <TouchableOpacity style={styles.featureCard}>
-            <View style={styles.featureIcon}>
-              <Text style={styles.featureIconText}>📊</Text>
-            </View>
-            <Text style={styles.featureTitle}>Analyses de progression</Text>
-            <Text style={styles.featureDescription}>
-              Graphiques visuels et insights pour suivre votre parcours fitness
-            </Text>
-          </TouchableOpacity>
+            {/* Progress Feature */}
+            <TouchableOpacity style={styles.featureCard}>
+              <View style={styles.featureIcon}>
+                <Text style={styles.featureIconText}>📊</Text>
+              </View>
+              <Text style={styles.featureTitle}>Analyses de progression</Text>
+              <Text style={styles.featureDescription}>
+                Graphiques visuels et insights pour suivre votre parcours fitness
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -66,6 +73,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  safeArea: {
+    flex: 1,
   },
   header: {
     paddingTop: 60,

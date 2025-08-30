@@ -3,11 +3,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Animated,
-  PanResponder,
-  StyleSheet,
-  Text,
-  View
+    Animated,
+    PanResponder,
+    StyleSheet,
+    Text,
+    View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -66,9 +66,9 @@ export default function RocketLaunchScreen() {
         useNativeDriver: false,
       }),
     ]).start(() => {
-      // Redirection vers la page welcome après l'animation
+      // Redirection vers la page d'accueil après l'animation
       setTimeout(() => {
-        router.push("/welcome");
+        router.push("/(tabs)");
       }, 1000);
     });
   };
@@ -252,32 +252,16 @@ export default function RocketLaunchScreen() {
           </View>
         </View>
 
-        {/* Barre de progression */}
+
+
+        {/* Pourcentage affiché */}
         {!isLaunching && (
-          <View style={{ marginBottom: 40 }}>
-            <View style={{
-              backgroundColor: "#2A2A2A",
-              height: 8,
-              borderRadius: 4,
-              overflow: "hidden",
-            }}>
-              <Animated.View
-                style={{
-                  width: progressBarWidth.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ["0%", "100%"],
-                  }),
-                  height: "100%",
-                  backgroundColor: "#FFD700",
-                  borderRadius: 4,
-                }}
-              />
-            </View>
+          <View style={{ marginBottom: 40, alignItems: "center" }}>
             <Text style={{
               color: "rgba(255,255,255,0.8)",
               textAlign: "center",
-              marginTop: 8,
-              fontSize: 14,
+              fontSize: 16,
+              fontWeight: "600",
             }}>
               {Math.round(progress)}% - {isPressed ? "Préparation du décollage..." : "En attente..."}
             </Text>

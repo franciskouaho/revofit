@@ -153,16 +153,22 @@ export default function OnboardingScreen() {
                             />
 
                             {/* Bouton secondaire */}
-                            <Pressable style={{
-                                height: 56,
-                                backgroundColor: 'transparent',
-                                borderRadius: 28,
-                                borderWidth: 1,
-                                borderColor: '#2A2A2A',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                marginTop: 16,
-                            }}>
+                            <Pressable 
+                                style={{
+                                    height: 56,
+                                    backgroundColor: 'transparent',
+                                    borderRadius: 28,
+                                    borderWidth: 1,
+                                    borderColor: '#2A2A2A',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginTop: 16,
+                                }}
+                                onPress={() => {
+                                    // Navigation vers la page d'accueil (temporaire)
+                                    router.push('/(tabs)');
+                                }}
+                            >
                                 <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
                                     J&apos;ai déjà un compte
                                 </Text>
