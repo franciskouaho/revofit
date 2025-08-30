@@ -9,7 +9,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <TitleText color="#FFD700">RevoFit</TitleText>
         <BodyText color="#FFFFFF" style={styles.subtitle}>
-          Your Fitness Journey Starts Here
+          Votre parcours fitness commence ici
         </BodyText>
       </View>
 
@@ -17,10 +17,10 @@ export default function HomeScreen() {
       <View style={styles.content}>
         <View style={styles.welcomeCard}>
           <SectionText color="#FFFFFF" style={styles.welcomeTitle}>
-            Welcome to RevoFit!
+            Bienvenue sur RevoFit !
           </SectionText>
           <BodyText color="#B0B0B0" style={styles.welcomeText}>
-            Your personalized fitness journey starts here. Track workouts, monitor nutrition, and get real-time coaching.
+            Votre parcours fitness personnalisé commence ici. Suivez vos entraînements, surveillez votre nutrition et obtenez un coaching en temps réel.
           </BodyText>
         </View>
 
@@ -28,19 +28,19 @@ export default function HomeScreen() {
         <View style={styles.actionsContainer}>
           <TouchableOpacity style={styles.actionButton}>
             <BodyText color="#000000" style={styles.actionButtonText}>
-              Start Workout
+              Commencer l&apos;entraînement
             </BodyText>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
             <BodyText color="#000000" style={styles.actionButtonText}>
-              Track Nutrition
+              Suivre la nutrition
             </BodyText>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
             <BodyText color="#000000" style={styles.actionButtonText}>
-              Chat with Coach
+              Discuter avec un coach
             </BodyText>
           </TouchableOpacity>
         </View>

@@ -6,8 +6,8 @@ export default function ExploreScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Explore RevoFit</Text>
-        <Text style={styles.subtitle}>Discover all the features</Text>
+        <Text style={styles.title}>Explorer RevoFit</Text>
+        <Text style={styles.subtitle}>Découvrez toutes les fonctionnalités</Text>
       </View>
 
       {/* Features Grid */}
@@ -18,9 +18,9 @@ export default function ExploreScreen() {
             <View style={styles.featureIcon}>
               <Text style={styles.featureIconText}>🏋️</Text>
             </View>
-            <Text style={styles.featureTitle}>Personalized Workouts</Text>
+            <Text style={styles.featureTitle}>Entraînements personnalisés</Text>
             <Text style={styles.featureDescription}>
-              AI-powered workout plans tailored to your goals and fitness level
+              Plans d&apos;entraînement alimentés par l&apos;IA adaptés à vos objectifs et niveau
             </Text>
           </TouchableOpacity>
 
@@ -29,9 +29,9 @@ export default function ExploreScreen() {
             <View style={styles.featureIcon}>
               <Text style={styles.featureIconText}>🍎</Text>
             </View>
-            <Text style={styles.featureTitle}>Nutrition Tracking</Text>
+            <Text style={styles.featureTitle}>Suivi nutritionnel</Text>
             <Text style={styles.featureDescription}>
-              Track calories, macros, and plan your meals for optimal results
+              Suivez calories, macros et planifiez vos repas pour des résultats optimaux
             </Text>
           </TouchableOpacity>
 
@@ -40,9 +40,9 @@ export default function ExploreScreen() {
             <View style={styles.featureIcon}>
               <Text style={styles.featureIconText}>💬</Text>
             </View>
-            <Text style={styles.featureTitle}>Real-time Coaching</Text>
+            <Text style={styles.featureTitle}>Coaching en temps réel</Text>
             <Text style={styles.featureDescription}>
-              Chat with certified coaches and get instant feedback
+              Discutez avec des coachs certifiés et obtenez des retours instantanés
             </Text>
           </TouchableOpacity>
 
@@ -51,9 +51,9 @@ export default function ExploreScreen() {
             <View style={styles.featureIcon}>
               <Text style={styles.featureIconText}>📊</Text>
             </View>
-            <Text style={styles.featureTitle}>Progress Analytics</Text>
+            <Text style={styles.featureTitle}>Analyses de progression</Text>
             <Text style={styles.featureDescription}>
-              Visual charts and insights to track your fitness journey
+              Graphiques visuels et insights pour suivre votre parcours fitness
             </Text>
           </TouchableOpacity>
         </View>

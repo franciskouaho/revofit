@@ -20,14 +20,14 @@ export default function WelcomeScreen() {
           <View style={styles.content}>
             {/* Texte d'accueil */}
             <View style={styles.textContainer}>
-              <Text style={styles.welcomeText}>Welcome to</Text>
+              <Text style={styles.welcomeText}>Bienvenue sur</Text>
               <Text style={styles.appTitle}>RevoFit</Text>
-              <Text style={styles.subtitle}>Personalized fitness made simple and effective.</Text>
+              <Text style={styles.subtitle}>Fitness personnalisé simple et efficace.</Text>
             </View>
             
-            {/* Bouton Get Started */}
+            {/* Bouton Commencer */}
             <TouchableOpacity style={styles.getStartedButton}>
-              <Text style={styles.buttonText}>Get Started</Text>
+              <Text style={styles.buttonText}>Commencer</Text>
               <View style={styles.arrowContainer}>
                 <Text style={styles.arrow}>→</Text>
               </View>

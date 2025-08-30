@@ -5,5 +5,6 @@
 
 // Export de toutes les constantes pour un accès facile
 export * from './Colors';
+export * from './Texts';
 export * from './Typography';
 

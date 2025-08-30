@@ -4,6 +4,8 @@
 
 **RevoFit** est une application mobile React Native moderne combinant entraînements personnalisés, suivi nutritionnel et coaching en temps réel. Design premium avec thème sombre et accent jaune signature pour une expérience utilisateur exceptionnelle.
 
+**🌍 Langue : Français** - L'application est entièrement localisée en français pour le marché francophone.
+
 ## 🔧 Stack Technique
 
 - **React Native 0.81** avec **Expo SDK 54**
@@ -276,6 +278,7 @@ revofit-app/
 - **Cartes flottantes** avec ombres et gradients subtils
 - **Typography** moderne avec Inter font family
 - **Micro-animations** pour feedback utilisateur
+- **🌍 Interface française** - Tous les textes, labels et messages sont en français
 
 ### Composants Clés
 - **Bottom Tabs** : 5 onglets principaux avec icônes et labels
@@ -289,6 +292,7 @@ revofit-app/
 - **Accessibilité** : Contraste WCAG AA minimum
 - **Performance** : 60fps pour animations
 - **Consistance** : Design system uniforme
+- **🌍 Localisation française** : Interface utilisateur 100% en français
 
 ## 📊 Données et State Management
 
@@ -499,6 +503,8 @@ EXPO_PUBLIC_BARCODE_API_KEY=your_barcode_api
 3. **Entraînement** : Sélection → Session → Résumé
 4. **Nutrition** : Objectifs → Ajout aliments → Suivi
 5. **Coaching** : Sélection coach → Chat → Conseils
+
+**🌍 Interface française** : Tous les écrans, boutons, messages et instructions sont en français.
 
 ## 🎨 Spécifications Design
 
@@ -768,6 +774,7 @@ yarn type-check
 - **Composants styled** avec NativeWind
 - **Yarn** pour toute gestion de packages
 - **Performance 60fps** avec Expo optimizations
+- **🌍 Localisation française** : Tous les textes et interfaces en français
 
 ### Priorités Techniques
 1. **Expo SDK** : Utiliser librairies Expo en priorité absolue
@@ -777,6 +784,7 @@ yarn type-check
 5. **Yarn** : Gestionnaire de packages cohérent
 6. **Performance** : Optimisations Expo natives
 7. **Cross-platform** : Parité iOS/Android garantie
+8. **🌍 Localisation française** : Interface utilisateur entièrement en français
 
 ### Exemple d'Architecture Expo-First + Firebase
 ```typescript
@@ -819,6 +827,7 @@ import io from 'socket.io-client';
 - **Feedback immédiat** pour toutes actions
 - **États de chargement** avec skeletons
 - **Gestion erreurs** gracieuse avec retry
+- **🌍 Expérience française** : Interface intuitive et familière pour les utilisateurs francophones
 
 ## 🚫 **RÈGLES STRICTES - À RESPECTER**
 

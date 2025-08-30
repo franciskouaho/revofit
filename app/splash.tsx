@@ -1,9 +1,18 @@
 import { SubtitleText } from '@/components/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import { router } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Image, StatusBar, View } from 'react-native';
 
 export default function SplashScreen() {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            router.replace('/onboarding');
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
     return (
         <View style={{flex: 1}}>
             <StatusBar barStyle="light-content" backgroundColor="#000000"/>
