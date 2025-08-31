@@ -27,19 +27,27 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <DrawerProvider>
-          <Stack>
-            <Stack.Screen name="splash" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="height-input" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="profile" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-            <Stack.Screen name="notifications" options={{ headerShown: false }} />
-            <Stack.Screen name="ai-coach-chat" options={{ headerShown: false }} />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              statusBarStyle: "light",
+              statusBarHidden: false,
+              navigationBarHidden: true,
+            }}
+          >
+            <Stack.Screen name="splash" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="height-input" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="ai-coach-chat" />
+            <Stack.Screen name="workout" />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar hidden={true} />
+          <StatusBar style="light" hidden={false} />
         </DrawerProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

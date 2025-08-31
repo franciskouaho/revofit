@@ -1,4 +1,4 @@
-package com.emplica.awa
+package com.emplica.revofit
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
