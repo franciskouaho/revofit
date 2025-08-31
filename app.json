@@ -2,20 +2,23 @@
   "expo": {
     "name": "RevoFit",
     "slug": "RevoFit",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "revofit",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.emplica.revofit",
+      "appleTeamId": "NAN7MFNMT7"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.emplica.revofit",
       "edgeToEdgeEnabled": true
     },
     "web": {

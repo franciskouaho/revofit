@@ -2,13 +2,10 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import CustomTabBar from '@/components/CustomTabBar';
-import Drawer from '@/components/Drawer';
-import { useDrawer } from '@/contexts/DrawerContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isDrawerVisible, closeDrawer } = useDrawer();
 
   return (
     <>
@@ -27,6 +24,12 @@ export default function TabLayout() {
             title: 'Home',
           }}
         />
+         <Tabs.Screen
+          name="explore"
+          options={{
+            title: 'Explore',
+          }}
+        />
         <Tabs.Screen
           name="workouts"
           options={{
@@ -34,15 +37,9 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="explore"
+          name="nutrition"
           options={{
-            title: 'Explore',
-          }}
-        />
-        <Tabs.Screen
-          name="progress"
-          options={{
-            title: 'Progress',
+            title: 'Nutrition',
           }}
         />
         <Tabs.Screen
@@ -52,9 +49,6 @@ export default function TabLayout() {
           }}
         />
       </Tabs>
-      
-      {/* Drawer au niveau principal pour être au-dessus de tout */}
-      <Drawer isVisible={isDrawerVisible} onClose={closeDrawer} />
     </>
   );
 }

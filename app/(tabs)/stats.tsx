@@ -1,191 +1,502 @@
+// app/(tabs)/stats.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
+
+const BORDER = 'rgba(255,255,255,0.12)';
+
+// Hauteurs unifiées pour les tuiles 2 colonnes
+const TILE_H = 150; // KPIs, Body metrics, mini-cards
+
+/* ---------- conteneur glass générique ---------- */
+const Glass = ({ children, style, padding = 16, blur = 20 }: any) => (
+  <View style={[{ borderRadius: 18, overflow: 'hidden' }, style]}>
+    <BlurView intensity={blur} tint="dark" style={StyleSheet.absoluteFill} />
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: BORDER, borderWidth: 1, borderRadius: 18 },
+      ]}
+    />
+    <View style={{ padding }}>{children}</View>
+  </View>
+);
+
+/* ---------- tuile 2 colonnes (hauteur fixe) ---------- */
+const Tile: React.FC<any> = ({ style, children }) => (
+  <Glass style={[{ width: '47%', minHeight: TILE_H, justifyContent: 'space-between' }, style]}>
+    {children}
+  </Glass>
+);
+
+/* ---------- sparkline (barrettes) ---------- */
+const Sparkline = ({ values, color = '#FFD700' }: { values: number[]; color?: string }) => {
+  const max = Math.max(...values, 1);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 28 }}>
+      {values.map((v, i) => (
+        <View
+          key={i}
+          style={{
+            width: 6,
+            height: Math.max(2, (v / max) * 28),
+            borderRadius: 3,
+            backgroundColor: color,
+            opacity: 0.45 + (v / max) * 0.55,
+          }}
+        />
+      ))}
+    </View>
+  );
+};
+
+/* ---------- donut (completion) ---------- */
+const Donut = ({ size = 120, stroke = 14, percent = 76, color = '#4CAF50' }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, percent));
+  const dash = (p / 100) * c;
+
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${dash} ${c - dash}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: '#fff', fontWeight: '900', fontSize: 22 }}>{p}%</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>Completion</Text>
+      </View>
+    </View>
+  );
+};
 
 export default function StatsScreen() {
-  const monthlyStats = [
-    { month: 'Jan', calories: 45000, workouts: 22, weight: 75.2 },
-    { month: 'Fév', calories: 52000, workouts: 25, weight: 74.8 },
-    { month: 'Mar', calories: 48000, workouts: 23, weight: 74.5 },
-    { month: 'Avr', calories: 55000, workouts: 28, weight: 74.0 },
-    { month: 'Mai', calories: 58000, workouts: 30, weight: 73.5 },
-    { month: 'Juin', calories: 62000, workouts: 32, weight: 73.0 },
+  /* --- datasets --- */
+  const monthly = [
+    { m: 'Jan', cal: 45000, wo: 22 },
+    { m: 'Fév', cal: 52000, wo: 25 },
+    { m: 'Mar', cal: 48000, wo: 23 },
+    { m: 'Avr', cal: 55000, wo: 28 },
+    { m: 'Mai', cal: 58000, wo: 30 },
+    { m: 'Juin', cal: 62000, wo: 32 },
   ];
 
-  const bodyMetrics = [
-    { name: 'Poids', value: '73.0 kg', change: '-0.5 kg', trend: 'down', color: '#4CAF50' },
-    { name: 'Masse musculaire', value: '28.5 kg', change: '+0.3 kg', trend: 'up', color: '#FFD700' },
-    { name: 'Masse grasse', value: '15.2%', change: '-0.8%', trend: 'down', color: '#FF6B6B' },
-    { name: 'IMC', value: '22.1', change: '-0.2', trend: 'down', color: '#4ECDC4' },
+  const kpis = [
+    { label: 'Total calories', value: '62.0k', diff: '+6%', icon: 'flame', color: '#FFD700', series: [8, 12, 7, 15, 18, 22, 17, 24] },
+    { label: 'Entraînements', value: '32', diff: '+2', icon: 'barbell', color: '#4CAF50', series: [3, 4, 3, 5, 6, 5, 6, 7] },
+    { label: 'Temps actif', value: '52h', diff: '+5h', icon: 'time', color: '#4ECDC4', series: [6, 5, 6, 7, 8, 9, 7, 8] },
+    { label: 'Distance', value: '128 km', diff: '+12', icon: 'walk', color: '#9FA8DA', series: [10, 14, 9, 12, 16, 18, 17, 20] },
   ];
 
-  const workoutStats = [
-    { type: 'Cardio', sessions: 45, totalTime: 1800, avgCalories: 320 },
-    { type: 'Force', sessions: 38, totalTime: 2280, avgCalories: 280 },
-    { type: 'HIIT', sessions: 22, totalTime: 660, avgCalories: 450 },
-    { type: 'Yoga', sessions: 15, totalTime: 450, avgCalories: 150 },
+  const body = [
+    { name: 'Poids', value: '73.0 kg', change: '-0.5 kg', up: false, color: '#4CAF50' },
+    { name: 'Masse musculaire', value: '28.5 kg', change: '+0.3 kg', up: true, color: '#FFD700' },
+    { name: 'Masse grasse', value: '15.2%', change: '-0.8%', up: false, color: '#FF6B6B' },
+    { name: 'IMC', value: '22.1', change: '-0.2', up: false, color: '#4ECDC4' },
+  ];
+
+  const split = [
+    { type: 'Cardio', pct: 38, color: '#4CAF50', icon: 'heart' },
+    { type: 'Force', pct: 32, color: '#FFD700', icon: 'barbell' },
+    { type: 'HIIT', pct: 18, color: '#FF6B6B', icon: 'flash' },
+    { type: 'Yoga', pct: 12, color: '#9C27B0', icon: 'leaf' },
+  ];
+
+  const weekHeat = [
+    [0, 1, 2, 1],
+    [0, 0, 3, 2],
+    [1, 2, 2, 0],
+    [0, 3, 1, 0],
+    [2, 2, 3, 1],
+    [1, 0, 2, 3],
+    [0, 1, 1, 0],
+  ];
+
+  const macros = [
+    { name: 'Protéines', g: 120, color: '#4CAF50' },
+    { name: 'Glucides', g: 180, color: '#FF6B6B' },
+    { name: 'Lipides', g: 65, color: '#9C27B0' },
+    { name: 'Fibres', g: 28, color: '#4ECDC4' },
   ];
 
   return (
     <View style={styles.container}>
+      {/* Fond gradient */}
       <LinearGradient
         colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
-        locations={[0, 0.15, 0.4, 0.7, 1]}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
+        locations={[0, 0.15, 0.7, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <ThemedText style={styles.headerTitle}>Statistiques</ThemedText>
-            <TouchableOpacity style={styles.filterButton}>
-              <Ionicons name="filter" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+          {/* Header glass */}
+          <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <ThemedText style={{ fontSize: 24, color: '#fff', fontWeight: '900' }}>Statistiques</ThemedText>
+                <TouchableOpacity
+                  style={{
+                    width: 40, height: 40, borderRadius: 100,
+                    alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
+                  }}
+                >
+                  <Ionicons name="filter" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
           </View>
 
+          {/* KPIs (alignés) */}
+          <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {kpis.map((k, i) => (
+                <Tile key={i}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      <View
+                        style={{
+                          width: 36, height: 36, borderRadius: 18,
+                          borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+                          backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons name={k.icon as any} size={18} color={k.color as any} />
+                      </View>
+                      <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.8)' }}>{k.label}</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 22 }}>{k.value}</Text>
+                    <Text style={{ color: '#4CAF50', marginTop: 4 }}>{k.diff}</Text>
+                  </View>
+                  <Sparkline values={k.series} color={k.color as any} />
+                </Tile>
+              ))}
+            </View>
+          </View>
+
+          {/* VO2 / Rest HR */}
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Tile style={{ width: '47%' }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Ionicons name="fitness" size={18} color="#4CAF50" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>VO₂max</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>48 ml/kg/min</Text>
+                  <Text style={{ color: '#4CAF50', marginTop: 4 }}>+1.2 ce mois</Text>
+                </View>
+              </Tile>
+
+              <Tile style={{ width: '47%' }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Ionicons name="heart" size={18} color="#FF6B6B" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>FC au repos</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>58 bpm</Text>
+                  <Text style={{ color: '#4CAF50', marginTop: 4 }}>-3 bpm</Text>
+                </View>
+              </Tile>
+            </View>
+          </View>
+
+          {/* Métriques corporelles (alignées) */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Métriques corporelles</ThemedText>
-            <View style={styles.metricsGrid}>
-              {bodyMetrics.map((metric, index) => (
-                <View key={index} style={styles.metricCard}>
-                  <View style={styles.metricHeader}>
-                    <ThemedText style={styles.metricName}>{metric.name}</ThemedText>
-                    <View style={[styles.trendIcon, { backgroundColor: metric.color }]}>
-                      <Ionicons 
-                        name={metric.trend === 'up' ? 'trending-up' : 'trending-down'} 
-                        size={16} 
-                        color="#FFFFFF" 
-                      />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              {body.map((m, i) => (
+                <Tile key={i}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text numberOfLines={1} style={{ color: 'rgba(255,255,255,0.8)' }}>{m.name}</Text>
+                      <View
+                        style={{
+                          width: 26, height: 26, borderRadius: 13,
+                          backgroundColor: m.color + '33', alignItems: 'center', justifyContent: 'center',
+                          borderWidth: 1, borderColor: m.color + '66'
+                        }}
+                      >
+                        <Ionicons name={m.up ? 'trending-up' : 'trending-down'} size={14} color="#fff" />
+                      </View>
                     </View>
+                    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 20, marginTop: 10 }}>{m.value}</Text>
+                    <Text style={{ color: m.color, marginTop: 2 }}>{m.change}</Text>
                   </View>
-                  <ThemedText style={styles.metricValue}>{metric.value}</ThemedText>
-                  <ThemedText style={[styles.metricChange, { color: metric.color }]}>
-                    {metric.change}
-                  </ThemedText>
-                </View>
+                </Tile>
               ))}
             </View>
           </View>
 
+          {/* Completion + objectifs */}
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Glass style={{ width: 150, alignItems: 'center', justifyContent: 'center' }}>
+                <Donut percent={76} color="#FFD700" />
+              </Glass>
+              <Glass style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontWeight: '800', marginBottom: 8 }}>Objectifs ce mois</Text>
+                {[
+                  { label: 'Calories brûlées', val: 62000, goal: 80000, color: '#FFD700' },
+                  { label: 'Heures actives', val: 52, goal: 60, color: '#4ECDC4' },
+                  { label: 'Séances', val: 32, goal: 36, color: '#4CAF50' },
+                ].map((g, i) => (
+                  <View key={i} style={{ marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{g.label}</Text>
+                      <Text style={{ color: '#fff', fontWeight: '800' }}>
+                        {g.val}/{g.goal}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        height: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)',
+                        overflow: 'hidden', borderWidth: 1, borderColor: BORDER, marginTop: 6,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: `${Math.min(100, (g.val / g.goal) * 100)}%`,
+                          height: '100%', backgroundColor: g.color,
+                        }}
+                      />
+                    </View>
+                  </View>
+                ))}
+              </Glass>
+            </View>
+          </View>
+
+          {/* Progression mensuelle */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Progression mensuelle</ThemedText>
-            <View style={styles.monthlyChart}>
-              {monthlyStats.map((month, index) => (
-                <View key={index} style={styles.monthColumn}>
-                  <ThemedText style={styles.monthLabel}>{month.month}</ThemedText>
-                  <View style={styles.calorieBar}>
-                    <View 
-                      style={[
-                        styles.calorieBarFill, 
-                        { height: `${(month.calories / 65000) * 100}%` }
-                      ]} 
-                    />
+            <Glass padding={14}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 160 }}>
+                {monthly.map((m, i) => {
+                  const h = Math.max(10, (m.cal / 65000) * 130);
+                  return (
+                    <View key={i} style={{ alignItems: 'center', flex: 1 }}>
+                      <View
+                        style={{
+                          width: 22, height: 130, borderRadius: 12,
+                          backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden',
+                          justifyContent: 'flex-end', borderWidth: 1, borderColor: BORDER,
+                        }}
+                      >
+                        <LinearGradient colors={['#FFD700', '#E6C200']} start={{ x: 0, y: 1 }} end={{ x: 0, y: 0 }} style={{ height: h }} />
+                      </View>
+                      <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>{m.m}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>{Math.round(m.cal / 1000)}k</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#4CAF50' }} />
+                        <Text style={{ color: '#4CAF50', fontSize: 10, fontWeight: '700' }}>{m.wo}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </Glass>
+          </View>
+
+          {/* Répartition activité */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Répartition de l’activité</ThemedText>
+            <Glass>
+              {split.map((s, i) => (
+                <View key={i} style={{ marginBottom: i === split.length - 1 ? 0 : 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ionicons name={s.icon as any} size={16} color={s.color as any} />
+                      <Text style={{ color: '#fff', fontWeight: '700' }}>{s.type}</Text>
+                    </View>
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{s.pct}%</Text>
                   </View>
-                  <ThemedText style={styles.monthValue}>{Math.round(month.calories / 1000)}k</ThemedText>
-                  <View style={styles.workoutIndicator}>
-                    <View style={[styles.workoutDot, { backgroundColor: '#4CAF50' }]} />
-                    <ThemedText style={styles.workoutCount}>{month.workouts}</ThemedText>
+                  <View
+                    style={{
+                      height: 8, backgroundColor: 'rgba(255,255,255,0.08)',
+                      borderRadius: 6, marginTop: 8, overflow: 'hidden',
+                      borderWidth: 1, borderColor: BORDER,
+                    }}
+                  >
+                    <View style={{ width: `${s.pct}%`, height: '100%', backgroundColor: s.color, borderRadius: 6 }} />
                   </View>
                 </View>
               ))}
-            </View>
+            </Glass>
           </View>
 
+          {/* Heatmap hebdo */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Statistiques d&apos;entraînement</ThemedText>
-            <View style={styles.workoutStatsList}>
-              {workoutStats.map((stat, index) => (
-                <View key={index} style={styles.workoutStatCard}>
-                  <View style={styles.workoutStatHeader}>
-                    <ThemedText style={styles.workoutStatType}>{stat.type}</ThemedText>
-                    <View style={styles.workoutStatIcon}>
-                      <Ionicons 
-                        name={stat.type === 'Cardio' ? 'heart' : 
-                              stat.type === 'Force' ? 'barbell' : 
-                              stat.type === 'HIIT' ? 'flash' : 'leaf'} 
-                        size={20} 
-                        color="#FFD700" 
+            <ThemedText style={styles.sectionTitle}>Heatmap hebdo</ThemedText>
+            <Glass padding={14}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                {weekHeat.map((day, i) => (
+                  <View key={i} style={{ gap: 6, alignItems: 'center' }}>
+                    {day.map((v, j) => (
+                      <View
+                        key={j}
+                        style={{
+                          width: 18, height: 18, borderRadius: 4,
+                          backgroundColor: v === 0 ? 'rgba(255,255,255,0.08)' : '#4CAF50',
+                          opacity: v === 0 ? 1 : 0.25 + v * 0.18,
+                          borderWidth: 1, borderColor: BORDER,
+                        }}
                       />
-                    </View>
+                    ))}
+                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 4 }}>
+                      {'DLMJVSD'.split('')[i]}
+                    </Text>
                   </View>
-                  
-                  <View style={styles.workoutStatDetails}>
-                    <View style={styles.workoutStatDetail}>
-                      <ThemedText style={styles.workoutStatLabel}>Sessions</ThemedText>
-                      <ThemedText style={styles.workoutStatValue}>{stat.sessions}</ThemedText>
-                    </View>
-                    <View style={styles.workoutStatDetail}>
-                      <ThemedText style={styles.workoutStatLabel}>Temps total</ThemedText>
-                      <ThemedText style={styles.workoutStatValue}>{Math.round(stat.totalTime / 60)}h</ThemedText>
-                    </View>
-                    <View style={styles.workoutStatDetail}>
-                      <ThemedText style={styles.workoutStatLabel}>Calories moy.</ThemedText>
-                      <ThemedText style={styles.workoutStatValue}>{stat.avgCalories}</ThemedText>
-                    </View>
-                  </View>
+                ))}
+              </View>
+            </Glass>
+          </View>
+
+          {/* Nutrition (moyennes) */}
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>Nutrition (moyennes)</ThemedText>
+            <Glass>
+              {macros.map((m, i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: i === macros.length - 1 ? 0 : 12 }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: m.color, marginRight: 8 }} />
+                  <Text style={{ color: '#fff', flex: 1 }}>{m.name}</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.8)', width: 64, textAlign: 'right' }}>{m.g} g</Text>
                 </View>
               ))}
-            </View>
+            </Glass>
           </View>
 
+          {/* Mini-cards Steps / Elevation / Hydratation / Pace (alignées) */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Records personnels</ThemedText>
-            <View style={styles.recordsGrid}>
-              <View style={styles.recordCard}>
-                <Ionicons name="trophy" size={32} color="#FFD700" />
-                <ThemedText style={styles.recordTitle}>Distance course</ThemedText>
-                <ThemedText style={styles.recordValue}>15.2 km</ThemedText>
-                <ThemedText style={styles.recordDate}>12 juin 2024</ThemedText>
-              </View>
-              
-              <View style={styles.recordCard}>
-                <Ionicons name="barbell" size={32} color="#4ECDC4" />
-                <ThemedText style={styles.recordTitle}>Squat max</ThemedText>
-                <ThemedText style={styles.recordValue}>120 kg</ThemedText>
-                <ThemedText style={styles.recordDate}>8 juin 2024</ThemedText>
-              </View>
-              
-              <View style={styles.recordCard}>
-                <Ionicons name="time" size={32} color="#FF6B6B" />
-                <ThemedText style={styles.recordTitle}>Plank</ThemedText>
-                <ThemedText style={styles.recordValue}>4 min 30s</ThemedText>
-                <ThemedText style={styles.recordDate}>15 juin 2024</ThemedText>
-              </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <Tile>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="walk" size={18} color="#FFD700" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Pas (7j)</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>78 540</Text>
+                </View>
+                <Sparkline values={[8, 10, 14, 12, 11, 13, 10]} color="#FFD700" />
+              </Tile>
+
+              <Tile>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="trail-sign" size={18} color="#9FA8DA" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Dénivelé</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>1 120 m</Text>
+                </View>
+                <Sparkline values={[2, 4, 1, 5, 3, 6, 4]} color="#9FA8DA" />
+              </Tile>
+
+              <Tile>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="water" size={18} color="#4ECDC4" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Hydratation</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>2.3 L/j</Text>
+                </View>
+                <Sparkline values={[1.8, 2.0, 2.4, 2.7, 2.3, 2.1, 2.5]} color="#4ECDC4" />
+              </Tile>
+
+              <Tile>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="speedometer" size={18} color="#FF6B6B" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Pace course</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>5'02 /km</Text>
+                </View>
+                <Sparkline values={[6, 5.6, 5.2, 5.1, 4.9, 5.1, 5.0]} color="#FF6B6B" />
+              </Tile>
             </View>
           </View>
 
+          {/* Records & Comparaison */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Comparaison annuelle</ThemedText>
-            <View style={styles.comparisonCard}>
-              <View style={styles.comparisonRow}>
-                <View style={styles.comparisonItem}>
-                  <ThemedText style={styles.comparisonLabel}>2023</ThemedText>
-                  <ThemedText style={styles.comparisonValue}>480,000 Kcal</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Records & Comparaison</ThemedText>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Glass style={{ flex: 1 }}>
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="trophy" size={28} color="#FFD700" />
+                  <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Distance course</Text>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>15.2 km</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>12 juin 2024</Text>
                 </View>
-                <View style={styles.comparisonDivider} />
-                <View style={styles.comparisonItem}>
-                  <ThemedText style={styles.comparisonLabel}>2024</ThemedText>
-                  <ThemedText style={styles.comparisonValue}>320,000 Kcal</ThemedText>
+              </Glass>
+
+              <Glass style={{ flex: 1 }}>
+                <Text style={{ color: 'rgba(255,255,255,0.8)', marginBottom: 10 }}>Comparaison annuelle</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text style={{ color: '#fff', fontWeight: '800' }}>2023</Text>
+                    <Text style={{ color: '#FFD700' }}>480k Kcal</Text>
+                  </View>
+                  <View style={{ width: 1, height: 30, backgroundColor: BORDER }} />
+                  <View style={{ alignItems: 'center', flex: 1 }}>
+                    <Text style={{ color: '#fff', fontWeight: '800' }}>2024</Text>
+                    <Text style={{ color: '#4CAF50' }}>320k Kcal</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.comparisonProgress}>
-                <ThemedText style={styles.comparisonProgressText}>
-                  +33% par rapport à l&apos;année dernière
-                </ThemedText>
-                <View style={styles.comparisonProgressBar}>
-                  <View style={[styles.comparisonProgressFill, { width: '66%' }]} />
+                <View style={{ height: 10 }} />
+                <Text style={{ color: '#4CAF50', fontWeight: '800', textAlign: 'center' }}>+33% vs N-1</Text>
+                <View
+                  style={{
+                    height: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)',
+                    overflow: 'hidden', borderWidth: 1, borderColor: BORDER, marginTop: 8,
+                  }}
+                >
+                  <View style={{ width: '66%', height: '100%', backgroundColor: '#4CAF50' }} />
                 </View>
-              </View>
+              </Glass>
             </View>
           </View>
 
-          <View style={{ height: 100 }} />
+          {/* Streaks & complétion */}
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Tile style={{ width: '47%' }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="flame" size={18} color="#FFD700" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Meilleur streak</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>9 semaines</Text>
+                </View>
+              </Tile>
+
+              <Tile style={{ width: '47%' }}>
+                <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="aperture" size={18} color="#4CAF50" />
+                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Taux complétion</Text>
+                  </View>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>84%</Text>
+                </View>
+              </Tile>
+            </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -193,259 +504,8 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: RevoColors.background,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-  filterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2A2A2A',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  metricCard: {
-    backgroundColor: '#2A2A2A',
-    padding: 16,
-    borderRadius: 16,
-    width: '47%',
-    minHeight: 100,
-  },
-  metricHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  metricName: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
-  },
-  trendIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  metricValue: {
-    fontSize: 20,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  metricChange: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  monthlyChart: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    height: 140,
-  },
-  monthColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  monthLabel: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  calorieBar: {
-    width: 24,
-    height: 80,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  calorieBarFill: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFD700',
-    borderRadius: 12,
-  },
-  monthValue: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
-  },
-  workoutIndicator: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  workoutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  workoutCount: {
-    fontSize: 10,
-    color: '#4CAF50',
-    fontWeight: '600',
-  },
-  workoutStatsList: {
-    gap: 16,
-  },
-  workoutStatCard: {
-    backgroundColor: '#2A2A2A',
-    padding: 16,
-    borderRadius: 16,
-  },
-  workoutStatHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  workoutStatType: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  workoutStatIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  workoutStatDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  workoutStatDetail: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  workoutStatLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  workoutStatValue: {
-    fontSize: 16,
-    color: '#FFD700',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  recordsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  recordCard: {
-    backgroundColor: '#2A2A2A',
-    padding: 16,
-    borderRadius: 16,
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  recordTitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-  },
-  recordValue: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  recordDate: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    textAlign: 'center',
-  },
-  comparisonCard: {
-    backgroundColor: '#2A2A2A',
-    padding: 20,
-    borderRadius: 16,
-  },
-  comparisonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  comparisonItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  comparisonLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 8,
-  },
-  comparisonValue: {
-    fontSize: 20,
-    color: '#FFD700',
-    fontWeight: '700',
-  },
-  comparisonDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  comparisonProgress: {
-    alignItems: 'center',
-  },
-  comparisonProgressText: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  comparisonProgressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#1A1A1A',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  comparisonProgressFill: {
-    height: '100%',
-    backgroundColor: '#4CAF50',
-    borderRadius: 4,
-  },
-}); 
+  container: { flex: 1, backgroundColor: RevoColors.background },
+  safeArea: { flex: 1 },
+  section: { paddingHorizontal: 20, marginBottom: 22 },
+  sectionTitle: { fontSize: 20, color: '#fff', fontWeight: '700', marginBottom: 12 },
+});

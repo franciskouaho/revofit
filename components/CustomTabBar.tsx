@@ -37,8 +37,8 @@ export default function CustomTabBar({ state, descriptors, navigation }: CustomT
                 return 'barbell';
               case 'explore':
                 return 'compass';
-              case 'progress':
-                return 'clipboard';
+              case 'nutrition':
+                return 'restaurant';
               case 'stats':
                 return 'bar-chart';
               default:

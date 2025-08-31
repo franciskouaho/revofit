@@ -5,6 +5,7 @@ import { RevoColors } from '@/constants/Colors';
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,6 +14,8 @@ const GLASS_BORDER = 'rgba(255,255,255,0.12)';
 const GLASS_BG = 'rgba(255,255,255,0.06)';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  
   const userStats = {
     calories: 1200,
     steps: 9560,
@@ -28,9 +31,8 @@ export default function HomeScreen() {
     image: require('@/assets/images/onboarding-athlete.png')
   };
 
-  const handleMenuPress = () => console.log('Menu pressed');
-  const handleNotificationPress = () => console.log('Notification pressed');
-  const handleProfilePress = () => console.log('Profile pressed');
+  const handleNotificationPress = () => router.push('/notifications');
+  const handleProfilePress = () => router.push('/settings');
 
   return (
     <View style={styles.container}>
@@ -47,7 +49,6 @@ export default function HomeScreen() {
         <Header 
           greeting="Bonjour"
           userName="Adam Smith"
-          onMenuPress={handleMenuPress}
           onNotificationPress={handleNotificationPress}
           onProfilePress={handleProfilePress}
         />

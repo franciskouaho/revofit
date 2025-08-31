@@ -5,6 +5,7 @@ import React, { useRef, useState } from "react";
 import { Animated, ImageBackground, LayoutChangeEvent, Pressable, StatusBar, Text, View } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
+import LoginDrawer from "../../components/LoginDrawer";
 
 // SwipeToStartButton (corrigé)
 const SwipeToStartButton: React.FC<{ label?: string; onComplete?: () => void }> = ({
@@ -104,9 +105,15 @@ const SwipeToStartButton: React.FC<{ label?: string; onComplete?: () => void }> 
 };
 
 export default function OnboardingScreen() {
+    const [showLoginDrawer, setShowLoginDrawer] = useState(false);
+    
     const handleGetStarted = () => {
         // Navigation vers la page de sélection du prénom
         router.push('/onboarding/firstname-selection');
+    };
+
+    const handleAlreadyHaveAccount = () => {
+        setShowLoginDrawer(true);
     };
 
     return (
@@ -164,10 +171,7 @@ export default function OnboardingScreen() {
                                     justifyContent: 'center',
                                     marginTop: 16,
                                 }}
-                                onPress={() => {
-                                    // Navigation vers la page d'accueil (temporaire)
-                                    router.push('/(tabs)');
-                                }}
+                                onPress={handleAlreadyHaveAccount}
                             >
                                 <Text style={{ color: 'white', fontSize: 18, fontWeight: '600' }}>
                                     J&apos;ai déjà un compte
@@ -182,6 +186,12 @@ export default function OnboardingScreen() {
                     </View>
                 </SafeAreaView>
             </ImageBackground>
+
+            {/* Login Drawer */}
+            <LoginDrawer
+                visible={showLoginDrawer}
+                onClose={() => setShowLoginDrawer(false)}
+            />
         </View>
     );
 }

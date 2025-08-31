@@ -1,4 +1,3 @@
-import { useDrawer } from '@/contexts/DrawerContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
@@ -10,7 +9,6 @@ const GLASS_BORDER = 'rgba(255,255,255,0.12)';
 interface HeaderProps {
   greeting?: string;
   userName?: string;
-  onMenuPress?: () => void;
   onNotificationPress?: () => void;
   onProfilePress?: () => void;
 }
@@ -18,39 +16,20 @@ interface HeaderProps {
 export default function Header({ 
   greeting = "Good Morning", 
   userName = "Adam Smith",
-  onMenuPress,
   onNotificationPress,
   onProfilePress
 }: HeaderProps) {
-  const { openDrawer } = useDrawer();
-
-  const handleMenuPress = () => {
-    openDrawer();
-    onMenuPress?.();
-  };
-
   return (
     <View style={styles.header}>
-      {/* Left side - Menu + Greeting */}
+      {/* Left side - Greeting only */}
       <View style={styles.headerLeft}>
-        <BlurView intensity={28} tint="dark" style={styles.menuButton}>
-          <TouchableOpacity style={styles.menuInner} onPress={handleMenuPress} activeOpacity={0.8}>
-            <View style={styles.menuGrid}>
-              <View style={styles.menuSquare} />
-              <View style={styles.menuSquare} />
-              <View style={styles.menuSquare} />
-              <View style={styles.menuSquare} />
-            </View>
-          </TouchableOpacity>
-        </BlurView>
-        
         <View style={styles.greetingContainer}>
           <ThemedText style={styles.greeting}>{greeting}</ThemedText>
           <ThemedText style={styles.userName}>{userName}</ThemedText>
         </View>
       </View>
 
-      {/* Right side - Notifications + Profile */}
+      {/* Right side - Notifications + Profile (opens settings) */}
       <View style={styles.headerRight}>
         <BlurView intensity={28} tint="dark" style={styles.iconGlass}>
           <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
@@ -61,7 +40,7 @@ export default function Header({
         
         <BlurView intensity={28} tint="dark" style={styles.iconGlass}>
           <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
-            <Ionicons name="person" size={26} color="#FFD700" />
+            <Ionicons name="person" size={22} color="#FFD700" />
           </TouchableOpacity>
         </BlurView>
       </View>
@@ -82,31 +61,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  menuButton: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: GLASS_BORDER,
-    overflow: 'hidden',
-    marginRight: 14,
-  },
-  menuInner: {
-    padding: 8,
-  },
-  menuGrid: {
-    width: 28,
-    height: 28,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  menuSquare: {
-    width: 10,
-    height: 10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-    margin: 1,
   },
   greetingContainer: {
     flex: 1,
