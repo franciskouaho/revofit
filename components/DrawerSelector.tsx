@@ -93,6 +93,8 @@ export default function DrawerSelector({
       transparent
       animationType="none"
       onRequestClose={handleClose}
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
     >
       {/* Backdrop */}
       <Animated.View style={[styles.backdrop, { opacity: fade }]}>
@@ -115,7 +117,7 @@ export default function DrawerSelector({
           },
         ]}
       >
-        <View style={[styles.drawer, { borderWidth: 2, borderColor: 'red' }]}>
+        <View style={styles.drawer}>
           <BlurView intensity={Platform.OS === "ios" ? 28 : 20} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, styles.border]} />
 
@@ -277,6 +279,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 9999,
   },
   drawer: {
     borderTopLeftRadius: 24,

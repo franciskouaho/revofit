@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from "react";
 import { Animated, ImageBackground, LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
@@ -119,8 +118,6 @@ export default function OnboardingScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: 'black' }}>
-            <StatusBar style="light" />
-
             {/* Image plein écran */}
             <ImageBackground
                 source={require("../../assets/images/onboarding-athlete.png")}

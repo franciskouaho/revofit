@@ -1,9 +1,9 @@
 // app/(tabs)/workout.tsx
-import GenerateDrawer from "@/components/GenerateDrawer";
 import TemplateDrawer from "@/components/TemplateDrawer";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ImageBackground,
@@ -194,7 +194,7 @@ const Glass = ({ children, style, blur = 18 }: any) => (
 /** ------------------- Screen -------------------- */
 export default function WorkoutScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [generateDrawerVisible, setGenerateDrawerVisible] = useState(false);
+
   const [templateDrawerVisible, setTemplateDrawerVisible] = useState(false);
 
   const handleGenerate = (params: any) => {
@@ -284,7 +284,9 @@ export default function WorkoutScreen() {
 
                 <TouchableOpacity 
                   style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}
-                  onPress={() => setGenerateDrawerVisible(true)}
+                  onPress={() => {
+                    router.push("/generate-workout");
+                  }}
                   activeOpacity={0.9}
                 >
                   <LinearGradient
@@ -428,16 +430,11 @@ export default function WorkoutScreen() {
         onClose={() => setMenuVisible(false)} 
         onGenerateWorkout={() => {
           setMenuVisible(false);
-          setGenerateDrawerVisible(true);
+          router.push("/generate-workout");
         }}
       />
       
-      {/* Generate Drawer */}
-      <GenerateDrawer
-        visible={generateDrawerVisible}
-        onClose={() => setGenerateDrawerVisible(false)}
-        onGenerate={handleGenerate}
-      />
+
 
       {/* Template Drawer */}
       <TemplateDrawer

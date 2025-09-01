@@ -1,7 +1,6 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
@@ -47,7 +46,6 @@ export default function RootLayout() {
             <Stack.Screen name="workout" />
             <Stack.Screen name="+not-found" />
           </Stack>
-          <StatusBar style="light" hidden={false} />
         </DrawerProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

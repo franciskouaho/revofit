@@ -236,7 +236,7 @@ export default function WorkoutSetsScreen() {
                 style={styles.completeButtonGradient}
               >
                 <Ionicons name="checkmark-circle" size={20} color="#000" />
-                <Text style={styles.completeButtonText}>Terminer l'entraînement</Text>
+                <Text style={styles.completeButtonText}>Terminer l&#39;entraînement</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
