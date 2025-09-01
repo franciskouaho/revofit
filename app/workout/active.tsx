@@ -2,7 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -24,11 +24,13 @@ const LIME_DARK = "#C3F02F";
 
 export default function WorkoutActiveScreen() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
 
   const TOTAL = 45;
   const [time, setTime] = useState(TOTAL);
   const [isPlaying, setIsPlaying] = useState(false);
   const [weight, setWeight] = useState(40);
+  const [reps, setReps] = useState(parseInt(params.reps as string) || 1);
 
   const progress = 1 - time / TOTAL;
   const progAnim = useRef(new Animated.Value(progress)).current;
@@ -45,7 +47,9 @@ export default function WorkoutActiveScreen() {
   useEffect(() => {
     let int: ReturnType<typeof setInterval> | null = null;
     if (isPlaying && time > 0) int = setInterval(() => setTime(t => Math.max(0, t - 1)), 1000);
-    return () => int && clearInterval(int);
+    return () => {
+      if (int) clearInterval(int);
+    };
   }, [isPlaying, time]);
 
   useEffect(() => { if (time === 0) setIsPlaying(false); }, [time]);
@@ -80,7 +84,7 @@ export default function WorkoutActiveScreen() {
             source={{ uri: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=240&h=240&fit=crop" }}
             style={styles.nextImg}
           />
-          <Text style={styles.nextTxt}>Next exercise</Text>
+          <Text style={styles.nextTxt}>Exercice suivant</Text>
         </View>
       </View>
 
@@ -143,7 +147,7 @@ export default function WorkoutActiveScreen() {
 
           {/* Round / segments / temps */}
           <View style={styles.roundRow}>
-            <Text style={styles.roundTxt}>Round 1</Text>
+            <Text style={styles.roundTxt}>Série 1</Text>
             <View style={styles.segmentsWrap}>
               {new Array(10).fill(0).map((_, i) => {
                 const pct = (i + 1) / 10;
@@ -151,12 +155,15 @@ export default function WorkoutActiveScreen() {
                 return <View key={i} style={[styles.segment, active ? { backgroundColor: LIME } : { backgroundColor: "rgba(255,255,255,0.12)" }]} />;
               })}
             </View>
-            <Text style={styles.timeTxt}>{formatTime(time)}</Text>
+            <View style={styles.timeSection}>
+              <Text style={styles.timeTxt}>{formatTime(time)}</Text>
+              <Text style={styles.repsTxt}>{reps} répétition{reps > 1 ? 's' : ''}</Text>
+            </View>
           </View>
 
           {/* Completed */}
           <View style={{ marginTop: 14 }}>
-            <Text style={styles.caption}>Completed</Text>
+            <Text style={styles.caption}>Terminé</Text>
             <View style={styles.thinBar}>
               <Animated.View
                 style={[
@@ -170,7 +177,7 @@ export default function WorkoutActiveScreen() {
 
           {/* Poids */}
           <View style={styles.weightRow}>
-            <Text style={styles.weightLabel}>Additional weight</Text>
+            <Text style={styles.weightLabel}>Poids supplémentaire</Text>
             <View style={styles.weightCtrls}>
               <TouchableOpacity style={styles.weightGhost} onPress={() => setWeight(w => Math.max(0, w - 2.5))}>
                 <Text style={styles.weightGhostTxt}>–</Text>
@@ -182,14 +189,35 @@ export default function WorkoutActiveScreen() {
             </View>
           </View>
 
-          {/* Prev / Next */}
+          {/* Répétitions */}
+          <View style={styles.weightRow}>
+            <Text style={styles.weightLabel}>Répétitions</Text>
+            <View style={styles.weightCtrls}>
+              <TouchableOpacity style={styles.weightGhost} onPress={() => setReps(r => Math.max(1, r - 1))}>
+                <Text style={styles.weightGhostTxt}>–</Text>
+              </TouchableOpacity>
+              <Text style={styles.weightValue}>{reps}</Text>
+              <TouchableOpacity style={styles.weightGhost} onPress={() => setReps(r => r + 1)}>
+                <Text style={styles.weightGhostTxt}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Terminer */}
           <View style={styles.navRow}>
-            <TouchableOpacity style={[styles.pillBtn, styles.pillGhost]}>
-              <Text style={styles.pillGhostTxt}>Prev</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.pillBtn, styles.pillPrimary]} activeOpacity={0.9}>
+            <TouchableOpacity 
+              style={[styles.pillBtn, styles.pillPrimary]} 
+              activeOpacity={0.9}
+              onPress={() => {
+                // Ajouter une série complétée et revenir à details
+                router.push({
+                  pathname: "/workout/details",
+                  params: { completedSet: "true" }
+                });
+              }}
+            >
               <LinearGradient colors={[LIME, LIME_DARK]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              <Text style={styles.pillPrimaryTxt}>Next</Text>
+              <Text style={styles.pillPrimaryTxt}>Terminer</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -292,7 +320,20 @@ const styles = StyleSheet.create({
   roundTxt: { width: 90, color: "#fff", fontWeight: "700" },
   segmentsWrap: { flex: 1, flexDirection: "row", gap: 6, paddingHorizontal: 6 },
   segment: { flex: 1, height: 6, borderRadius: 3 },
-  timeTxt: { width: 70, textAlign: "right", color: "#fff", fontWeight: "700" },
+  timeSection: { 
+    width: 70, 
+    alignItems: "flex-end" 
+  },
+  timeTxt: { 
+    color: "#fff", 
+    fontWeight: "700",
+    fontSize: 16
+  },
+  repsTxt: { 
+    color: "rgba(255,255,255,0.7)", 
+    fontSize: 12,
+    marginTop: 2
+  },
 
   caption: { color: "rgba(255,255,255,0.85)", marginTop: 8, marginBottom: 6 },
   thinBar: { height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.12)", overflow: "hidden" },
@@ -323,6 +364,6 @@ const styles = StyleSheet.create({
   },
   pillGhost: { backgroundColor: "transparent" },
   pillGhostTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  pillPrimary: { flex: 1.4 },
+  pillPrimary: { flex: 1 },
   pillPrimaryTxt: { color: "#071100", fontWeight: "900", fontSize: 16 },
 });

@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import React from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -47,8 +47,49 @@ function Glass({
 }
 
 export default function WorkoutDetailsScreen() {
+  const params = useLocalSearchParams();
+  const [completedSets, setCompletedSets] = useState<number[]>([]);
+  const [exerciseConfig, setExerciseConfig] = useState({
+    name: "Gainage coude",
+    sets: 4,
+    reps: 1,
+    restTime: "2 min"
+  });
+  
+  // Vérifier si une série a été complétée
+  React.useEffect(() => {
+    if (params.completedSet === "true") {
+      const newSetId = completedSets.length + 1;
+      if (newSetId <= exerciseConfig.sets) {
+        setCompletedSets([...completedSets, newSetId]);
+      }
+    }
+  }, [params.completedSet, exerciseConfig.sets]);
+
+  // Mettre à jour la configuration depuis les métriques
+  React.useEffect(() => {
+    if (params.fromMetrics === "true") {
+      const newConfig = {
+        name: "Gainage coude",
+        sets: parseInt(params.sets as string) || 4,
+        reps: parseInt(params.reps as string) || 1,
+        restTime: (params.restTime as string) || "2 min"
+      };
+      setExerciseConfig(newConfig);
+      // Réinitialiser les séries complétées quand on change la configuration
+      setCompletedSets([]);
+    }
+  }, [params.fromMetrics, params.sets, params.reps, params.restTime]);
+  
   const handleStartWorkout = () => router.push("/workout/active");
   const handleSetMetrics = () => router.push("/workout/metrics");
+  
+  const handleExercisePress = () => {
+    router.push("/workout/active");
+  };
+  
+  const totalSets = exerciseConfig.sets;
+  const completedCount = completedSets.length;
 
   return (
     <View style={styles.container}>
@@ -98,7 +139,7 @@ export default function WorkoutDetailsScreen() {
                   <View style={styles.heroFooterRow}>
                     <View style={styles.meta}>
                       <Ionicons name="pulse" size={16} color="#FFD700" />
-                      <Text style={styles.metaText}>High Intensity</Text>
+                      <Text style={styles.metaText}>Intensité élevée</Text>
                     </View>
                     <View style={styles.separator} />
                     <View style={styles.meta}>
@@ -117,8 +158,8 @@ export default function WorkoutDetailsScreen() {
               {/* Badge titre */}
               <View style={styles.heroBadgeWrap}>
                 <Glass padding={12} style={styles.heroBadge}>
-                  <Text style={styles.heroTitle}>Strong Press Workout</Text>
-                  <Text style={styles.heroSubtitle}>Upper Body • Press Focus</Text>
+                  <Text style={styles.heroTitle}>Entraînement Gainage</Text>
+                  <Text style={styles.heroSubtitle}>Corps entier • Focus gainage</Text>
                 </Glass>
               </View>
             </ImageBackground>
@@ -130,136 +171,123 @@ export default function WorkoutDetailsScreen() {
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
                   <Ionicons name="barbell" size={14} color="#FFD700" />
-                  <Text style={styles.chipText}>Barbell • Dumbbells</Text>
+                  <Text style={styles.chipText}>Poids du corps</Text>
                 </View>
               </Glass>
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
                   <Ionicons name="speedometer" size={14} color="#4ECDC4" />
-                  <Text style={styles.chipText}>Intermediate</Text>
+                  <Text style={styles.chipText}>Intermédiaire</Text>
                 </View>
               </Glass>
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
-                  <Ionicons name="repeat" size={14} color="#9FA8DA" />
-                  <Text style={styles.chipText}>4 Rounds</Text>
+                  <Ionicons name="time-outline" size={14} color="#9FA8DA" />
+                  <Text style={styles.chipText}>1 min</Text>
                 </View>
               </Glass>
             </View>
 
             {/* Boutons d’action */}
+            {/* Bouton Set Metrics */}
             <View style={styles.actionsRow}>
               <Glass style={{ flex: 1 }}>
                 <TouchableOpacity style={styles.actionBtn} onPress={handleSetMetrics}>
                   <Ionicons name="options" size={18} color="#fff" />
-                  <Text style={styles.actionText}>Set Metrics</Text>
+                  <Text style={styles.actionText}>Définir métriques</Text>
                 </TouchableOpacity>
               </Glass>
-
-              <View style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}>
-                <TouchableOpacity activeOpacity={0.9} onPress={handleStartWorkout}>
-                  <LinearGradient
-                    colors={["#8BC34A", "#2ECC71"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.startBtn}
-                  >
-                    <Ionicons name="play" size={18} color="#000" />
-                    <Text style={styles.startText}>Start</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Description (glass) */}
             <Glass>
-              <Text style={styles.blockTitle}>Overview</Text>
+              <Text style={styles.blockTitle}>Aperçu</Text>
               <Text style={styles.desc}>
-                The Strong Press workout is designed to build upper-body strength and power with a
-                press-dominant structure. Expect compound lifts, controlled tempo work, and targeted
-                accessories for shoulders and triceps.{" "}
-                <Text style={{ color: "#FFD700", fontWeight: "700" }}>See more…</Text>
+                Lentraînement de gainage est conçu pour renforcer la stabilité du corps entier avec une
+                structure axée sur le contrôle. Attendez-vous à des exercices de stabilisation, un travail
+                contrôlé et des accessoires ciblés pour les épaules et les triceps.{" "}
+                <Text style={{ color: "#FFD700", fontWeight: "700" }}>Voir plus…</Text>
               </Text>
             </Glass>
 
-            {/* Flow (rounds + exos) */}
+            {/* Exercise details */}
             <View style={{ height: 16 }} />
 
-            <Glass>
-              <View style={styles.blockHeader}>
-                <Text style={styles.blockTitle}>Workout flow</Text>
-                <TouchableOpacity>
-                  <Text style={styles.edit}>Edit</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Round 1 */}
-              <View style={styles.roundHeader}>
-                <View style={styles.roundBadge}>
-                  <Text style={styles.roundBadgeText}>Round 1</Text>
-                </View>
-                <Text style={styles.roundMeta}>Target RPE: 7 • Rest: 60–90s</Text>
-              </View>
-
-              {/* Exercice 1 */}
-              <View style={styles.exerciseCard}>
-                <View style={styles.thumb}>
-                  <ImageBackground
-                    source={{
-                      uri: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80&auto=format&fit=crop",
-                    }}
-                    style={{ flex: 1 }}
-                    imageStyle={{ borderRadius: 10 }}
-                  >
-                    <LinearGradient
-                      colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.0)"]}
-                      start={{ x: 0, y: 1 }}
-                      end={{ x: 0, y: 0 }}
-                      style={StyleSheet.absoluteFill}
-                    />
-                  </ImageBackground>
+                          <Glass>
+                <View style={styles.blockHeader}>
+                  <Text style={styles.blockTitle}>{totalSets} séries dexercice</Text>
                 </View>
 
-                <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                  <Text style={styles.exerciseName}>Elbow Plank</Text>
-                  <Text style={styles.exerciseSub}>Core • Anti-extension</Text>
-                </View>
+                                            {/* Cartes des séries */}
+               {Array.from({ length: totalSets }, (_, index) => {
+                 const setNumber = index + 1;
+                 const isCompleted = completedSets.includes(setNumber);
+                 
+                 return (
+                   <View key={setNumber} style={styles.exerciseCard}>
+                     <View style={styles.thumb}>
+                       <ImageBackground
+                         source={{
+                           uri: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80&auto=format&fit=crop",
+                         }}
+                         style={{ flex: 1 }}
+                         imageStyle={{ borderRadius: 10 }}
+                       >
+                         <LinearGradient
+                           colors={["rgba(0,0,0,0.4)", "rgba(0,0,0,0.0)"]}
+                           start={{ x: 0, y: 1 }}
+                           end={{ x: 0, y: 0 }}
+                           style={StyleSheet.absoluteFill}
+                         />
+                       </ImageBackground>
+                     </View>
 
-                <Glass padding={8} style={styles.pill}>
-                  <Text style={styles.pillText}>1 min</Text>
-                </Glass>
+                     <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                                         <Text style={styles.exerciseName}>{exerciseConfig.name}</Text>
+                  <Text style={styles.exerciseSub}>
+                    Gainage • Anti-extension • Série {setNumber}
+                  </Text>
+                     </View>
 
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
-              </View>
+                     <View style={styles.exerciseStatus}>
+                     </View>
 
-              {/* Rest */}
-              <View style={styles.exerciseCard}>
-                <View style={[styles.thumb, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
-                  <Ionicons name="time-outline" size={20} color="#fff" />
-                </View>
+                     {isCompleted ? (
+                       <View style={styles.completedButton}>
+                         <Ionicons name="checkmark-circle" size={24} color="#D8FF49" />
+                       </View>
+                     ) : (
+                       <TouchableOpacity 
+                         style={styles.playButton}
+                         onPress={handleExercisePress}
+                         activeOpacity={0.9}
+                       >
+                         <LinearGradient
+                           colors={["#8BC34A", "#2ECC71"]}
+                           start={{ x: 0, y: 0 }}
+                           end={{ x: 1, y: 1 }}
+                           style={styles.playButtonGradient}
+                         >
+                           <Ionicons name="play" size={16} color="#000" />
+                         </LinearGradient>
+                       </TouchableOpacity>
+                     )}
+                   </View>
+                 );
+               })}
 
-                <View style={{ flex: 1, paddingHorizontal: 12 }}>
-                  <Text style={styles.exerciseName}>Rest</Text>
-                  <Text style={styles.exerciseSub}>Breathe • Shake arms</Text>
-                </View>
 
-                <Glass padding={8} style={styles.pill}>
-                  <Text style={styles.pillText}>1 min</Text>
-                </Glass>
-
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
-              </View>
             </Glass>
 
             {/* Conseils / Notes */}
             <View style={{ height: 16 }} />
             <Glass>
-              <Text style={styles.blockTitle}>Coach notes</Text>
+              <Text style={styles.blockTitle}>Notes du coach</Text>
               <View style={{ flexDirection: "row", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                 {[
-                  { icon: "speedometer", text: "Tempo 3-1-1 sur les presses" },
+                  { icon: "speedometer", text: "Tempo 3-1-1 sur les gainages" },
                   { icon: "body", text: "Gainage actif tout le long" },
-                  { icon: "water", text: "Hydratation entre les rounds" },
+                  { icon: "water", text: "Hydratation entre les séries" },
                 ].map((it, i) => (
                   <View key={i} style={styles.note}>
                     <Ionicons name={it.icon as any} size={14} color="#FFD700" />
@@ -400,6 +428,45 @@ const styles = StyleSheet.create({
   },
   exerciseName: { color: "#fff", fontWeight: "800" },
   exerciseSub: { color: "rgba(255,255,255,0.7)", marginTop: 2, fontSize: 12 },
+
+  exerciseStatus: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    gap: 8 
+  },
+  completedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#D8FF49",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  completedText: { 
+    color: "#000", 
+    fontSize: 12, 
+    fontWeight: "700" 
+  },
+
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+  playButtonGradient: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  completedButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   pill: { borderRadius: 20, overflow: "hidden" },
   pillText: { color: "#fff", fontWeight: "800" },

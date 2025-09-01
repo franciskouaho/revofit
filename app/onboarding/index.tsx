@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { StatusBar } from 'expo-status-bar';
 import React, { useRef, useState } from "react";
-import { Animated, ImageBackground, LayoutChangeEvent, Pressable, StatusBar, Text, View } from "react-native";
+import { Animated, ImageBackground, LayoutChangeEvent, Pressable, Text, View } from "react-native";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LoginDrawer from "../../components/LoginDrawer";
@@ -118,7 +119,7 @@ export default function OnboardingScreen() {
 
     return (
         <View style={{ flex: 1, backgroundColor: 'black' }}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar style="light" />
 
             {/* Image plein écran */}
             <ImageBackground

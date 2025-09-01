@@ -1,4 +1,6 @@
 // app/(tabs)/workout.tsx
+import GenerateDrawer from "@/components/GenerateDrawer";
+import TemplateDrawer from "@/components/TemplateDrawer";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,10 +20,10 @@ import Svg, { Circle, Path } from "react-native-svg";
 const BORDER = "rgba(255,255,255,0.12)";
 
 /** --------- Menu Modal Component ---------- */
-function WorkoutMenuModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function WorkoutMenuModal({ visible, onClose, onGenerateWorkout }: { visible: boolean; onClose: () => void; onGenerateWorkout: () => void }) {
   const menuOptions = [
     { title: "Start Empty Workout", icon: "person", onPress: () => console.log("Start Empty Workout") },
-    { title: "Generate Workout", icon: "star", onPress: () => console.log("Generate Workout") },
+    { title: "Generate Workout", icon: "star", onPress: onGenerateWorkout },
     { title: "Log Past Workout", icon: "time", onPress: () => console.log("Log Past Workout") },
     { title: "Add Template", icon: "clipboard", onPress: () => console.log("Add Template") },
     { title: "Add Custom Exercise", icon: "fitness", onPress: () => console.log("Add Custom Exercise") },
@@ -192,6 +194,18 @@ const Glass = ({ children, style, blur = 18 }: any) => (
 /** ------------------- Screen -------------------- */
 export default function WorkoutScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [generateDrawerVisible, setGenerateDrawerVisible] = useState(false);
+  const [templateDrawerVisible, setTemplateDrawerVisible] = useState(false);
+
+  const handleGenerate = (params: any) => {
+    console.log("Generating workout with params:", params);
+    // Ici vous pouvez ajouter la logique pour générer l'entraînement
+  };
+
+  const handleTemplate = (type: string) => {
+    console.log("Creating template:", type);
+    // Ici vous pouvez ajouter la logique pour créer le template
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -268,7 +282,11 @@ export default function WorkoutScreen() {
                   </TouchableOpacity>
                 </Glass>
 
-                <View style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}
+                  onPress={() => setGenerateDrawerVisible(true)}
+                  activeOpacity={0.9}
+                >
                   <LinearGradient
                     colors={["#7C4DFF", "#6A3DF5"]}
                     start={{ x: 0, y: 0 }}
@@ -277,7 +295,7 @@ export default function WorkoutScreen() {
                   >
                     <Text style={{ color: "#fff", fontWeight: "800" }}>✦ Generate</Text>
                   </LinearGradient>
-                </View>
+                </TouchableOpacity>
               </View>
             </LinearGradient>
           </View>
@@ -383,24 +401,50 @@ export default function WorkoutScreen() {
 
                 <View style={{ height: 12 }} />
 
-                <View style={{ borderRadius: 24, overflow: "hidden" }}>
-                  <LinearGradient
-                    colors={["#FFD700", "#E6C200"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={{ paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 }}
-                  >
-                    <Ionicons name="add" size={18} color="#000" />
-                    <Text style={{ color: "#000", fontWeight: "900" }}>Create New</Text>
-                  </LinearGradient>
-                </View>
+                <TouchableOpacity
+                  onPress={() => setTemplateDrawerVisible(true)}
+                  activeOpacity={0.9}
+                >
+                  <View style={{ borderRadius: 24, overflow: "hidden" }}>
+                    <LinearGradient
+                      colors={["#FFD700", "#E6C200"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{ paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 }}
+                    >
+                      <Ionicons name="add" size={18} color="#000" />
+                      <Text style={{ color: "#000", fontWeight: "900" }}>Create New</Text>
+                    </LinearGradient>
+                  </View>
+                </TouchableOpacity>
               </View>
             </Glass>
           </View>
         </ScrollView>
       </SafeAreaView>
 
-      <WorkoutMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      <WorkoutMenuModal 
+        visible={menuVisible} 
+        onClose={() => setMenuVisible(false)} 
+        onGenerateWorkout={() => {
+          setMenuVisible(false);
+          setGenerateDrawerVisible(true);
+        }}
+      />
+      
+      {/* Generate Drawer */}
+      <GenerateDrawer
+        visible={generateDrawerVisible}
+        onClose={() => setGenerateDrawerVisible(false)}
+        onGenerate={handleGenerate}
+      />
+
+      {/* Template Drawer */}
+      <TemplateDrawer
+        visible={templateDrawerVisible}
+        onClose={() => setTemplateDrawerVisible(false)}
+        onGenerate={handleTemplate}
+      />
     </View>
   );
 }

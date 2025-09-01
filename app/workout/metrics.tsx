@@ -5,13 +5,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -108,6 +108,26 @@ export default function WorkoutMetricsScreen() {
     setMetrics((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleSaveAndContinue = () => {
+    // Extraire le nombre de séries et de répétitions
+    const numberOfSets = parseInt(metrics.numberOfSets.split(' ')[0]);
+    const numberOfReps = parseInt(metrics.numberOfReps.split(' ')[0]);
+    const restTime = metrics.restTime;
+    const plankDuration = metrics.plank;
+    
+    // Rediriger vers details avec les paramètres
+    router.push({
+      pathname: "/workout/details",
+      params: {
+        sets: numberOfSets.toString(),
+        reps: numberOfReps.toString(),
+        restTime: restTime,
+        plankDuration: plankDuration,
+        fromMetrics: "true"
+      }
+    });
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -121,14 +141,14 @@ export default function WorkoutMetricsScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Workout Metrics</Text>
+          <Text style={styles.headerTitle}>Métriques dentraînement</Text>
           <View style={styles.iconBtn}>
             <Ionicons name="help-circle-outline" size={20} color="#FFFFFF" />
           </View>
         </View>
 
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         >
           <View style={{ gap: 14, marginTop: 6 }}>
             {/* Rest Time */}
@@ -137,7 +157,7 @@ export default function WorkoutMetricsScreen() {
                 <View style={styles.row}>
                   <View style={styles.left}>
                     <Ionicons name="time-outline" size={20} color="#FFFFFF" />
-                    <Text style={styles.label}>Rest time</Text>
+                    <Text style={styles.label}>Temps de repos</Text>
                   </View>
                   <Text style={styles.value}>{metrics.restTime}</Text>
                 </View>
@@ -150,7 +170,7 @@ export default function WorkoutMetricsScreen() {
                 <View style={styles.row}>
                   <View style={styles.left}>
                     <Ionicons name="repeat" size={20} color="#FFFFFF" />
-                    <Text style={styles.label}>Number of sets</Text>
+                    <Text style={styles.label}>Nombre de séries</Text>
                   </View>
                   <Text style={styles.value}>{metrics.numberOfSets}</Text>
                 </View>
@@ -167,7 +187,7 @@ export default function WorkoutMetricsScreen() {
                       size={20}
                       color="#FFFFFF"
                     />
-                    <Text style={styles.label}>Number of reps</Text>
+                    <Text style={styles.label}>Nombre de répétitions</Text>
                   </View>
                   <Text style={styles.value}>{metrics.numberOfReps}</Text>
                 </View>
@@ -184,19 +204,21 @@ export default function WorkoutMetricsScreen() {
                       size={20}
                       color="#FFFFFF"
                     />
-                    <Text style={styles.label}>Plank</Text>
+                    <Text style={styles.label}>Gainage</Text>
                   </View>
                   <Text style={styles.value}>{metrics.plank}</Text>
                 </View>
               </Glass>
             </TouchableOpacity>
           </View>
+        </ScrollView>
 
-          {/* CTA */}
-          <View style={{ borderRadius: 18, overflow: "hidden", marginTop: 24 }}>
+        {/* CTA en bas */}
+        <View style={styles.bottomCTA}>
+          <View style={{ borderRadius: 18, overflow: "hidden" }}>
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => router.push("/workout/active")}
+              onPress={handleSaveAndContinue}
             >
               <LinearGradient
                 colors={["#8BC34A", "#2ECC71"]}
@@ -205,11 +227,11 @@ export default function WorkoutMetricsScreen() {
                 style={styles.cta}
               >
                 <Ionicons name="checkmark" size={18} color="#000" />
-                <Text style={styles.ctaText}>Save & Continue</Text>
+                <Text style={styles.ctaText}>Sauvegarder & Continuer</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       </SafeAreaView>
 
       {/* Selectors */}
@@ -262,6 +284,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ctaText: { color: "#000", fontSize: 16, fontWeight: "900" },
+  bottomCTA: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 40,
+  },
 
   modalBackdrop: {
     flex: 1,

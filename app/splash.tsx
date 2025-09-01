@@ -1,8 +1,9 @@
 import { SubtitleText } from '@/components/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { Image, StatusBar, View } from 'react-native';
+import { Image, View } from 'react-native';
 
 export default function SplashScreen() {
     useEffect(() => {
@@ -15,7 +16,7 @@ export default function SplashScreen() {
 
     return (
         <View style={{flex: 1}}>
-            <StatusBar barStyle="light-content" backgroundColor="#000000"/>
+            <StatusBar style="light" />
 
             <LinearGradient
                 colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
