@@ -12,13 +12,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../components/onboarding";
 
 export default function FirstNameSelectionScreen() {
   const [firstName, setFirstName] = useState("");
+  const { nextStep } = useOnboarding();
 
   const goBack = () => router.back();
   const goNext = () => {
     if (firstName.trim()) {
+      nextStep({ firstName: firstName.trim() });
       router.push("/onboarding/lastname");
     }
   };
@@ -154,4 +157,4 @@ export default function FirstNameSelectionScreen() {
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
-} 
+}

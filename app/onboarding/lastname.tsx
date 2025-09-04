@@ -12,13 +12,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../components/onboarding";
 
 export default function LastNameScreen() {
   const [lastName, setLastName] = useState("");
+  const { nextStep } = useOnboarding();
 
   const goBack = () => router.back();
   const goNext = () => {
     if (lastName.trim()) {
+      nextStep({ lastName: lastName.trim() });
       router.push("/onboarding/gender-selection");
     }
   };

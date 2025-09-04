@@ -4,18 +4,24 @@ import { router } from "expo-router";
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../components/onboarding";
 
 export default function WeightSelectionScreen() {
   const [weight, setWeight] = useState("");
+  const { nextStep } = useOnboarding();
 
   const handleBack = () => router.back();
   const handleNext = () => {
     if (weight.trim()) {
-      router.push('/onboarding/goals-selection');
+      const weightValue = parseFloat(weight);
+      if (weightValue > 0) {
+        nextStep({ weight: weightValue });
+        router.push('/onboarding/goals-selection');
+      }
     }
   };
 
-  const isValid = weight.trim();
+  const isValid = weight.trim() && parseFloat(weight) > 0;
 
   return (
     <KeyboardAvoidingView 
@@ -60,7 +66,6 @@ export default function WeightSelectionScreen() {
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
           </View>
 
           {/* Espace vide à droite pour équilibrer */}
@@ -72,8 +77,15 @@ export default function WeightSelectionScreen() {
       <View style={{ flex: 1, paddingHorizontal: 22 }}>
         {/* titre */}
         <View style={{ alignItems: "center", marginTop: 60, marginBottom: 40 }}>
-          <Text style={{ fontSize: 26, fontWeight: "900", color: "#FFFFFF", textAlign: "center" }}>
-            Quel est votre poids ?
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: "900",
+              color: "#FFFFFF",
+              textAlign: "center",
+            }}
+          >
+            Quel est votre poids actuel ?
           </Text>
           <Text
             style={{
@@ -85,24 +97,26 @@ export default function WeightSelectionScreen() {
               maxWidth: 340,
             }}
           >
-            Votre poids nous aide à{"\n"}personnaliser votre expérience RevoFit.
+            Votre poids nous aide à calculer votre IMC{"\n"}et vos objectifs personnalisés.
           </Text>
         </View>
 
         {/* input poids */}
         <View style={{ marginBottom: 40 }}>
-          <View style={{
-            backgroundColor: "#1A1A1A",
-            borderRadius: 16,
-            borderWidth: 2,
-            borderColor: weight.trim() ? "#FFD700" : "#2A2A2A",
-            paddingHorizontal: 20,
-            paddingVertical: 18,
-          }}>
+          <View
+            style={{
+              backgroundColor: "#1A1A1A",
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: isValid ? "#FFD700" : "#2A2A2A",
+              paddingHorizontal: 20,
+              paddingVertical: 18,
+            }}
+          >
             <TextInput
               value={weight}
               onChangeText={setWeight}
-              placeholder="Votre poids (kg)"
+              placeholder="Votre poids en kg"
               placeholderTextColor="rgba(255,255,255,0.5)"
               style={{
                 color: "#FFFFFF",
@@ -111,22 +125,33 @@ export default function WeightSelectionScreen() {
               }}
               keyboardType="numeric"
               autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={handleNext}
             />
           </View>
         </View>
 
         {/* icône balance décorative */}
-        <View style={{ alignItems: "center", marginBottom: 100, marginTop: 80, zIndex: 1 }}>
-          <View style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: "rgba(255,215,0,0.1)",
+        <View
+          style={{
             alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 2,
-            borderColor: "rgba(255,215,0,0.3)",
-          }}>
+            marginBottom: 100,
+            marginTop: 80,
+            zIndex: 1,
+          }}
+        >
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: "rgba(255,215,0,0.1)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 2,
+              borderColor: "rgba(255,215,0,0.3)",
+            }}
+          >
             <Ionicons name="scale" size={36} color="#FFD700" />
           </View>
         </View>
@@ -146,6 +171,7 @@ export default function WeightSelectionScreen() {
               justifyContent: "center",
               opacity: isValid ? 1 : 0.5,
             }}
+            activeOpacity={0.8}
           >
             <Text style={{ 
               color: isValid ? "#000" : "#666", 
@@ -160,4 +186,3 @@ export default function WeightSelectionScreen() {
     </KeyboardAvoidingView>
   );
 }
-

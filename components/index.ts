@@ -1,0 +1,10 @@
+// Export de tous les composants
+export { default as AuthGuard } from './AuthGuard';
+export { default as LogoutButton } from './LogoutButton';
+export { default as UserProfile } from './UserProfile';
+
+// Export des composants d'onboarding
+export * from './onboarding';
+
+// Export des utilitaires
+export * from '../utils';

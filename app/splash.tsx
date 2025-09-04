@@ -2,16 +2,27 @@ import { SubtitleText } from '@/components/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Image, View } from 'react-native';
+import { ActivityIndicator, Image, View } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SplashScreen() {
+    const { user, loading } = useAuth();
+
     useEffect(() => {
         const timer = setTimeout(() => {
-            router.replace('/onboarding');
+            if (!loading) {
+                if (user) {
+                    // Utilisateur connecté, rediriger vers l'app principale
+                    router.replace('/(tabs)');
+                } else {
+                    // Utilisateur non connecté, rediriger vers l'onboarding
+                    router.replace('/onboarding');
+                }
+            }
         }, 2000);
 
         return () => clearTimeout(timer);
-    }, []);
+    }, [user, loading]);
 
     return (
         <View style={{flex: 1}}>
@@ -26,7 +37,7 @@ export default function SplashScreen() {
                     justifyContent: 'center',
                 }}
             >
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 40}}>
                     <Image
                         source={require('../assets/images/splash-icon.png')}
                         style={{width: 64, height: 64, marginRight: 16}}
@@ -37,6 +48,10 @@ export default function SplashScreen() {
                         RevoFit
                     </SubtitleText>
                 </View>
+
+                {loading && (
+                    <ActivityIndicator size="large" color="#FFD700" />
+                )}
             </LinearGradient>
         </View>
     );

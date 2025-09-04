@@ -6,6 +6,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import '../global.css';
 
+import { OnboardingFlowProvider } from '@/components/onboarding';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { DrawerProvider } from '@/contexts/DrawerContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -31,27 +33,31 @@ export default function RootLayout() {
         translucent={true}
       />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <DrawerProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              statusBarHidden: false,
-              navigationBarHidden: true,
-            }}
-          >
-            <Stack.Screen name="splash" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="welcome" />
-            <Stack.Screen name="height-input" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="profile" />
-            <Stack.Screen name="settings" />
-            <Stack.Screen name="notifications" />
-            <Stack.Screen name="ai-coach-chat" />
-            <Stack.Screen name="workout" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </DrawerProvider>
+        <AuthProvider>
+          <OnboardingFlowProvider>
+            <DrawerProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  statusBarHidden: false,
+                  navigationBarHidden: true,
+                }}
+              >
+                <Stack.Screen name="splash" />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen name="welcome" />
+                <Stack.Screen name="height-input" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="profile" />
+                <Stack.Screen name="settings" />
+                <Stack.Screen name="notifications" />
+                <Stack.Screen name="ai-coach-chat" />
+                <Stack.Screen name="workout" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+            </DrawerProvider>
+          </OnboardingFlowProvider>
+        </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

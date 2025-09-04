@@ -13,13 +13,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useOnboarding } from "../../components/onboarding";
 
 export default function EmailSelectionScreen() {
   const [email, setEmail] = useState("");
+  const { nextStep } = useOnboarding();
 
   const goBack = () => router.back();
   const goNext = () => {
     if (email.trim() && email.includes("@")) {
+      nextStep({ email: email.trim() });
       router.push("/onboarding/password-selection");
     }
   };
@@ -64,130 +67,119 @@ export default function EmailSelectionScreen() {
 
           {/* Dots au centre */}
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {Array.from({ length: 9 }).map((_, i) => (
-              <View
-                key={i}
-                style={{
-                  width: i === 8 ? 12 : 8,
-                  height: i === 8 ? 12 : 8,
-                  borderRadius: 6,
-                  backgroundColor: i === 8 ? "white" : "#2A2A2A",
-                }}
-              />
-            ))}
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "white" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
           </View>
 
           {/* Espace vide à droite pour équilibrer */}
           <View style={{ width: 40 }} />
         </View>
 
-        {/* contenu scrollable */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 22 }}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          {/* titre */}
-          <View style={{ alignItems: "center", marginTop: 60, marginBottom: 40 }}>
-            <Text
-              style={{
-                fontSize: 26,
-                fontWeight: "900",
-                color: "#FFFFFF",
-                textAlign: "center",
-              }}
-            >
-              Quel est votre email ?
-            </Text>
-            <Text
-              style={{
-                marginTop: 10,
-                color: "rgba(255,255,255,0.8)",
-                textAlign: "center",
-                fontSize: 14.5,
-                lineHeight: 22,
-                maxWidth: 340,
-              }}
-            >
-              Nous l&apos;utiliserons pour créer votre compte et{"\n"}vous tenir
-              informé de vos progrès.
-            </Text>
-          </View>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* contenu */}
+            <View style={{ flex: 1, paddingHorizontal: 22 }}>
+              {/* titre */}
+              <View style={{ alignItems: "center", marginTop: 60, marginBottom: 40 }}>
+                <Text
+                  style={{
+                    fontSize: 26,
+                    fontWeight: "900",
+                    color: "#FFFFFF",
+                    textAlign: "center",
+                  }}
+                >
+                  Quel est votre email ?
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "rgba(255,255,255,0.8)",
+                    textAlign: "center",
+                    fontSize: 14.5,
+                    lineHeight: 22,
+                    maxWidth: 340,
+                  }}
+                >
+                  Votre email nous permet de créer votre compte{"\n"}et de vous envoyer des notifications.
+                </Text>
+              </View>
 
-          {/* input email */}
-          <View style={{ marginBottom: 40 }}>
-            <View
-              style={{
-                backgroundColor: "#1A1A1A",
-                borderRadius: 16,
-                borderWidth: 2,
-                borderColor: isValidEmail ? "#FFD700" : "#2A2A2A",
-                paddingHorizontal: 20,
-                paddingVertical: 18,
-              }}
-            >
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="votre@email.com"
-                placeholderTextColor="rgba(255,255,255,0.5)"
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 18,
-                  fontWeight: "600",
-                }}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                autoComplete="email"
-              />
-            </View>
+              {/* input email */}
+              <View style={{ marginBottom: 40 }}>
+                <View
+                  style={{
+                    backgroundColor: "#1A1A1A",
+                    borderRadius: 16,
+                    borderWidth: 2,
+                    borderColor: isValidEmail ? "#FFD700" : "#2A2A2A",
+                    paddingHorizontal: 20,
+                    paddingVertical: 18,
+                  }}
+                >
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="votre@email.com"
+                    placeholderTextColor="rgba(255,255,255,0.5)"
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 18,
+                      fontWeight: "600",
+                    }}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={goNext}
+                  />
+                </View>
+              </View>
 
-            {email.trim() && !email.includes("@") && (
-              <Text
+              {/* icône email décorative */}
+              <View
                 style={{
-                  color: "#FF6B6B",
-                  fontSize: 14,
-                  marginTop: 8,
-                  marginLeft: 4,
+                  alignItems: "center",
+                  marginBottom: 100,
+                  marginTop: 80,
+                  zIndex: 1,
                 }}
               >
-                Veuillez entrer un email valide
-              </Text>
-            )}
-          </View>
-
-          {/* icône email décorative */}
-          <View
-            style={{
-              alignItems: "center",
-              marginBottom: 40,
-              marginTop: 20,
-            }}
-          >
-            <View
-              style={{
-                width: 80,
-                height: 80,
-                borderRadius: 40,
-                backgroundColor: "rgba(255,215,0,0.1)",
-                alignItems: "center",
-                justifyContent: "center",
-                borderWidth: 2,
-                borderColor: "rgba(255,215,0,0.3)",
-              }}
-            >
-              <Ionicons name="mail" size={36} color="#FFD700" />
+                <View
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 40,
+                    backgroundColor: "rgba(255,215,0,0.1)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: 2,
+                    borderColor: "rgba(255,215,0,0.3)",
+                  }}
+                >
+                  <Ionicons name="mail" size={36} color="#FFD700" />
+                </View>
+              </View>
             </View>
-          </View>
-        </ScrollView>
+          </ScrollView>
 
-        {/* bouton fixé en bas avec ajustement clavier */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 20 : 0}
-        >
-          <View style={{ paddingHorizontal: 22, paddingBottom: 22 }}>
+          {/* bouton */}
+          <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
             <TouchableOpacity
               onPress={goNext}
               disabled={!isValidEmail}
@@ -199,14 +191,13 @@ export default function EmailSelectionScreen() {
                 justifyContent: "center",
                 opacity: isValidEmail ? 1 : 0.5,
               }}
+              activeOpacity={0.8}
             >
-              <Text
-                style={{
-                  color: isValidEmail ? "#000" : "#666",
-                  fontSize: 18,
-                  fontWeight: "800",
-                }}
-              >
+              <Text style={{ 
+                color: isValidEmail ? "#000" : "#666", 
+                fontSize: 18, 
+                fontWeight: "800" 
+              }}>
                 Suivant
               </Text>
             </TouchableOpacity>
