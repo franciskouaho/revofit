@@ -50,7 +50,7 @@ export default function WorkoutDetailsScreen() {
   const params = useLocalSearchParams();
   const [completedSets, setCompletedSets] = useState<number[]>([]);
   const [exerciseConfig, setExerciseConfig] = useState({
-    name: "Gainage coude",
+    name: (params.exerciseName as string) || "Gainage coude",
     sets: 4,
     reps: 1,
     restTime: "2 min"
@@ -59,10 +59,13 @@ export default function WorkoutDetailsScreen() {
   // Vérifier si une série a été complétée
   React.useEffect(() => {
     if (params.completedSet === "true") {
-      const newSetId = completedSets.length + 1;
-      if (newSetId <= exerciseConfig.sets) {
-        setCompletedSets([...completedSets, newSetId]);
-      }
+      setCompletedSets(prev => {
+        const newSetId = prev.length + 1;
+        if (newSetId <= exerciseConfig.sets) {
+          return [...prev, newSetId];
+        }
+        return prev;
+      });
     }
   }, [params.completedSet, exerciseConfig.sets]);
 
@@ -70,7 +73,7 @@ export default function WorkoutDetailsScreen() {
   React.useEffect(() => {
     if (params.fromMetrics === "true") {
       const newConfig = {
-        name: "Gainage coude",
+        name: (params.exerciseName as string) || exerciseConfig.name,
         sets: parseInt(params.sets as string) || 4,
         reps: parseInt(params.reps as string) || 1,
         restTime: (params.restTime as string) || "2 min"
@@ -79,17 +82,23 @@ export default function WorkoutDetailsScreen() {
       // Réinitialiser les séries complétées quand on change la configuration
       setCompletedSets([]);
     }
-  }, [params.fromMetrics, params.sets, params.reps, params.restTime]);
+  }, [params.fromMetrics, params.sets, params.reps, params.restTime, params.exerciseName, exerciseConfig.name]);
   
-  const handleStartWorkout = () => router.push("/workout/active");
   const handleSetMetrics = () => router.push("/workout/metrics");
   
   const handleExercisePress = () => {
-    router.push("/workout/active");
+    router.push({
+      pathname: "/workout/active",
+      params: {
+        exerciseName: exerciseConfig.name,
+        sets: exerciseConfig.sets.toString(),
+        reps: exerciseConfig.reps.toString(),
+        restTime: exerciseConfig.restTime
+      }
+    });
   };
   
   const totalSets = exerciseConfig.sets;
-  const completedCount = completedSets.length;
 
   return (
     <View style={styles.container}>

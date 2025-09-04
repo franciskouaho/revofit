@@ -168,7 +168,7 @@ export default function ExploreScreen() {
           columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 4 }}
           ListEmptyComponent={
             <View style={{ padding: 24, alignItems: "center" }}>
-              <Text style={{ color: "rgba(255,255,255,0.7)" }}>Aucun résultat pour “{query}”.</Text>
+              <Text style={{ color: "rgba(255,255,255,0.7)" }}>Aucun résultat pour &quot;{query}&quot;.</Text>
             </View>
           }
         />

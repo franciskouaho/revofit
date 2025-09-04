@@ -1,21 +1,25 @@
 // app/(tabs)/workout.tsx
 import TemplateDrawer from "@/components/TemplateDrawer";
+import WorkoutTemplateCard from "@/components/WorkoutTemplateCard";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ImageBackground,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    ImageBackground,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
+import { StorageService, WorkoutTemplate } from "../../services/storage";
 
 const BORDER = "rgba(255,255,255,0.12)";
 
@@ -194,8 +198,24 @@ const Glass = ({ children, style, blur = 18 }: any) => (
 /** ------------------- Screen -------------------- */
 export default function WorkoutScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
-
   const [templateDrawerVisible, setTemplateDrawerVisible] = useState(false);
+  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      const loadedTemplates = await StorageService.getWorkoutTemplates();
+      setTemplates(loadedTemplates);
+    } catch (error) {
+      console.error('Erreur lors du chargement des templates:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGenerate = (params: any) => {
     console.log("Generating workout with params:", params);
@@ -205,6 +225,32 @@ export default function WorkoutScreen() {
   const handleTemplate = (type: string) => {
     console.log("Creating template:", type);
     // Ici vous pouvez ajouter la logique pour créer le template
+  };
+
+  const handleTemplateCreated = (newTemplate: WorkoutTemplate) => {
+    setTemplates(prev => [newTemplate, ...prev]);
+  };
+
+  const handleTemplatePress = (template: WorkoutTemplate) => {
+    router.push({
+      pathname: "/template-exercises",
+      params: { templateId: template.id }
+    });
+  };
+
+  const handleExercisePress = (exercise: string, template: WorkoutTemplate) => {
+    console.log("Exercise pressed:", exercise, "from template:", template.title);
+    // Ici vous pouvez ajouter la logique pour naviguer vers les détails de l'exercice
+    // Par exemple : router.push(`/exercise/${exercise.id}`)
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await StorageService.deleteWorkoutTemplate(templateId);
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de supprimer le template.");
+    }
   };
 
   return (
@@ -276,12 +322,6 @@ export default function WorkoutScreen() {
               </View>
               {/* boutons */}
               <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
-                <Glass style={{ flex: 1 }}>
-                  <TouchableOpacity style={{ alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: "#fff", fontWeight: "800" }}>Empty Workout</Text>
-                  </TouchableOpacity>
-                </Glass>
-
                 <TouchableOpacity 
                   style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}
                   onPress={() => {
@@ -391,36 +431,70 @@ export default function WorkoutScreen() {
 
           {/* templates */}
           <View style={{ paddingHorizontal: 20, marginTop: 22 }}>
-            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900", marginBottom: 12 }}>My Templates</Text>
-            <Glass>
-              <View style={{ alignItems: "center", paddingVertical: 8 }}>
-                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", marginTop: 8 }}>
-                  No Templates Yet
-                </Text>
-                <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6 }}>
-                  Your templates will appear here.
-                </Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>Mes Templates</Text>
+              <TouchableOpacity
+                onPress={() => setTemplateDrawerVisible(true)}
+                activeOpacity={0.9}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+              >
+                <Ionicons name="add" size={16} color="#FFD700" />
+                <Text style={{ color: "#FFD700", fontWeight: "700", fontSize: 14 }}>Nouveau</Text>
+              </TouchableOpacity>
+            </View>
 
-                <View style={{ height: 12 }} />
+            {loading ? (
+              <Glass>
+                <View style={{ alignItems: "center", paddingVertical: 20 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.7)" }}>Chargement...</Text>
+                </View>
+              </Glass>
+            ) : templates.length === 0 ? (
+              <Glass>
+                <View style={{ alignItems: "center", paddingVertical: 8 }}>
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", marginTop: 8 }}>
+                    Aucun Template
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6, textAlign: "center" }}>
+                    Créez votre premier template d'entraînement personnalisé.
+                  </Text>
 
-                <TouchableOpacity
-                  onPress={() => setTemplateDrawerVisible(true)}
-                  activeOpacity={0.9}
-                >
-                  <View style={{ borderRadius: 24, overflow: "hidden" }}>
-                    <LinearGradient
-                      colors={["#FFD700", "#E6C200"]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={{ paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 }}
-                    >
-                      <Ionicons name="add" size={18} color="#000" />
-                      <Text style={{ color: "#000", fontWeight: "900" }}>Create New</Text>
-                    </LinearGradient>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </Glass>
+                  <View style={{ height: 12 }} />
+
+                  <TouchableOpacity
+                    onPress={() => setTemplateDrawerVisible(true)}
+                    activeOpacity={0.9}
+                  >
+                    <View style={{ borderRadius: 24, overflow: "hidden" }}>
+                      <LinearGradient
+                        colors={["#FFD700", "#E6C200"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{ paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 }}
+                      >
+                        <Ionicons name="add" size={18} color="#000" />
+                        <Text style={{ color: "#000", fontWeight: "900" }}>Créer le premier</Text>
+                      </LinearGradient>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </Glass>
+            ) : (
+              <FlatList
+                data={templates}
+                renderItem={({ item }) => (
+                  <WorkoutTemplateCard
+                    template={item}
+                    onPress={handleTemplatePress}
+                    onDelete={handleDeleteTemplate}
+                    onExercisePress={handleExercisePress}
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+              />
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -441,6 +515,7 @@ export default function WorkoutScreen() {
         visible={templateDrawerVisible}
         onClose={() => setTemplateDrawerVisible(false)}
         onGenerate={handleTemplate}
+        onTemplateCreated={handleTemplateCreated}
       />
     </View>
   );

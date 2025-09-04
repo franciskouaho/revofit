@@ -25,14 +25,33 @@ export default function WorkoutActiveScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
 
+  const [exerciseConfig, setExerciseConfig] = useState({
+    name: (params.exerciseName as string) || "Gainage coude",
+    sets: parseInt(params.sets as string) || 4,
+    reps: parseInt(params.reps as string) || 1,
+    restTime: (params.restTime as string) || "2 min"
+  });
+  
   const TOTAL = 45;
   const [time, setTime] = useState(TOTAL);
   const [isPlaying, setIsPlaying] = useState(false);
   const [weight, setWeight] = useState(40);
-  const [reps, setReps] = useState(parseInt(params.reps as string) || 1);
+  const [reps, setReps] = useState(exerciseConfig.reps);
 
   const progress = 1 - time / TOTAL;
   const progAnim = useRef(new Animated.Value(progress)).current;
+
+  // Mettre à jour la configuration quand les paramètres changent
+  useEffect(() => {
+    const newConfig = {
+      name: (params.exerciseName as string) || exerciseConfig.name,
+      sets: parseInt(params.sets as string) || exerciseConfig.sets,
+      reps: parseInt(params.reps as string) || exerciseConfig.reps,
+      restTime: (params.restTime as string) || exerciseConfig.restTime
+    };
+    setExerciseConfig(newConfig);
+    setReps(newConfig.reps);
+  }, [params.exerciseName, params.sets, params.reps, params.restTime, exerciseConfig.name, exerciseConfig.sets, exerciseConfig.reps, exerciseConfig.restTime]);
 
   useEffect(() => {
     Animated.timing(progAnim, {
@@ -41,7 +60,7 @@ export default function WorkoutActiveScreen() {
       easing: Easing.out(Easing.quad),
       useNativeDriver: false,
     }).start();
-  }, [progress]);
+  }, [progress, progAnim]);
 
   useEffect(() => {
     let int: ReturnType<typeof setInterval> | null = null;
@@ -93,6 +112,10 @@ export default function WorkoutActiveScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.roundIcon}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>{exerciseConfig.name}</Text>
+            <Text style={styles.headerSubtitle}>Série 1 de {exerciseConfig.sets}</Text>
+          </View>
         </View>
 
         {/* Image principale */}
@@ -211,7 +234,11 @@ export default function WorkoutActiveScreen() {
                 // Ajouter une série complétée et revenir à details
                 router.push({
                   pathname: "/workout/details",
-                  params: { completedSet: "true" }
+                  params: { 
+                    completedSet: "true",
+                    exerciseName: exerciseConfig.name,
+                    templateId: params.templateId
+                  }
                 });
               }}
             >
@@ -270,6 +297,21 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 22,
     alignItems: "center", justifyContent: "center",
     backgroundColor: SURFACE, borderWidth: 1, borderColor: BORDER,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "900",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   heroWrap: { flex: 1 },

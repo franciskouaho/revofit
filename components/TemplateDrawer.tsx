@@ -4,6 +4,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useRef, useState } from "react";
 import {
+    Alert,
     Animated,
     Easing,
     KeyboardAvoidingView,
@@ -16,6 +17,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { StorageService, WorkoutTemplate } from "../services/storage";
 import ExerciseSelector from "./ExerciseSelector";
 
 const BORDER = "rgba(255,255,255,0.12)";
@@ -27,12 +29,14 @@ interface TemplateDrawerProps {
   visible: boolean;
   onClose: () => void;
   onGenerate: (type: string) => void;
+  onTemplateCreated?: (template: WorkoutTemplate) => void;
 }
 
 export default function TemplateDrawer({
   visible,
   onClose,
   onGenerate,
+  onTemplateCreated,
 }: TemplateDrawerProps) {
   const [templateTitle, setTemplateTitle] = useState("Template d'entraînement");
   const [description, setDescription] = useState("");
@@ -82,7 +86,40 @@ export default function TemplateDrawer({
   ).current;
   const translateY = Animated.add(slideY, dragY);
 
-  const canCreate = useMemo(() => titleLen > 0, [titleLen]);
+  const canCreate = useMemo(() => titleLen > 0 && selectedExercises.length > 0, [titleLen, selectedExercises.length]);
+
+  const handleCreateTemplate = async () => {
+    try {
+      const template = await StorageService.saveWorkoutTemplate({
+        title: templateTitle.trim(),
+        description: description.trim(),
+        exercises: selectedExercises,
+      });
+
+      // Reset form
+      setTemplateTitle("Template d'entraînement");
+      setDescription("");
+      setSelectedExercises([]);
+
+      // Notify parent component
+      onTemplateCreated?.(template);
+      
+      // Close drawer
+      onClose();
+
+      Alert.alert(
+        "Template créé !",
+        `Le template "${template.title}" a été créé avec ${template.exercises.length} exercices.`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      Alert.alert(
+        "Erreur",
+        "Impossible de créer le template. Veuillez réessayer.",
+        [{ text: "OK" }]
+      );
+    }
+  };
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
@@ -222,13 +259,12 @@ export default function TemplateDrawer({
               activeOpacity={0.9}
               style={[styles.cta, !canCreate && { opacity: 0.5 }]}
               disabled={!canCreate}
-              onPress={() => {
-                onGenerate("template");
-                onClose();
-              }}
+              onPress={handleCreateTemplate}
             >
               <LinearGradient colors={[LIME, LIME_DARK]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              <Text style={styles.ctaTxt}>Créer le template</Text>
+              <Text style={styles.ctaTxt}>
+                Créer le template ({selectedExercises.length})
+              </Text>
             </TouchableOpacity>
 
             {/* Close button */}
