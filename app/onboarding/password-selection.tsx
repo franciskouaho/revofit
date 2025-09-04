@@ -3,6 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -25,7 +27,11 @@ export default function PasswordSelectionScreen() {
   const isValidPassword = password.length >= 8;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: "#0A0A0A" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 50}
+    >
       {/* fond */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
@@ -165,7 +171,7 @@ export default function PasswordSelectionScreen() {
         </View>
 
         {/* icône cadenas décorative */}
-        <View style={{ alignItems: "center", marginBottom: 40 }}>
+        <View style={{ alignItems: "center", marginBottom: 40, marginTop: 20 }}>
           <View style={{
             width: 80,
             height: 80,
@@ -183,7 +189,7 @@ export default function PasswordSelectionScreen() {
 
       {/* bouton */}
       <SafeAreaView>
-        <View style={{ paddingHorizontal: 22, paddingBottom: 16 }}>
+        <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
           <TouchableOpacity
             onPress={goNext}
             disabled={!isValidPassword}
@@ -206,6 +212,6 @@ export default function PasswordSelectionScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </View>
+    </KeyboardAvoidingView>
   );
 } 

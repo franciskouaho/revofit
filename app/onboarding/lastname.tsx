@@ -3,6 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -21,11 +23,15 @@ export default function LastNameScreen() {
     }
   };
 
-  const isValid = lastName.trim();
+  const isValid = !!lastName.trim();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
-      {/* fond */}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#0A0A0A" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 50}
+    >
+      {/* Fond */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
         locations={[0, 0.22, 0.78, 1]}
@@ -34,9 +40,17 @@ export default function LastNameScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* header */}
+      {/* Header */}
       <SafeAreaView>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 20,
+            paddingTop: 8,
+          }}
+        >
           <TouchableOpacity
             onPress={goBack}
             style={{
@@ -51,16 +65,23 @@ export default function LastNameScreen() {
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
-          {/* Espace vide à droite pour équilibrer */}
+          {/* espace pour équilibrer */}
           <View style={{ width: 40 }} />
         </View>
       </SafeAreaView>
 
-      {/* contenu */}
+      {/* Contenu */}
       <View style={{ flex: 1, paddingHorizontal: 22 }}>
-        {/* titre */}
+        {/* Titre */}
         <View style={{ alignItems: "center", marginTop: 60, marginBottom: 40 }}>
-          <Text style={{ fontSize: 26, fontWeight: "900", color: "#FFFFFF", textAlign: "center" }}>
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: "900",
+              color: "#FFFFFF",
+              textAlign: "center",
+            }}
+          >
             Quel est votre nom de famille ?
           </Text>
           <Text
@@ -73,20 +94,23 @@ export default function LastNameScreen() {
               maxWidth: 340,
             }}
           >
-            Votre nom de famille nous aide à{"\n"}personnaliser votre expérience RevoFit.
+            Votre nom de famille nous aide à{"\n"}personnaliser votre expérience
+            RevoFit.
           </Text>
         </View>
 
-        {/* input nom de famille */}
+        {/* Input nom */}
         <View style={{ marginBottom: 40 }}>
-          <View style={{
-            backgroundColor: "#1A1A1A",
-            borderRadius: 16,
-            borderWidth: 2,
-            borderColor: lastName.trim() ? "#FFD700" : "#2A2A2A",
-            paddingHorizontal: 20,
-            paddingVertical: 18,
-          }}>
+          <View
+            style={{
+              backgroundColor: "#1A1A1A",
+              borderRadius: 16,
+              borderWidth: 2,
+              borderColor: isValid ? "#FFD700" : "#2A2A2A",
+              paddingHorizontal: 20,
+              paddingVertical: 18,
+            }}
+          >
             <TextInput
               value={lastName}
               onChangeText={setLastName}
@@ -99,52 +123,72 @@ export default function LastNameScreen() {
               }}
               autoCapitalize="words"
               autoCorrect={false}
+              returnKeyType="done"
+              onSubmitEditing={goNext}
             />
           </View>
         </View>
 
-        {/* icône utilisateur décorative */}
-        <View style={{ alignItems: "center", marginBottom: 40 }}>
-          <View style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: "rgba(255,215,0,0.1)",
+        {/* Icône décorative */}
+        <View
+          style={{
             alignItems: "center",
-            justifyContent: "center",
-            borderWidth: 2,
-            borderColor: "rgba(255,215,0,0.3)",
-          }}>
+            marginBottom: 100,
+            marginTop: 80,
+            zIndex: 1,
+          }}
+        >
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: "rgba(255,215,0,0.1)",
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 2,
+              borderColor: "rgba(255,215,0,0.3)",
+            }}
+          >
             <Ionicons name="person" size={36} color="#FFD700" />
           </View>
         </View>
       </View>
 
-      {/* bouton */}
-      <SafeAreaView>
+      {/* Bouton */}
+      <SafeAreaView style={{ zIndex: 10 }}>
         <View style={{ paddingHorizontal: 22, paddingBottom: 16 }}>
           <TouchableOpacity
             onPress={goNext}
             disabled={!isValid}
             style={{
+              flexDirection: "row",        // icône + texte au centre
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
               height: 56,
               borderRadius: 28,
               backgroundColor: isValid ? "#FFD700" : "#2A2A2A",
-              alignItems: "center",
-              justifyContent: "center",
               opacity: isValid ? 1 : 0.5,
             }}
           >
-            <Text style={{ 
-              color: isValid ? "#000" : "#666", 
-              fontSize: 18, 
-              fontWeight: "800" 
-            }}>
+            <Ionicons
+              name="person"
+              size={20}
+              color={isValid ? "#000" : "#666"}
+            />
+            <Text
+              style={{
+                color: isValid ? "#000" : "#666",
+                fontSize: 18,
+                fontWeight: "800",
+              }}
+            >
               Suivant
             </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </View>
+    </KeyboardAvoidingView>
   );
-} 
+}

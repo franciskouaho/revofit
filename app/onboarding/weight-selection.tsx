@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WeightSelectionScreen() {
@@ -18,7 +18,11 @@ export default function WeightSelectionScreen() {
   const isValid = weight.trim();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+    <KeyboardAvoidingView 
+      style={{ flex: 1, backgroundColor: "#0A0A0A" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
       {/* fond */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
@@ -112,7 +116,7 @@ export default function WeightSelectionScreen() {
         </View>
 
         {/* icône balance décorative */}
-        <View style={{ alignItems: "center", marginBottom: 40 }}>
+        <View style={{ alignItems: "center", marginBottom: 100, marginTop: 80, zIndex: 1 }}>
           <View style={{
             width: 80,
             height: 80,
@@ -129,7 +133,7 @@ export default function WeightSelectionScreen() {
       </View>
 
       {/* bouton */}
-      <SafeAreaView>
+      <SafeAreaView style={{ zIndex: 10 }}>
         <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
           <TouchableOpacity
             onPress={handleNext}
@@ -153,7 +157,7 @@ export default function WeightSelectionScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
