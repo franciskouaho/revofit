@@ -1,7 +1,11 @@
 // Service d'authentification Firebase pour RevoFit
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import {
     createUserWithEmailAndPassword,
+    GoogleAuthProvider,
     onAuthStateChanged,
+    signInWithCredential,
     signInWithEmailAndPassword,
     signOut,
     updateProfile,
@@ -10,13 +14,16 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, firestore } from './config';
 
+// Configuration pour WebBrowser
+WebBrowser.maybeCompleteAuthSession();
+
 // Types pour l'onboarding
 export interface OnboardingData {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  gender: 'homme' | 'femme' | 'autre';
+  gender: 'homme' | 'femme';
   age: number;
   height: number; // en cm
   weight: number; // en kg
@@ -155,6 +162,128 @@ export const updateUserProfile = async (uid: string, updates: Partial<UserProfil
 // Écoute des changements d'état d'authentification
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// Configuration Google Sign-In
+export const configureGoogleSignIn = () => {
+  // Configuration automatique via expo-auth-session
+  // Pas besoin de configuration supplémentaire
+};
+
+// Connexion avec Google
+export const signInWithGoogle = async (): Promise<User> => {
+  try {
+    // Configuration OAuth Google
+    const redirectUri = AuthSession.makeRedirectUri();
+    
+    const request = new AuthSession.AuthRequest({
+      clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '336045610131-your-web-client-id.apps.googleusercontent.com',
+      scopes: ['openid', 'profile', 'email'],
+      redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      extraParams: {},
+    });
+
+    // Lancer l'authentification
+    const result = await request.promptAsync({
+      authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
+    });
+
+    if (result.type !== 'success') {
+      throw new Error('Authentification Google annulée ou échouée');
+    }
+
+    // Échanger le code d'autorisation contre un token d'accès
+    const tokenResponse = await AuthSession.exchangeCodeAsync(
+      {
+        clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '336045610131-your-web-client-id.apps.googleusercontent.com',
+        code: result.params.code,
+        redirectUri,
+        extraParams: {
+          code_verifier: request.codeVerifier || '',
+        },
+      },
+      {
+        tokenEndpoint: 'https://oauth2.googleapis.com/token',
+      }
+    );
+
+    // Obtenir les informations du profil utilisateur
+    const userInfoResponse = await fetch(
+      `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokenResponse.accessToken}`
+    );
+    const userInfo = await userInfoResponse.json();
+
+    // Créer une credential Google avec le token d'accès
+    const googleCredential = GoogleAuthProvider.credential(tokenResponse.idToken);
+    
+    // Se connecter avec Firebase
+    const userCredential = await signInWithCredential(auth, googleCredential);
+    const user = userCredential.user;
+    
+    // Vérifier si c'est un nouvel utilisateur
+    const userDoc = await getDoc(doc(firestore, 'users', user.uid, 'profile', 'main'));
+    
+    if (!userDoc.exists()) {
+      // Créer le profil utilisateur pour un nouvel utilisateur Google
+      const displayName = user.displayName || userInfo.name || '';
+      const nameParts = displayName.split(' ');
+      const firstName = nameParts[0] || userInfo.given_name || '';
+      const lastName = nameParts.slice(1).join(' ') || userInfo.family_name || '';
+      
+      const userProfile: UserProfile = {
+        uid: user.uid,
+        firstName,
+        lastName,
+        email: user.email || userInfo.email || '',
+        gender: 'homme', // Valeur par défaut, l'utilisateur pourra la modifier
+        age: 25, // Valeur par défaut, l'utilisateur pourra la modifier
+        height: 170, // Valeur par défaut, l'utilisateur pourra la modifier
+        weight: 70, // Valeur par défaut, l'utilisateur pourra la modifier
+        goals: ['perte_de_poids'], // Valeur par défaut, l'utilisateur pourra la modifier
+        experienceLevel: 'débutant', // Valeur par défaut, l'utilisateur pourra la modifier
+        weeklyWorkouts: 3, // Valeur par défaut, l'utilisateur pourra la modifier
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+        onboardingCompleted: false // L'utilisateur devra compléter l'onboarding
+      };
+      
+      // Sauvegarde du profil principal
+      await setDoc(doc(firestore, 'users', user.uid, 'profile', 'main'), userProfile);
+      
+      // Création des objectifs initiaux
+      await setDoc(doc(firestore, 'users', user.uid, 'goals', 'main'), {
+        fitnessGoals: userProfile.goals,
+        targetWeight: userProfile.weight,
+        weeklyWorkouts: userProfile.weeklyWorkouts,
+        experienceLevel: userProfile.experienceLevel,
+        createdAt: serverTimestamp()
+      });
+      
+      // Création des préférences utilisateur
+      await setDoc(doc(firestore, 'users', user.uid, 'preferences', 'main'), {
+        notifications: true,
+        reminders: true,
+        dataSharing: true,
+        theme: 'dark',
+        language: 'fr',
+        createdAt: serverTimestamp()
+      });
+    }
+    
+    return user;
+  } catch (error: any) {
+    throw new Error('Erreur de connexion Google: ' + error.message);
+  }
+};
+
+// Déconnexion Google
+export const signOutGoogle = async (): Promise<void> => {
+  try {
+    await signOut(auth);
+  } catch (error: any) {
+    throw new Error('Erreur de déconnexion Google: ' + error.message);
+  }
 };
 
 // Validation des données d'onboarding

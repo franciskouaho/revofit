@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (onboardingData: any) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
@@ -81,6 +82,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Fonction de connexion Google
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      const { signInWithGoogle: googleSignIn } = await import('../services/firebase/auth');
+      await googleSignIn();
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+  };
+
   // Fonction de déconnexion
   const signOut = async () => {
     try {
@@ -99,6 +112,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     refreshUserProfile
   };

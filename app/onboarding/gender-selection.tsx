@@ -6,7 +6,7 @@ import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../components/onboarding";
 
-type G = "homme" | "femme" | "autre";
+type G = "homme" | "femme";
 
 export default function GenderSelectionScreen() {
   const [selected, setSelected] = useState<G | null>(null);
@@ -124,27 +124,6 @@ export default function GenderSelectionScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Spacer */}
-            <View style={{ height: 20 }} />
-
-            {/* Autre */}
-            <TouchableOpacity
-              onPress={() => handleSelect("autre")}
-              activeOpacity={0.9}
-              style={[
-                { width: 192, height: 192, borderRadius: 96, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: '#121418' },
-                selected === "autre" ? { borderColor: '#FFD700', transform: [{ scale: 1.05 }] } : { borderColor: 'transparent' }
-              ]}
-            >
-              {selected === "autre" && (
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 96, backgroundColor: 'rgba(255,215,0,0.2)' }} />
-              )}
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 96, backgroundColor: 'rgba(0,0,0,0.35)' }} />
-              <Ionicons name="person" size={56} color="#fff" />
-              <Text style={[{ marginTop: 8, fontSize: 18, fontWeight: 'bold' }, selected === "autre" ? { color: '#FFD700' } : { color: 'white' }]}>
-                Autre
-              </Text>
-            </TouchableOpacity>
           </LinearGradient>
         </View>
 

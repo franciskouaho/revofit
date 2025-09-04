@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "RevoFit",
-    "slug": "RevoFit",
+    "slug": "revofit",
     "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -78,6 +78,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cffe1d78-5e76-42e6-9d07-68b58521f1d2"
+      }
+    },
+    "owner": "iamfrancisco"
   }
 }

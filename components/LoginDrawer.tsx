@@ -1,20 +1,21 @@
 // components/LoginDrawer.tsx
+import { useAuth } from "@/contexts/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-    Animated,
-    Dimensions,
-    Easing,
-    Modal,
-    PanResponder,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Easing,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,7 +35,7 @@ const GlassButton = ({
   children: React.ReactNode;
   bg?: string;
   radius?: number;
-  height?: number | string;
+  height?: number;
 }) => {
   return (
     <View style={{ borderRadius: radius, overflow: "hidden" }}>
@@ -77,6 +78,7 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
   const handlePulse = useRef(new Animated.Value(0)).current;
   const dragY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
+  const { signInWithGoogle } = useAuth();
 
   useEffect(() => {
     if (visible) {
@@ -96,7 +98,7 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
         Animated.timing(backdrop, { toValue: 0, duration: 180, useNativeDriver: true }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, slideY, backdrop, handlePulse]);
 
   // Swipe-to-dismiss
   const panResponder = useRef(
@@ -117,13 +119,15 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
 
   const translateY = Animated.add(slideY, dragY);
 
-  const onApple = () => {
-    onClose();
-    router.replace("/");
-  };
-  const onGoogle = () => {
-    onClose();
-    router.replace("/(tabs)");
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      onClose();
+      router.replace("/(tabs)");
+    } catch (error) {
+      console.error('Erreur de connexion Google:', error);
+      // L'erreur sera gérée par le composant GoogleSignInButton
+    }
   };
 
   return (
@@ -204,25 +208,8 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
 
             {/* Boutons */}
             <View style={{ paddingHorizontal: 16, marginTop: 16, gap: 12 }}>
-              {/* Apple (plein blanc) */}
-              <TouchableOpacity
-                onPress={onApple}
-                activeOpacity={0.9}
-                style={{
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: "#fff",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="logo-apple" size={22} color="#000" style={{ marginRight: 10 }} />
-                <Text style={{ color: "#000", fontSize: 16, fontWeight: "700" }}>Continuer avec Apple</Text>
-              </TouchableOpacity>
-
               {/* Google (glass noir) */}
-              <GlassButton onPress={onGoogle}>
+              <GlassButton onPress={handleGoogleSignIn}>
                 <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>Continuer avec Google</Text>
               </GlassButton>

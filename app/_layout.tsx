@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import React from 'react';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -10,6 +11,7 @@ import { OnboardingFlowProvider } from '@/components/onboarding';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DrawerProvider } from '@/contexts/DrawerContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { configureGoogleSignIn } from '@/services/firebase/auth';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -19,6 +21,11 @@ export default function RootLayout() {
     'Inter-Regular': require('../assets/fonts/Inter-Regular.ttf'),
     'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
   });
+
+  // Configuration Google Sign-In
+  React.useEffect(() => {
+    configureGoogleSignIn();
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.
