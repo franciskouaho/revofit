@@ -1,5 +1,5 @@
 import Header from '@/components/Header';
-import StatusBar from '@/components/StatusBar';
+import WorkoutStatusBar from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +67,7 @@ export default function HomeScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView} contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Status bar */}
-          <StatusBar
+          <WorkoutStatusBar
             strikes={21}
             currentDay="Mer"
             workoutMessage="C'est l'heure de s'entraîner"

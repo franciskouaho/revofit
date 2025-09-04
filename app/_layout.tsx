@@ -29,7 +29,6 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              statusBarStyle: "light",
               statusBarHidden: false,
               navigationBarHidden: true,
             }}

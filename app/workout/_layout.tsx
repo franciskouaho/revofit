@@ -5,7 +5,6 @@ export default function WorkoutLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        statusBarStyle: "light",
         statusBarHidden: false,
         navigationBarHidden: true,
         animation: "slide_from_right",
@@ -17,7 +16,6 @@ export default function WorkoutLayout() {
         name="index" 
         options={{ 
           headerShown: false,
-          statusBarStyle: "light",
           statusBarHidden: false,
           gestureEnabled: false 
         }} 
@@ -26,7 +24,6 @@ export default function WorkoutLayout() {
         name="details" 
         options={{ 
           headerShown: false,
-          statusBarStyle: "light",
           statusBarHidden: false,
           gestureEnabled: true 
         }} 
@@ -35,7 +32,6 @@ export default function WorkoutLayout() {
         name="metrics" 
         options={{ 
           headerShown: false,
-          statusBarStyle: "light",
           statusBarHidden: false,
           gestureEnabled: true 
         }} 
@@ -44,7 +40,6 @@ export default function WorkoutLayout() {
         name="active" 
         options={{ 
           headerShown: false,
-          statusBarStyle: "light",
           statusBarHidden: false,
           gestureEnabled: true 
         }} 

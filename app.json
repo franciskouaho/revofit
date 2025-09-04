@@ -13,8 +13,9 @@
       "bundleIdentifier": "com.emplica.revofit",
       "appleTeamId": "NAN7MFNMT7",
       "infoPlist": {
-      "UIViewControllerBasedStatusBarAppearance": true
-    }
+        "UIViewControllerBasedStatusBarAppearance": true,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+      }
     },
     "android": {
       "adaptiveIcon": {

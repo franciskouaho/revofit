@@ -3,14 +3,14 @@ import { BlurView } from 'expo-blur';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-interface StatusBarProps {
+interface WorkoutStatusBarProps {
   strikes?: number;
   currentDay?: string;        // ex: "Wed"
   workoutMessage?: string;    // ex: "Time to workout"
   upcomingDays?: { day: number; label: string }[];
 }
 
-export default function StatusBar({
+export default function WorkoutStatusBar({
   strikes = 21,
   currentDay = 'Wed',
   workoutMessage = 'Time to workout',
@@ -19,7 +19,7 @@ export default function StatusBar({
     { day: 19, label: 'Fri' },
     { day: 20, label: 'Sat' },
   ],
-}: StatusBarProps) {
+}: WorkoutStatusBarProps) {
   return (
     <View style={styles.wrap}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>

@@ -12,10 +12,6 @@ export default function GenderSelectionScreen() {
 
   const handleSelect = (g: Exclude<G, null>) => {
     setSelected(g);
-    // Navigation vers la page de sélection de l'âge après un court délai
-    setTimeout(() => {
-      router.push('/onboarding/age-selection');
-    }, 500);
   };
   const handleBack = () => router.back();
 
@@ -120,6 +116,32 @@ export default function GenderSelectionScreen() {
             </TouchableOpacity>
           </LinearGradient>
         </View>
+
+      {/* bouton */}
+      <SafeAreaView>
+        <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => selected && router.push('/onboarding/age-selection')}
+            disabled={!selected}
+            style={{
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: selected ? "#FFD700" : "#2A2A2A",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: selected ? 1 : 0.5,
+            }}
+          >
+            <Text style={{ 
+              color: selected ? "#000" : "#666", 
+              fontSize: 18, 
+              fontWeight: "800" 
+            }}>
+              Suivant
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
       </View>
     </View>
   );

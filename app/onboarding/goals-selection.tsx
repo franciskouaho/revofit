@@ -36,11 +36,9 @@ type Goal = {
 
 export default function GoalsSelectionScreen() {
   const [goals, setGoals] = useState<Goal[]>([
-    { id: "cardio", title: "Cardio", selected: true,  gradient: ["#FF7E5F", "#F8A15B"], ring: "#F08A5B" },
-    { id: "reduce-stress", title: "Réduire le stress", selected: true, gradient: ["#9BE15D", "#00E3AE"], ring: "#8EDB6A" },
-    { id: "stay-fit", title: "Rester en forme", selected: true, gradient: ["#FFE27A", "#CFAF45"], ring: "#FFD700" },
-
-    // non sélectionnés (grands et estompés)
+    { id: "cardio", title: "Cardio", selected: false,  gradient: ["#FF7E5F", "#F8A15B"], ring: "#F08A5B" },
+    { id: "reduce-stress", title: "Réduire le stress", selected: false, gradient: ["#9BE15D", "#00E3AE"], ring: "#8EDB6A" },
+    { id: "stay-fit", title: "Rester en forme", selected: false, gradient: ["#FFE27A", "#CFAF45"], ring: "#FFD700" },
     { id: "loose-weight", title: "Perdre du poids", selected: false, gradient: ["#CCC", "#CCC"], ring: "#B0B0B0" },
     { id: "strength", title: "Force", selected: false, gradient: ["#CCC", "#CCC"], ring: "#B0B0B0" },
     { id: "flexibility", title: "Flexibilité", selected: false, gradient: ["#CCC", "#CCC"], ring: "#B0B0B0" },
@@ -57,22 +55,17 @@ export default function GoalsSelectionScreen() {
         // Désélectionner
         return prev.map(g => g.id === id ? { ...g, selected: false } : g);
       } else {
-        // Vérifier qu'on n'a pas déjà 2 objectifs sélectionnés
-        const selectedCount = prev.filter(g => g.selected).length;
-        if (selectedCount >= 2) {
-          return prev; // Ne pas permettre plus de 2 sélections
-        }
         // Sélectionner
         return prev.map(g => g.id === id ? { ...g, selected: true } : g);
       }
     });
   };
 
-  const handleContinue = () => {
+  const handleNext = () => {
     const selectedGoals = goals.filter(g => g.selected);
-    if (selectedGoals.length === 2) {
+    if (selectedGoals.length >= 1) {
       console.log('Objectifs sélectionnés:', selectedGoals);
-      // Navigation vers la page de sélection du poids
+      // Navigation vers la page de sélection de l'email
       router.push('/onboarding/email-selection');
     }
   };
@@ -124,10 +117,10 @@ export default function GoalsSelectionScreen() {
         <View style={{ alignItems: "center", marginBottom: 32 }}>
           <Text style={{ fontSize: 22, fontWeight: "800", color: "#FF8C00", marginBottom: 10 }}>Quel est votre objectif ?</Text>
           <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14.5, lineHeight: 22, textAlign: "center" }}>
-            Choisissez exactement 2 objectifs pour{"\n"}personnaliser votre entraînement.
+            Choisissez au minimum 1 objectif pour{"\n"}personnaliser votre entraînement.
           </Text>
           <Text style={{ color: "#FFD700", fontSize: 14, marginTop: 8, fontWeight: "600" }}>
-            {goals.filter(g => g.selected).length}/2 objectifs sélectionnés
+            {goals.filter(g => g.selected).length} objectif{goals.filter(g => g.selected).length > 1 ? 's' : ''} sélectionné{goals.filter(g => g.selected).length > 1 ? 's' : ''}
           </Text>
         </View>
 
@@ -172,27 +165,33 @@ export default function GoalsSelectionScreen() {
           })}
         </View>
 
-        {/* Bouton Continue (visible seulement avec 2 objectifs) */}
-        {goals.filter(g => g.selected).length === 2 && (
-          <View style={{ alignItems: "center", marginTop: 20, marginBottom: 20 }}>
-            <TouchableOpacity
-              onPress={handleContinue}
-              style={{
-                backgroundColor: "#FFD700",
-                paddingVertical: 16,
-                paddingHorizontal: 32,
-                borderRadius: 28,
-                minWidth: 200,
-                alignItems: "center"
-              }}
-            >
-              <Text style={{ color: "#000", fontSize: 18, fontWeight: "bold" }}>
-                Continuer
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
+
+      {/* bouton */}
+      <SafeAreaView>
+        <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
+          <TouchableOpacity
+            onPress={handleNext}
+            disabled={goals.filter(g => g.selected).length === 0}
+            style={{
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: goals.filter(g => g.selected).length > 0 ? "#FFD700" : "#2A2A2A",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: goals.filter(g => g.selected).length > 0 ? 1 : 0.5,
+            }}
+          >
+            <Text style={{ 
+              color: goals.filter(g => g.selected).length > 0 ? "#000" : "#666", 
+              fontSize: 18, 
+              fontWeight: "800" 
+            }}>
+              Suivant
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

@@ -21,23 +21,49 @@ export default function RocketLaunchScreen() {
   const progressBarWidth = useRef(new Animated.Value(0)).current;
   const starsOpacity = useRef(new Animated.Value(0)).current;
 
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Effet pour démarrer l'intervalle quand on appuie
   useEffect(() => {
     if (isPressed && progress < 100) {
-      const interval = setInterval(() => {
+      intervalRef.current = setInterval(() => {
         setProgress(prev => {
           if (prev >= 100) {
             setIsPressed(false);
             setIsLaunching(true);
-            launchRocket();
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
             return 100;
           }
           return prev + 2;
         });
       }, 50);
-
-      return () => clearInterval(interval);
     }
-  }, [isPressed, progress]);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [isPressed]);
+
+  // Effet pour arrêter l'intervalle quand on relâche
+  useEffect(() => {
+    if (!isPressed && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, [isPressed]);
+
+  // Redirection quand isLaunching devient true
+  useEffect(() => {
+    if (isLaunching) {
+      router.push("/(tabs)");
+    }
+  }, [isLaunching]);
 
   useEffect(() => {
     Animated.timing(progressBarWidth, {
@@ -47,31 +73,6 @@ export default function RocketLaunchScreen() {
     }).start();
   }, [progress]);
 
-  const launchRocket = () => {
-    // Animation de la fusée qui décolle
-    Animated.parallel([
-      Animated.timing(rocketPosition, {
-        toValue: -1000,
-        duration: 2000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(rocketScale, {
-        toValue: 0.5,
-        duration: 2000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(starsOpacity, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: false,
-      }),
-    ]).start(() => {
-      // Redirection vers la page d'accueil après l'animation
-      setTimeout(() => {
-        router.push("/(tabs)");
-      }, 1000);
-    });
-  };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,

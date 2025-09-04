@@ -2,27 +2,24 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from 'react';
-import { Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const { width, height } = Dimensions.get('window');
-
 export default function WeightSelectionScreen() {
-  const [unit, setUnit] = useState<'kg' | 'lbs'>('kg');
-  const [weight, setWeight] = useState(70);
-
-  const toggleUnit = () => {
-    setUnit(unit === 'kg' ? 'lbs' : 'kg');
-  };
+  const [weight, setWeight] = useState("");
 
   const handleBack = () => router.back();
-  const handleNext = () => router.push('/onboarding/height-selection');
+  const handleNext = () => {
+    if (weight.trim()) {
+      router.push('/onboarding/goals-selection');
+    }
+  };
+
+  const isValid = weight.trim();
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
-      {/* Fond thème Revo : noir + halos olive */}
+    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+      {/* fond */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
         locations={[0, 0.22, 0.78, 1]}
@@ -31,10 +28,20 @@ export default function WeightSelectionScreen() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Header */}
+      {/* header */}
       <SafeAreaView>
-        <View style={styles.navBar}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8 }}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: "#1F1F1F",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
@@ -57,192 +64,96 @@ export default function WeightSelectionScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Contenu principal */}
-      <View style={styles.content}>
-        {/* Titre et description */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Quel est votre poids ?</Text>
-          <Text style={styles.description}>
-            Votre poids nous aide à personnaliser vos entraînements et calculs nutritionnels.
+      {/* contenu */}
+      <View style={{ flex: 1, paddingHorizontal: 22 }}>
+        {/* titre */}
+        <View style={{ alignItems: "center", marginTop: 60, marginBottom: 40 }}>
+          <Text style={{ fontSize: 26, fontWeight: "900", color: "#FFFFFF", textAlign: "center" }}>
+            Quel est votre poids ?
+          </Text>
+          <Text
+            style={{
+              marginTop: 10,
+              color: "rgba(255,255,255,0.8)",
+              textAlign: "center",
+              fontSize: 14.5,
+              lineHeight: 22,
+              maxWidth: 340,
+            }}
+          >
+            Votre poids nous aide à{"\n"}personnaliser votre expérience RevoFit.
           </Text>
         </View>
 
-        {/* Sélecteur d'unités */}
-        <View style={styles.unitToggle}>
-          <TouchableOpacity
-            style={[styles.unitButton, unit === 'kg' && styles.unitButtonActive]}
-            onPress={() => setUnit('kg')}
-          >
-            <Text style={[styles.unitText, unit === 'kg' && styles.unitTextActive]}>kg</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.unitButton, unit === 'lbs' && styles.unitButtonActive]}
-            onPress={() => setUnit('lbs')}
-          >
-            <Text style={[styles.unitText, unit === 'lbs' && styles.unitTextActive]}>lbs</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Affichage du poids et règle */}
-        <View style={styles.weightSection}>
-          {/* Affichage central du poids */}
-          <View style={styles.weightDisplay}>
-            <Text style={styles.weightText}>
-              {unit === 'kg' ? `${weight} kg` : `${Math.round(weight * 2.20462)} lbs`}
-            </Text>
-          </View>
-
-          {/* Règle verticale */}
-          <View style={styles.ruler}>
-            <View style={styles.rulerLine} />
-            <View style={styles.rulerMarkers}>
-              {[50, 60, 70, 80, 90, 100].map((mark) => (
-                <View key={mark} style={styles.rulerMarker}>
-                  <Text style={styles.rulerText}>{mark}</Text>
-                  <View style={styles.rulerTick} />
-                </View>
-              ))}
-            </View>
+        {/* input poids */}
+        <View style={{ marginBottom: 40 }}>
+          <View style={{
+            backgroundColor: "#1A1A1A",
+            borderRadius: 16,
+            borderWidth: 2,
+            borderColor: weight.trim() ? "#FFD700" : "#2A2A2A",
+            paddingHorizontal: 20,
+            paddingVertical: 18,
+          }}>
+            <TextInput
+              value={weight}
+              onChangeText={setWeight}
+              placeholder="Votre poids (kg)"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              style={{
+                color: "#FFFFFF",
+                fontSize: 18,
+                fontWeight: "600",
+              }}
+              keyboardType="numeric"
+              autoCorrect={false}
+            />
           </View>
         </View>
 
-        {/* Bouton Next */}
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Suivant</Text>
-        </TouchableOpacity>
+        {/* icône balance décorative */}
+        <View style={{ alignItems: "center", marginBottom: 40 }}>
+          <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: "rgba(255,215,0,0.1)",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: "rgba(255,215,0,0.3)",
+          }}>
+            <Ionicons name="scale" size={36} color="#FFD700" />
+          </View>
+        </View>
       </View>
+
+      {/* bouton */}
+      <SafeAreaView>
+        <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
+          <TouchableOpacity
+            onPress={handleNext}
+            disabled={!isValid}
+            style={{
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: isValid ? "#FFD700" : "#2A2A2A",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: isValid ? 1 : 0.5,
+            }}
+          >
+            <Text style={{ 
+              color: isValid ? "#000" : "#666", 
+              fontSize: 18, 
+              fontWeight: "800" 
+            }}>
+              Suivant
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#2A2A2A',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  header: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  description: {
-    fontSize: 16,
-    color: '#B0B0B0',
-    lineHeight: 22,
-    maxWidth: 300,
-  },
-  unitToggle: {
-    flexDirection: 'row',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 60,
-  },
-  unitButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  unitButtonActive: {
-    backgroundColor: '#FFD700',
-  },
-  unitText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#B0B0B0',
-  },
-  unitTextActive: {
-    color: '#000000',
-  },
-  weightSection: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-  weightDisplay: {
-    flex: 1,
-    backgroundColor: '#FFD700',
-    paddingVertical: 24,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  weightText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  ruler: {
-    width: 60,
-    height: 300,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  rulerLine: {
-    width: 2,
-    height: '100%',
-    backgroundColor: '#FFD700',
-  },
-  rulerMarkers: {
-    position: 'absolute',
-    height: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  rulerMarker: {
-    alignItems: 'center',
-  },
-  rulerText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  rulerTick: {
-    width: 20,
-    height: 2,
-    backgroundColor: '#FFD700',
-  },
-  nextButton: {
-    backgroundColor: '#FFD700',
-    paddingVertical: 20,
-    paddingHorizontal: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  nextButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-});

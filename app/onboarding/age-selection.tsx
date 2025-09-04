@@ -3,15 +3,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import {
-    FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    ViewToken,
-    ViewabilityConfig,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewToken,
+  ViewabilityConfig,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,13 +27,13 @@ export default function AgeSelectionScreen() {
 
   const listRef = useRef<FlatList<number>>(null);
 
-  // Centre la liste sur l’âge sélectionné au montage
+  // Centre la liste sur l'âge sélectionné au montage
   React.useEffect(() => {
     const idx = ages.indexOf(selectedAge);
     if (idx >= 0) {
       setTimeout(() => {
         listRef.current?.scrollToOffset({
-          offset: idx * ROW_H - ((PILL_H - ROW_H) / 2),
+          offset: idx * ROW_H,
           animated: false,
         });
       }, 0);
@@ -41,7 +41,7 @@ export default function AgeSelectionScreen() {
   }, []);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y + (PILL_H - ROW_H) / 2;
+    const y = e.nativeEvent.contentOffset.y;
     const idx = Math.round(y / ROW_H);
     const clamped = Math.max(0, Math.min(idx, ages.length - 1));
     if (ages[clamped] !== selectedAge) setSelectedAge(ages[clamped]);
@@ -60,14 +60,14 @@ export default function AgeSelectionScreen() {
     // scroll vers l'item tapé et mettre à jour
     const idx = ages.indexOf(age);
     listRef.current?.scrollToOffset({
-      offset: idx * ROW_H - ((PILL_H - ROW_H) / 2),
+      offset: idx * ROW_H,
       animated: true,
     });
     setSelectedAge(age);
-    // Navigation vers la page des objectifs après un court délai
-    setTimeout(() => {
-      router.push('/onboarding/goals-selection');
-    }, 500);
+  };
+
+  const handleNext = () => {
+    router.push('/onboarding/height-selection');
   };
 
   return (
@@ -186,6 +186,30 @@ export default function AgeSelectionScreen() {
         </View>
 
       </View>
+
+      {/* bouton */}
+      <SafeAreaView>
+        <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
+          <TouchableOpacity
+            onPress={handleNext}
+            style={{
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: "#FFD700",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={{ 
+              color: "#000", 
+              fontSize: 18, 
+              fontWeight: "800" 
+            }}>
+              Suivant
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }

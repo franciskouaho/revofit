@@ -3,13 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    NativeScrollEvent,
+    NativeSyntheticEvent,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -59,7 +59,7 @@ export default function HeightInputScreen() {
   };
 
   const goBack = () => router.back();
-  const goNext = () => router.push("/onboarding/fullname-selection");
+  const goNext = () => router.push("/onboarding/weight-selection");
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
