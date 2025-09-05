@@ -1,7 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface WorkoutStatusBarProps {
   strikes?: number;
@@ -10,59 +11,103 @@ interface WorkoutStatusBarProps {
   upcomingDays?: { day: number; label: string }[];
 }
 
+const BORDER = 'rgba(255,255,255,0.12)';
+const SURFACE = 'rgba(255,255,255,0.06)';
+const GOLD = '#FFD700';
+
 export default function WorkoutStatusBar({
-  strikes = 21,
-  currentDay = 'Wed',
-  workoutMessage = 'Time to workout',
-  upcomingDays = [
-    { day: 18, label: 'Thu' },
-    { day: 19, label: 'Fri' },
-    { day: 20, label: 'Sat' },
-  ],
-}: WorkoutStatusBarProps) {
+                                           strikes = 21,
+                                           currentDay = 'Wed',
+                                           workoutMessage = 'Time to workout',
+                                           upcomingDays = [
+                                             { day: 18, label: 'Thu' },
+                                             { day: 19, label: 'Fri' },
+                                             { day: 20, label: 'Sat' },
+                                           ],
+                                         }: WorkoutStatusBarProps) {
   return (
-    <View style={styles.wrap}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {/* --- Strikes (glass + border) --- */}
-        <BlurView intensity={28} tint="dark" style={styles.glassPill}>
-          <View style={styles.flameCircle}>
-            <Ionicons name="flame" size={16} color="#FFD700" />
+      <View style={styles.wrap}>
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+        >
+          {/* --- Strikes (glass) --- */}
+          <View style={styles.pillShell}>
+            <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
+            {/* fond verre */}
+            <View style={[StyleSheet.absoluteFill, styles.glassBg]} />
+            {/* gradient doux diagonal */}
+            <LinearGradient
+                colors={['#FFFFFF12', 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+            />
+            {/* inner stroke */}
+            <View style={[StyleSheet.absoluteFill, styles.innerStroke]} />
+            {/* flare haut */}
+            <View style={styles.topFlare} pointerEvents="none" />
+
+            <View style={styles.strikeContent}>
+              <View style={styles.flameCircle}>
+                <Ionicons name="flame" size={16} color={GOLD} />
+              </View>
+              <View style={{ marginLeft: 10 }}>
+                <Text style={styles.strikeNum}>{strikes}</Text>
+                <Text style={styles.strikesTitle}>Strikes</Text>
+              </View>
+            </View>
           </View>
-          <View style={{ marginLeft: 10 }}>
-            <Text style={styles.strikeNum}>{strikes}</Text>
-            <Text style={styles.strikesTitle}>Strikes</Text>
+
+          {/* separator (verre fin) */}
+          <View style={styles.sep} />
+
+          {/* --- Main pill (day + message) — glass --- */}
+          <View style={[styles.pillShell, styles.mainPill]}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <View style={[StyleSheet.absoluteFill, styles.glassBg]} />
+            <LinearGradient
+                colors={['#FFFFFF10', 'transparent']}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+            />
+            <View style={[StyleSheet.absoluteFill, styles.innerStroke]} />
+            <View style={styles.topFlare} pointerEvents="none" />
+
+            <View style={styles.mainContent}>
+              <View style={styles.dayBadge}>
+                <Text style={styles.dayBadgeTxt}>{currentDay}</Text>
+              </View>
+              <Text style={styles.pillMsg} numberOfLines={1}>
+                {workoutMessage}
+              </Text>
+            </View>
           </View>
-        </BlurView>
 
-        {/* separator (glass line) */}
-        <View style={styles.sep} />
+          {/* --- Upcoming days : chips glass --- */}
+          {upcomingDays.map((d, i) => (
+              <View key={`${d.day}-${i}`} style={styles.chipShell}>
+                <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
+                <View style={[StyleSheet.absoluteFill, styles.glassBgChip]} />
+                <LinearGradient
+                    colors={['#FFFFFF10', 'transparent']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                />
+                <View style={[StyleSheet.absoluteFill, styles.innerStrokeChip]} />
+                <View style={styles.topFlareChip} pointerEvents="none" />
 
-        {/* --- Main pill (day + message) — glass + border --- */}
-        <BlurView intensity={30} tint="dark" style={[styles.glassPill, styles.mainPill]}>
-          <View style={styles.dayBadge}>
-            <Text style={styles.dayBadgeTxt}>{currentDay}</Text>
-          </View>
-          <Text style={styles.pillMsg} numberOfLines={1}>
-            {workoutMessage}
-          </Text>
-
-          {/* petit highlight pour l’effet verre */}
-          <View style={styles.pillHighlight} pointerEvents="none" />
-        </BlurView>
-
-        {/* --- Upcoming days : petits chips glass + border --- */}
-        {upcomingDays.map((d, i) => (
-          <BlurView key={`${d.day}-${i}`} intensity={22} tint="dark" style={styles.dayChip}>
-            <Text style={styles.upDayNum}>{d.day}</Text>
-            <Text style={styles.upDayLbl}>{d.label}</Text>
-          </BlurView>
-        ))}
-      </ScrollView>
-    </View>
+                <Text style={styles.upDayNum}>{d.day}</Text>
+                <Text style={styles.upDayLbl}>{d.label}</Text>
+              </View>
+          ))}
+        </ScrollView>
+      </View>
   );
 }
-
-const BORDER = 'rgba(255,255,255,0.12)';
 
 const styles = StyleSheet.create({
   wrap: {
@@ -75,20 +120,67 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  /* pill générique en verre */
-  glassPill: {
+  /* ---- GLASS SHELLS ---- */
+  pillShell: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  chipShell: {
+    minWidth: 56,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: BORDER,
+    alignItems: 'center',
+  },
+  glassBg: {
+    borderRadius: 22,
+    backgroundColor: SURFACE,
+  },
+  glassBgChip: {
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  innerStroke: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  innerStrokeChip: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  topFlare: {
+    position: 'absolute',
+    top: 0,
+    left: 12,
+    right: 12,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  topFlareChip: {
+    position: 'absolute',
+    top: 0,
+    left: 8,
+    right: 8,
+    height: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
+  /* ---- STRIKES ---- */
+  strikeContent: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    overflow: 'hidden',
   },
-
-  /* strikes */
   flameCircle: {
     width: 36,
     height: 36,
@@ -112,7 +204,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  /* séparateur glacé */
+  /* ---- SEPARATOR ---- */
   sep: {
     width: 1,
     height: 36,
@@ -121,20 +213,16 @@ const styles = StyleSheet.create({
     borderRadius: 0.5,
   },
 
-  /* pill principale */
+  /* ---- MAIN PILL ---- */
   mainPill: {
     minWidth: 220,
-    gap: 10,
-    position: 'relative',
   },
-  pillHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 12,
-    right: 12,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)', // léger halo
+  mainContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   dayBadge: {
     width: 36,
@@ -159,17 +247,7 @@ const styles = StyleSheet.create({
     maxWidth: 170,
   },
 
-  /* upcoming day chips (glass + border) */
-  dayChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    minWidth: 56,
-  },
+  /* ---- UPCOMING CHIPS ---- */
   upDayNum: {
     color: '#FFFFFF',
     fontSize: 16,

@@ -1,4 +1,5 @@
 // app/(tabs)/workout.tsx
+import HealthDrawer from "@/components/HealthDrawer";
 import TemplateDrawer from "@/components/TemplateDrawer";
 import WorkoutTemplateCard from "@/components/WorkoutTemplateCard";
 import { Ionicons } from "@expo/vector-icons";
@@ -201,6 +202,7 @@ const Glass = ({ children, style, blur = 18 }: any) => (
 export default function WorkoutScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [templateDrawerVisible, setTemplateDrawerVisible] = useState(false);
+  const [healthDrawerVisible, setHealthDrawerVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
   // Hook Firebase pour les workouts
@@ -380,6 +382,22 @@ export default function WorkoutScreen() {
                     style={{ padding: 16, alignItems: "center", justifyContent: "center" }}
                   >
                     <Text style={{ color: "#fff", fontWeight: "800" }}>✦ Generate</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}
+                  onPress={() => setHealthDrawerVisible(true)}
+                  activeOpacity={0.9}
+                >
+                  <LinearGradient
+                    colors={["#4CAF50", "#45A049"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ padding: 16, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }}
+                  >
+                    <Ionicons name="heart" size={18} color="#fff" />
+                    <Text style={{ color: "#fff", fontWeight: "800" }}>Health</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
@@ -592,6 +610,12 @@ export default function WorkoutScreen() {
         onClose={() => setTemplateDrawerVisible(false)}
         onGenerate={handleTemplate}
         onTemplateCreated={handleTemplateCreated}
+      />
+
+      {/* Health Drawer */}
+      <HealthDrawer
+        visible={healthDrawerVisible}
+        onClose={() => setHealthDrawerVisible(false)}
       />
     </View>
   );

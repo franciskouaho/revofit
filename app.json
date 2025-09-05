@@ -15,7 +15,9 @@
       "appleTeamId": "NAN7MFNMT7",
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true,
-        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent",
+        "NSHealthShareUsageDescription": "RevoFit a besoin d'accéder à vos données de santé pour synchroniser vos entraînements et améliorer votre expérience fitness.",
+        "NSHealthUpdateUsageDescription": "RevoFit souhaite enregistrer vos données d'entraînement dans Apple Health pour un suivi complet de votre activité physique."
       }
     },
     "android": {
@@ -74,7 +76,8 @@
           "savePhotosPermission": "L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "./plugins/withHealthKit.js"
     ],
     "experiments": {
       "typedRoutes": true

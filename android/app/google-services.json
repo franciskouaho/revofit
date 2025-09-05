@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "336045610131",
+    "firebase_url": "https://revofit-db273-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "revofit-db273",
+    "storage_bucket": "revofit-db273.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336045610131:android:500508f21253f9b7206966",
+        "android_client_info": {
+          "package_name": "com.emplica.revofit"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "336045610131-68r2u4kg5rauqgmhrtnmn5ur6ido95ub.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDaQNSl8sPBtvR67itoxF4xHHK6eaPZxQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "336045610131-68r2u4kg5rauqgmhrtnmn5ur6ido95ub.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "336045610131-e2nfaiamqfs32dngbragj1l2v26qou9g.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.emplica.revofit"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
