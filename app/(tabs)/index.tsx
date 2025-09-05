@@ -3,12 +3,16 @@ import WorkoutStatusBar from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRecommendedWorkouts } from '@/hooks/useRecommendedWorkouts';
+import { useTodayWorkout } from '@/hooks/useTodayWorkout';
+import { useUserStats } from '@/hooks/useUserStats';
+import { useWorkoutStatus } from '@/hooks/useWorkoutStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -18,35 +22,60 @@ const GLASS_BG = 'rgba(255,255,255,0.06)';
 export default function HomeScreen() {
   const router = useRouter();
   const { userProfile } = useAuth();
+  
+  // Hooks Firebase
+  const { stats: userStats, loading: statsLoading } = useUserStats();
+  const { workout: todayWorkout, loading: workoutLoading } = useTodayWorkout();
+  const { workouts: recommended, loading: recommendedLoading } = useRecommendedWorkouts();
+  const { status: workoutStatus, loading: statusLoading } = useWorkoutStatus();
 
-  const userStats = {
-    calories: 1200,
-    steps: 9560,
-    heartRate: 73,
-    workouts: { completed: 14, total: 20 },
-    streak: 6,
-    points: 420,
-    weeklyGoal: { done: 3, target: 5 },
+  // Données par défaut en cas de chargement
+  const defaultStats = {
+    calories: 0,
+    steps: 0,
+    heartRate: 0,
+    workouts: { completed: 0, total: 0 },
+    streak: 0,
+    points: 0,
+    weeklyGoal: { done: 0, target: 5 },
   };
 
-  const todayWorkout = {
-    name: 'Full Body Workout',
-    difficulty: 'Advanced',
-    calories: 1800,
-    duration: 60,
+  const defaultWorkout = {
+    name: 'Chargement...',
+    difficulty: 'beginner' as const,
+    calories: 0,
+    duration: 0,
     image: require('@/assets/images/onboarding-athlete.png'),
   };
 
-  const recommended = [
-    { id: 'rec1', name: 'Push Power', tag: 'Upper • 45m', img: require('@/assets/images/onboarding-athlete.png'), color: ['#11160a', 'transparent'] },
-    { id: 'rec2', name: 'Legs & Core', tag: 'Lower • 40m', img: require('@/assets/images/onboarding-athlete.png'), color: ['#0a1016', 'transparent'] },
-    { id: 'rec3', name: 'Back & Biceps', tag: 'Pull • 50m', img: require('@/assets/images/onboarding-athlete.png'), color: ['#16100a', 'transparent'] },
+  const defaultRecommended = [
+    { id: 'rec1', name: 'Chargement...', tag: '...', img: require('@/assets/images/onboarding-athlete.png'), color: ['#11160a', 'transparent'] as [string, string] },
   ];
+
+  const defaultStatus = {
+    strikes: 0,
+    currentDay: 'Mer',
+    workoutMessage: "C'est l'heure de s'entraîner",
+    upcomingDays: [
+      { day: 18, label: 'Jeu' },
+      { day: 19, label: 'Ven' },
+      { day: 20, label: 'Sam' },
+    ],
+  };
+
+  // Utiliser les données Firebase ou les valeurs par défaut
+  const currentStats = userStats || defaultStats;
+  const currentWorkout = todayWorkout || defaultWorkout;
+  const currentRecommended = recommended.length > 0 ? recommended : defaultRecommended;
+  const currentStatus = workoutStatus || defaultStatus;
 
   const handleNotificationPress = () => router.push('/notifications');
   const handleProfilePress = () => router.push('/settings');
 
-  const progress = Math.min(1, userStats.weeklyGoal.done / Math.max(1, userStats.weeklyGoal.target));
+  const progress = Math.min(1, currentStats.weeklyGoal.done / Math.max(1, currentStats.weeklyGoal.target));
+
+  // Indicateur de chargement global
+  const isLoading = statsLoading || workoutLoading || recommendedLoading || statusLoading;
 
   return (
     <View style={styles.container}>
@@ -70,14 +99,10 @@ export default function HomeScreen() {
         <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView} contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Status bar */}
           <WorkoutStatusBar
-            strikes={21}
-            currentDay="Mer"
-            workoutMessage="C'est l'heure de s'entraîner"
-            upcomingDays={[
-              { day: 18, label: 'Jeu' },
-              { day: 19, label: 'Ven' },
-              { day: 20, label: 'Sam' },
-            ]}
+            strikes={statusLoading ? 0 : currentStatus.strikes}
+            currentDay={statusLoading ? '...' : currentStatus.currentDay}
+            workoutMessage={statusLoading ? 'Chargement...' : currentStatus.workoutMessage}
+            upcomingDays={statusLoading ? [] : currentStatus.upcomingDays}
           />
 
           {/* Statistiques */}
@@ -93,13 +118,13 @@ export default function HomeScreen() {
                   <Ionicons name="flame" size={18} color="#FFD700" />
                   <ThemedText style={styles.streakTitle}>Série actuelle</ThemedText>
                 </View>
-                <ThemedText style={styles.streakValue}>{userStats.streak} jours</ThemedText>
+                <ThemedText style={styles.streakValue}>{currentStats.streak} jours</ThemedText>
 
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
                 </View>
                 <ThemedText style={styles.progressText}>
-                  Semaine : {userStats.weeklyGoal.done}/{userStats.weeklyGoal.target}
+                  Semaine : {currentStats.weeklyGoal.done}/{currentStats.weeklyGoal.target}
                 </ThemedText>
               </View>
 
@@ -107,10 +132,10 @@ export default function HomeScreen() {
                 <View style={styles.pointsBadge}>
                   <Ionicons name="trophy" size={16} color="#000" />
                 </View>
-                <ThemedText style={styles.pointsValue}>{userStats.points}</ThemedText>
+                <ThemedText style={styles.pointsValue}>{currentStats.points}</ThemedText>
                 <ThemedText style={styles.pointsLabel}>points</ThemedText>
 
-                <TouchableOpacity style={styles.streakCTA} onPress={() => router.push('/challenges')}>
+                <TouchableOpacity style={styles.streakCTA} onPress={() => router.push('/workouts')}>
                   <LinearGradient colors={['#FFD700', '#E6C200']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.streakCTAGrad}>
                     <Ionicons name="flash" size={16} color="#000" />
                     <ThemedText style={styles.streakCTAText}>Booster</ThemedText>
@@ -120,10 +145,10 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.statsGrid}>
-              <GlassStat icon="flame" label="Calories" value={`${userStats.calories} Kcal`} />
-              <GlassStat icon="footsteps" label="Pas" value={`${userStats.steps}`} />
-              <GlassStat icon="heart" label="Battements" value={`${userStats.heartRate} bpm`} />
-              <GlassStat icon="barbell" label="Entraînements" value={`${userStats.workouts.completed}/${userStats.workouts.total}`} />
+              <GlassStat icon="flame" label="Calories" value={`${currentStats.calories} Kcal`} />
+              <GlassStat icon="footsteps" label="Pas" value={`${currentStats.steps}`} />
+              <GlassStat icon="heart" label="Battements" value={`${currentStats.heartRate} bpm`} />
+              <GlassStat icon="barbell" label="Entraînements" value={`${currentStats.workouts.completed}/${currentStats.workouts.total}`} />
             </View>
           </View>
 
@@ -147,7 +172,7 @@ export default function HomeScreen() {
                   <ThemedText style={styles.challengeTitle}>5 entraînements avant dimanche</ThemedText>
                   <ThemedText style={styles.challengeSub}>Rejoins le défi & gagne des points bonus</ThemedText>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/challenges')}>
+                <TouchableOpacity onPress={() => router.push('/workouts')}>
                   <LinearGradient colors={['#FFD700', '#E6C200']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.challengeBtn}>
                     <ThemedText style={styles.challengeBtnTxt}>Participer</ThemedText>
                   </LinearGradient>
@@ -161,14 +186,16 @@ export default function HomeScreen() {
             <ThemedText style={styles.sectionTitle}>Entraînement du jour</ThemedText>
 
             <View style={styles.workoutCardShell}>
-              <Image source={todayWorkout.image} style={styles.workoutImage} />
+              <Image source={currentWorkout.image} style={styles.workoutImage} />
               <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.workoutOverlay} />
 
               <BlurView intensity={30} tint="dark" style={styles.workoutGlassBar}>
                 <View style={styles.workoutHeader}>
                   <View style={styles.difficultyBadgeGlass}>
                     <View style={styles.difficultyDot} />
-                    <ThemedText style={styles.difficultyText}>{todayWorkout.difficulty}</ThemedText>
+                    <ThemedText style={styles.difficultyText}>
+                      {workoutLoading ? 'Chargement...' : currentWorkout.difficulty}
+                    </ThemedText>
                   </View>
 
                   <TouchableOpacity style={styles.favoriteButtonGlass}>
@@ -176,21 +203,31 @@ export default function HomeScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <ThemedText style={styles.workoutName}>{todayWorkout.name}</ThemedText>
+                <ThemedText style={styles.workoutName}>
+                  {workoutLoading ? 'Chargement de l\'entraînement...' : currentWorkout.name}
+                </ThemedText>
 
                 <View style={styles.workoutFooter}>
-                  <TouchableOpacity style={styles.playButtonGlass} onPress={() => router.push('/workout/quick-start')}>
+                  <TouchableOpacity 
+                    style={styles.playButtonGlass} 
+                    onPress={() => router.push('/workout')}
+                    disabled={workoutLoading}
+                  >
                     <Ionicons name="play" size={22} color="#0A0A0A" />
                   </TouchableOpacity>
 
                   <View style={styles.workoutDetails}>
                     <View style={styles.workoutDetail}>
                       <Ionicons name="flame" size={16} color="#FFD700" />
-                      <ThemedText style={styles.workoutDetailText}>{todayWorkout.calories} Kcal</ThemedText>
+                      <ThemedText style={styles.workoutDetailText}>
+                        {workoutLoading ? '...' : `${currentWorkout.calories} Kcal`}
+                      </ThemedText>
                     </View>
                     <View style={styles.workoutDetail}>
                       <Ionicons name="time" size={16} color="#FFD700" />
-                      <ThemedText style={styles.workoutDetailText}>{todayWorkout.duration} min</ThemedText>
+                      <ThemedText style={styles.workoutDetailText}>
+                        {workoutLoading ? '...' : `${currentWorkout.duration} min`}
+                      </ThemedText>
                     </View>
                   </View>
                 </View>
@@ -205,16 +242,25 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Recommandés pour toi</ThemedText>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
-              {recommended.map((w) => (
-                <TouchableOpacity key={w.id} activeOpacity={0.9} onPress={() => router.push(`/workout/${w.id}`)}>
+              {currentRecommended.map((w) => (
+                <TouchableOpacity 
+                  key={w.id} 
+                  activeOpacity={0.9} 
+                  onPress={() => router.push('/workout')}
+                  disabled={recommendedLoading}
+                >
                   <View style={styles.recCard}>
                     <Image source={w.img} style={styles.recImg} />
                     <LinearGradient colors={w.color} style={styles.recShade} />
                     <BlurView intensity={22} tint="dark" style={styles.recGlass}>
-                      <ThemedText style={styles.recTitle} numberOfLines={1}>{w.name}</ThemedText>
+                      <ThemedText style={styles.recTitle} numberOfLines={1}>
+                        {recommendedLoading ? 'Chargement...' : w.name}
+                      </ThemedText>
                       <View style={styles.recTag}>
                         <Ionicons name="time" size={12} color="#FFD700" />
-                        <ThemedText style={styles.recTagTxt}>{w.tag}</ThemedText>
+                        <ThemedText style={styles.recTagTxt}>
+                          {recommendedLoading ? '...' : w.tag}
+                        </ThemedText>
                       </View>
                     </BlurView>
                   </View>
@@ -224,6 +270,17 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Indicateur de chargement global */}
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <ThemedText style={styles.loadingText}>Chargement des données...</ThemedText>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -359,4 +416,30 @@ const styles = StyleSheet.create({
     paddingVertical: 6, borderRadius: 10,
   },
   recTagTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
+
+  /* Loading overlay */
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderWidth: 1,
+    borderColor: GLASS_BORDER,
+  },
+  loadingText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });
