@@ -1,66 +1,27 @@
+import { useNotifications } from '@/hooks/useNotifications';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width } = Dimensions.get('window');
+import React, { useEffect } from 'react';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function NotificationsPage() {
   const router = useRouter();
-  
-  const [notifications] = useState([
-    {
-      id: '1',
-      type: 'workout',
-      title: 'Entraînement terminé !',
-      message: 'Félicitations ! Vous avez terminé votre séance "Upper Body Strength"',
-      time: 'Il y a 2 heures',
-      isRead: false,
-      icon: 'fitness',
-      color: '#4ECDC4'
-    },
-    {
-      id: '2',
-      type: 'nutrition',
-      title: 'Objectif calories atteint',
-      message: 'Vous avez atteint votre objectif calorique quotidien de 2000 kcal',
-      time: 'Il y a 4 heures',
-      isRead: false,
-      icon: 'restaurant',
-      color: '#FFD700'
-    },
-    {
-      id: '3',
-      type: 'coach',
-      title: 'Nouveau message de votre coach',
-      message: 'Marie Dubois vous a envoyé un nouveau message',
-      time: 'Il y a 6 heures',
-      isRead: true,
-      icon: 'chatbubble',
-      color: '#FF6B6B'
-    },
-    {
-      id: '4',
-      type: 'reminder',
-      title: 'Rappel d\'entraînement',
-      message: 'N\'oubliez pas votre séance de cardio prévue à 18h00',
-      time: 'Il y a 1 jour',
-      isRead: true,
-      icon: 'time',
-      color: '#B388FF'
-    },
-    {
-      id: '5',
-      type: 'achievement',
-      title: 'Nouveau badge débloqué !',
-      message: 'Vous avez gagné le badge "Débutant Motivé"',
-      time: 'Il y a 2 jours',
-      isRead: true,
-      icon: 'trophy',
-      color: '#FFA726'
-    }
-  ]);
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    registerForPushNotifications,
+    markAsRead,
+    clearAllNotifications,
+    refreshNotifications,
+  } = useNotifications();
+
+  // Enregistrer pour les notifications push au montage
+  useEffect(() => {
+    registerForPushNotifications();
+  }, [registerForPushNotifications]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -84,12 +45,22 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAsRead = (id: string) => {
-    // Logique pour marquer comme lu
-    console.log('Mark as read:', id);
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'À l\'instant';
+    if (diffInSeconds < 3600) return `Il y a ${Math.floor(diffInSeconds / 60)} minutes`;
+    if (diffInSeconds < 86400) return `Il y a ${Math.floor(diffInSeconds / 3600)} heures`;
+    if (diffInSeconds < 604800) return `Il y a ${Math.floor(diffInSeconds / 86400)} jours`;
+    return `Il y a ${Math.floor(diffInSeconds / 604800)} semaines`;
   };
 
   const renderNotification = (notification: any) => {
+    const color = getNotificationColor(notification.type);
+    const icon = getNotificationIcon(notification.type);
+    const timeAgo = formatTimeAgo(notification.createdAt);
+
     return (
       <TouchableOpacity
         key={notification.id}
@@ -100,27 +71,85 @@ export default function NotificationsPage() {
         onPress={() => markAsRead(notification.id)}
       >
         <View style={styles.notificationContent}>
-          <View style={[styles.notificationIcon, { backgroundColor: `${notification.color}20` }]}>
+          <View style={[styles.notificationIcon, { backgroundColor: `${color}20` }]}>
             <Ionicons 
-              name={getNotificationIcon(notification.type) as any} 
+              name={icon as any} 
               size={20} 
-              color={notification.color} 
+              color={color} 
             />
           </View>
           <View style={styles.notificationText}>
             <Text style={styles.notificationTitle}>{notification.title}</Text>
             <Text style={styles.notificationMessage}>{notification.message}</Text>
-            <Text style={styles.notificationTime}>{notification.time}</Text>
+            <Text style={styles.notificationTime}>{timeAgo}</Text>
           </View>
           {!notification.isRead && (
             <View style={styles.unreadIndicator}>
-              <View style={[styles.unreadDot, { backgroundColor: notification.color }]} />
+              <View style={[styles.unreadDot, { backgroundColor: color }]} />
             </View>
           )}
         </View>
       </TouchableOpacity>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#0A0A0A', '#000000', '#0A0A0A', '#2a2a00']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <View style={styles.clearButton} />
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={{ color: '#fff', marginTop: 16 }}>Chargement des notifications...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#0A0A0A', '#000000', '#0A0A0A', '#2a2a00']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notifications</Text>
+            <View style={styles.clearButton} />
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error}</Text>
+            <TouchableOpacity 
+              style={[styles.clearButton, { marginTop: 16 }]} 
+              onPress={refreshNotifications}
+            >
+              <Text style={styles.clearButtonText}>Réessayer</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -140,7 +169,7 @@ export default function NotificationsPage() {
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Notifications</Text>
-          <TouchableOpacity style={styles.clearButton} onPress={() => console.log('Clear all')}>
+          <TouchableOpacity style={styles.clearButton} onPress={clearAllNotifications}>
             <Text style={styles.clearButtonText}>Effacer</Text>
           </TouchableOpacity>
         </View>
@@ -150,7 +179,7 @@ export default function NotificationsPage() {
           <View style={styles.statsSection}>
             <View style={styles.statsGlass}>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{notifications.filter(n => !n.isRead).length}</Text>
+                <Text style={styles.statNumber}>{unreadCount}</Text>
                 <Text style={styles.statLabel}>Non lues</Text>
               </View>
               <View style={styles.statDivider} />
@@ -162,19 +191,43 @@ export default function NotificationsPage() {
           </View>
 
           {/* Notifications List */}
-          <View style={styles.notificationsSection}>
-            <Text style={styles.sectionTitle}>Aujourd&apos;hui</Text>
-            <View style={styles.notificationsContainer}>
-              {notifications.slice(0, 3).map(renderNotification)}
-            </View>
-          </View>
+          {notifications.length > 0 ? (
+            <>
+              <View style={styles.notificationsSection}>
+                <Text style={styles.sectionTitle}>Aujourd&apos;hui</Text>
+                <View style={styles.notificationsContainer}>
+                  {notifications
+                    .filter(n => {
+                      const today = new Date();
+                      const notificationDate = new Date(n.createdAt);
+                      return notificationDate.toDateString() === today.toDateString();
+                    })
+                    .map(renderNotification)}
+                </View>
+              </View>
 
-          <View style={styles.notificationsSection}>
-            <Text style={styles.sectionTitle}>Plus tôt</Text>
-            <View style={styles.notificationsContainer}>
-              {notifications.slice(3).map(renderNotification)}
+              <View style={styles.notificationsSection}>
+                <Text style={styles.sectionTitle}>Plus tôt</Text>
+                <View style={styles.notificationsContainer}>
+                  {notifications
+                    .filter(n => {
+                      const today = new Date();
+                      const notificationDate = new Date(n.createdAt);
+                      return notificationDate.toDateString() !== today.toDateString();
+                    })
+                    .map(renderNotification)}
+                </View>
+              </View>
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="notifications-off" size={64} color="rgba(255, 255, 255, 0.3)" />
+              <Text style={styles.emptyStateTitle}>Aucune notification</Text>
+              <Text style={styles.emptyStateMessage}>
+                Vous n&apos;avez pas encore de notifications. Elles apparaîtront ici quand vous en recevrez.
+              </Text>
             </View>
-          </View>
+          )}
 
           <View style={styles.bottomSpacing} />
         </ScrollView>
@@ -238,4 +291,23 @@ const styles = StyleSheet.create({
   unreadIndicator: { marginLeft: 12 },
   unreadDot: { width: 8, height: 8, borderRadius: 4 },
   bottomSpacing: { height: 20 },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateMessage: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });

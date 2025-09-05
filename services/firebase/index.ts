@@ -6,6 +6,7 @@
 export * from './auth';
 export * from './config';
 export * from './exercises';
+export * from './notifications';
 export * from './userStats';
 export * from './workouts';
 export * from './workoutStatus';

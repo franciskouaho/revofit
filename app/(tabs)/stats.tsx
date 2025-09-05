@@ -1,11 +1,12 @@
 // app/(tabs)/stats.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
+import { useStatsData } from '@/hooks/useStatsData';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -88,23 +89,59 @@ const Donut = ({ size = 120, stroke = 14, percent = 76, color = '#4CAF50' }) => 
 };
 
 export default function StatsScreen() {
-  /* --- datasets --- */
-  const monthly = [
-    { m: 'Jan', cal: 45000, wo: 22 },
-    { m: 'Fév', cal: 52000, wo: 25 },
-    { m: 'Mar', cal: 48000, wo: 23 },
-    { m: 'Avr', cal: 55000, wo: 28 },
-    { m: 'Mai', cal: 58000, wo: 30 },
-    { m: 'Juin', cal: 62000, wo: 32 },
-  ];
+  const {
+    userStats,
+    totalCalories,
+    totalSteps,
+    totalWorkouts,
+    averageHeartRate,
+    currentStreak,
+    longestStreak,
+    completionRate,
+    weeklyData,
+    monthlyData,
+    personalRecords,
+    loading,
+    error,
+  } = useStatsData();
 
+  // Données calculées pour les KPIs
   const kpis = [
-    { label: 'Total calories', value: '62.0k', diff: '+6%', icon: 'flame', color: '#FFD700', series: [8, 12, 7, 15, 18, 22, 17, 24] },
-    { label: 'Entraînements', value: '32', diff: '+2', icon: 'barbell', color: '#4CAF50', series: [3, 4, 3, 5, 6, 5, 6, 7] },
-    { label: 'Temps actif', value: '52h', diff: '+5h', icon: 'time', color: '#4ECDC4', series: [6, 5, 6, 7, 8, 9, 7, 8] },
-    { label: 'Distance', value: '128 km', diff: '+12', icon: 'walk', color: '#9FA8DA', series: [10, 14, 9, 12, 16, 18, 17, 20] },
+    { 
+      label: 'Total calories', 
+      value: `${(totalCalories / 1000).toFixed(1)}k`, 
+      diff: '+6%', 
+      icon: 'flame', 
+      color: '#FFD700', 
+      series: weeklyData.map(d => Math.round(d.calories / 1000)) 
+    },
+    { 
+      label: 'Entraînements', 
+      value: totalWorkouts.toString(), 
+      diff: '+2', 
+      icon: 'barbell', 
+      color: '#4CAF50', 
+      series: weeklyData.map(d => d.workouts) 
+    },
+    { 
+      label: 'Temps actif', 
+      value: `${Math.round(totalWorkouts * 1.5)}h`, 
+      diff: '+5h', 
+      icon: 'time', 
+      color: '#4ECDC4', 
+      series: [6, 5, 6, 7, 8, 9, 7, 8] 
+    },
+    { 
+      label: 'Distance', 
+      value: `${Math.round(personalRecords.longestDistance)} km`, 
+      diff: '+12', 
+      icon: 'walk', 
+      color: '#9FA8DA', 
+      series: weeklyData.map(d => Math.round(d.steps / 1000)) 
+    },
   ];
 
+  // Métriques corporelles (placeholder - à connecter avec des données réelles)
   const body = [
     { name: 'Poids', value: '73.0 kg', change: '-0.5 kg', up: false, color: '#4CAF50' },
     { name: 'Masse musculaire', value: '28.5 kg', change: '+0.3 kg', up: true, color: '#FFD700' },
@@ -112,6 +149,7 @@ export default function StatsScreen() {
     { name: 'IMC', value: '22.1', change: '-0.2', up: false, color: '#4ECDC4' },
   ];
 
+  // Répartition d'activité (placeholder)
   const split = [
     { type: 'Cardio', pct: 38, color: '#4CAF50', icon: 'heart' },
     { type: 'Force', pct: 32, color: '#FFD700', icon: 'barbell' },
@@ -119,6 +157,7 @@ export default function StatsScreen() {
     { type: 'Yoga', pct: 12, color: '#9C27B0', icon: 'leaf' },
   ];
 
+  // Heatmap hebdomadaire (placeholder)
   const weekHeat = [
     [0, 1, 2, 1],
     [0, 0, 3, 2],
@@ -129,12 +168,85 @@ export default function StatsScreen() {
     [0, 1, 1, 0],
   ];
 
+  // Macros nutritionnels (placeholder)
   const macros = [
     { name: 'Protéines', g: 120, color: '#4CAF50' },
     { name: 'Glucides', g: 180, color: '#FF6B6B' },
     { name: 'Lipides', g: 65, color: '#9C27B0' },
     { name: 'Fibres', g: 28, color: '#4ECDC4' },
   ];
+
+  // Données pour les mini-cards de santé
+  const healthMetrics = [
+    {
+      label: 'Pas (7j)',
+      value: totalSteps.toLocaleString(),
+      icon: 'walk',
+      color: '#FFD700',
+      series: weeklyData.map(d => Math.round(d.steps / 1000))
+    },
+    {
+      label: 'Dénivelé',
+      value: '1 120 m',
+      icon: 'trail-sign',
+      color: '#9FA8DA',
+      series: [2, 4, 1, 5, 3, 6, 4]
+    },
+    {
+      label: 'Hydratation',
+      value: '2.3 L/j',
+      icon: 'water',
+      color: '#4ECDC4',
+      series: [1.8, 2.0, 2.4, 2.7, 2.3, 2.1, 2.5]
+    },
+    {
+      label: 'Pace course',
+      value: `${personalRecords.bestPace}'/km`,
+      icon: 'speedometer',
+      color: '#FF6B6B',
+      series: [6, 5.6, 5.2, 5.1, 4.9, 5.1, 5.0]
+    },
+  ];
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
+          locations={[0, 0.15, 0.7, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={{ color: '#fff', marginTop: 16 }}>Chargement des statistiques...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
+          locations={[0, 0.15, 0.7, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error}</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -212,7 +324,7 @@ export default function StatsScreen() {
                     <Ionicons name="heart" size={18} color="#FF6B6B" />
                     <Text style={{ color: 'rgba(255,255,255,0.8)' }}>FC au repos</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>58 bpm</Text>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>{averageHeartRate || 58} bpm</Text>
                   <Text style={{ color: '#4CAF50', marginTop: 4 }}>-3 bpm</Text>
                 </View>
               </Tile>
@@ -250,14 +362,29 @@ export default function StatsScreen() {
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <Glass style={{ width: 150, alignItems: 'center', justifyContent: 'center' }}>
-                <Donut percent={76} color="#FFD700" />
+                <Donut percent={completionRate} color="#FFD700" />
               </Glass>
               <Glass style={{ flex: 1 }}>
                 <Text style={{ color: '#fff', fontWeight: '800', marginBottom: 8 }}>Objectifs ce mois</Text>
                 {[
-                  { label: 'Calories brûlées', val: 62000, goal: 80000, color: '#FFD700' },
-                  { label: 'Heures actives', val: 52, goal: 60, color: '#4ECDC4' },
-                  { label: 'Séances', val: 32, goal: 36, color: '#4CAF50' },
+                  { 
+                    label: 'Calories brûlées', 
+                    val: totalCalories, 
+                    goal: 80000, 
+                    color: '#FFD700' 
+                  },
+                  { 
+                    label: 'Heures actives', 
+                    val: Math.round(totalWorkouts * 1.5), 
+                    goal: 60, 
+                    color: '#4ECDC4' 
+                  },
+                  { 
+                    label: 'Séances', 
+                    val: totalWorkouts, 
+                    goal: userStats?.weeklyGoal?.target ? userStats.weeklyGoal.target * 4 : 36, 
+                    color: '#4CAF50' 
+                  },
                 ].map((g, i) => (
                   <View key={i} style={{ marginBottom: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -290,8 +417,9 @@ export default function StatsScreen() {
             <ThemedText style={styles.sectionTitle}>Progression mensuelle</ThemedText>
             <Glass padding={14}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 160 }}>
-                {monthly.map((m, i) => {
-                  const h = Math.max(10, (m.cal / 65000) * 130);
+                {monthlyData.map((m, i) => {
+                  const maxCalories = Math.max(...monthlyData.map(d => d.calories), 1);
+                  const h = Math.max(10, (m.calories / maxCalories) * 130);
                   return (
                     <View key={i} style={{ alignItems: 'center', flex: 1 }}>
                       <View
@@ -303,11 +431,11 @@ export default function StatsScreen() {
                       >
                         <LinearGradient colors={['#FFD700', '#E6C200']} start={{ x: 0, y: 1 }} end={{ x: 0, y: 0 }} style={{ height: h }} />
                       </View>
-                      <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>{m.m}</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>{Math.round(m.cal / 1000)}k</Text>
+                      <Text style={{ color: '#fff', fontSize: 12, marginTop: 6 }}>{m.month}</Text>
+                      <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>{Math.round(m.calories / 1000)}k</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
                         <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#4CAF50' }} />
-                        <Text style={{ color: '#4CAF50', fontSize: 10, fontWeight: '700' }}>{m.wo}</Text>
+                        <Text style={{ color: '#4CAF50', fontSize: 10, fontWeight: '700' }}>{m.workouts}</Text>
                       </View>
                     </View>
                   );
@@ -387,49 +515,18 @@ export default function StatsScreen() {
           {/* Mini-cards Steps / Elevation / Hydratation / Pace (alignées) */}
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-              <Tile>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="walk" size={18} color="#FFD700" />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Pas (7j)</Text>
+              {healthMetrics.map((metric, index) => (
+                <Tile key={index}>
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Ionicons name={metric.icon as any} size={18} color={metric.color} />
+                      <Text style={{ color: 'rgba(255,255,255,0.8)' }}>{metric.label}</Text>
+                    </View>
+                    <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>{metric.value}</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>78 540</Text>
-                </View>
-                <Sparkline values={[8, 10, 14, 12, 11, 13, 10]} color="#FFD700" />
-              </Tile>
-
-              <Tile>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="trail-sign" size={18} color="#9FA8DA" />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Dénivelé</Text>
-                  </View>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>1 120 m</Text>
-                </View>
-                <Sparkline values={[2, 4, 1, 5, 3, 6, 4]} color="#9FA8DA" />
-              </Tile>
-
-              <Tile>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="water" size={18} color="#4ECDC4" />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Hydratation</Text>
-                  </View>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>2.3 L/j</Text>
-                </View>
-                <Sparkline values={[1.8, 2.0, 2.4, 2.7, 2.3, 2.1, 2.5]} color="#4ECDC4" />
-              </Tile>
-
-              <Tile>
-                <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="speedometer" size={18} color="#FF6B6B" />
-                    <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Pace course</Text>
-                  </View>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900', marginVertical: 8 }}>5'02 /km</Text>
-                </View>
-                <Sparkline values={[6, 5.6, 5.2, 5.1, 4.9, 5.1, 5.0]} color="#FF6B6B" />
-              </Tile>
+                  <Sparkline values={metric.series} color={metric.color} />
+                </Tile>
+              ))}
             </View>
           </View>
 
@@ -441,8 +538,10 @@ export default function StatsScreen() {
                 <View style={{ alignItems: 'center', gap: 8 }}>
                   <Ionicons name="trophy" size={28} color="#FFD700" />
                   <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Distance course</Text>
-                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>15.2 km</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>12 juin 2024</Text>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{personalRecords.longestDistance.toFixed(1)} km</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+                    {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </Text>
                 </View>
               </Glass>
 
@@ -456,7 +555,7 @@ export default function StatsScreen() {
                   <View style={{ width: 1, height: 30, backgroundColor: BORDER }} />
                   <View style={{ alignItems: 'center', flex: 1 }}>
                     <Text style={{ color: '#fff', fontWeight: '800' }}>2024</Text>
-                    <Text style={{ color: '#4CAF50' }}>320k Kcal</Text>
+                    <Text style={{ color: '#4CAF50' }}>{(totalCalories / 1000).toFixed(0)}k Kcal</Text>
                   </View>
                 </View>
                 <View style={{ height: 10 }} />
@@ -482,7 +581,7 @@ export default function StatsScreen() {
                     <Ionicons name="flame" size={18} color="#FFD700" />
                     <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Meilleur streak</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>9 semaines</Text>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>{longestStreak} semaines</Text>
                 </View>
               </Tile>
 
@@ -492,7 +591,7 @@ export default function StatsScreen() {
                     <Ionicons name="aperture" size={18} color="#4CAF50" />
                     <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Taux complétion</Text>
                   </View>
-                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>84%</Text>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 8 }}>{completionRate}%</Text>
                 </View>
               </Tile>
             </View>

@@ -406,34 +406,34 @@ const EXERCISES: Record<string, string[]> = {
   ],
   Dos: [
     'Tractions', 'Rowing haltère', 'Rowing barre', 'Rowing T-bar', 'Rowing machine',
-    'Tirage vertical', 'Tirage horizontal', 'Tirage nuque', 'Shrugs', 'Pull-down',
-    'Deadlift', 'Good morning dos',
+    'Tirage vertical', 'Tirage horizontal', 'Tirage nuque', 'Haussements d\'épaules', 'Tirage poulie',
+    'Soulevé de terre', 'Good morning dos',
   ],
   Épaules: [
     'Développé militaire', 'Développé haltères épaules', 'Élévations latérales',
-    'Élévations frontales', 'Élévations arrière', 'Arnold press', 'Upright row',
-    'Face pull', 'Reverse flyes',
+    'Élévations frontales', 'Élévations arrière',   'Arnold press', 'Rowing debout',
+    'Face pull', 'Élévations arrière haltères',
   ],
   Biceps: [
     'Curl haltères', 'Curl barre', 'Curl pupitre', 'Curl marteau', 'Curl concentré',
-    'Curl spider', 'Curl incliné', 'Curl 21', 'Preacher curl',
+    'Curl spider', 'Curl incliné', 'Curl 21', 'Curl pupitre',
   ],
   Triceps: [
     'Extensions nuque', 'Extensions poulie', 'Dips triceps', 'Kickback', 'Skull crushers',
-    'Diamond push-ups', 'Overhead extensions', 'Rope pushdown', 'Close grip bench press',
+    'Pompes diamant', 'Extensions verticales', 'Extensions corde', 'Développé couché prise serrée',
   ],
   Jambes: [
-    'Squat', 'Squat avant', 'Squat bulgare', 'Leg press', 'Extensions cuisses',
-    'Leg curl', 'Hip thrust', 'Deadlift roumain', 'Good morning jambes', 'Lunges',
-    'Step-ups', 'Calf raises', 'Leg abduction', 'Leg adduction', 'Hip adduction', 'Hip abduction',
+    'Squat', 'Squat avant', 'Squat bulgare', 'Presse à cuisses', 'Extensions cuisses',
+    'Leg curl', 'Hip thrust', 'Soulevé de terre roumain', 'Good morning jambes', 'Fentes',
+    'Montées sur banc', 'Mollets debout', 'Abduction jambes', 'Adduction jambes', 'Abduction hanches', 'Adduction hanches',
   ],
   Abdominaux: [
-    'Crunch', 'Crunch inversé', 'Plank', 'Side plank', 'Russian twist', 'Leg raises',
-    'Bicycle crunch', 'Mountain climbers abdos', 'Ab wheel rollout', 'Cable woodchop',
+    'Crunch', 'Crunch inversé', 'Planche', 'Planche latérale', 'Russian twist', 'Relevés de jambes',
+    'Crunch vélo', 'Mountain climbers abdos', 'Roulette abdos', 'Woodchop câble',
   ],
   Cardio: [
     'Course à pied', 'Vélo', 'Rameur', 'Elliptique', 'Escalier', 'Burpees',
-    'Jumping jacks', 'Mountain climbers cardio', 'High knees', 'Butt kicks',
+    'Jumping jacks', 'Mountain climbers cardio', 'Montées de genoux', 'Talons-fesses',
   ],
 };
 
@@ -464,23 +464,25 @@ function getVideoUrlForExercise(name: string): string | undefined {
     'Kickback': 'https://www.youtube.com/watch?v=6SS6K3lAwY8',
     'Squat': 'https://www.youtube.com/watch?v=Dy28eq2PjcM',
     'Squat avant': 'https://www.youtube.com/watch?v=uYumuL64VxU',
-    'Leg press': 'https://www.youtube.com/watch?v=IZxyjW7MPJQ',
+    'Presse à cuisses': 'https://www.youtube.com/watch?v=IZxyjW7MPJQ',
     'Extensions cuisses': 'https://www.youtube.com/watch?v=YyvSfVjQeL0',
     'Leg curl': 'https://www.youtube.com/watch?v=0tn5K9NlCfo',
     'Hip thrust': 'https://www.youtube.com/watch?v=u5n7Q6D3_0M',
-    'Lunges': 'https://www.youtube.com/watch?v=QOVaHwm-Q6U',
-    'Calf raises': 'https://www.youtube.com/watch?v=YyvSfVjQeL0',
+    'Fentes': 'https://www.youtube.com/watch?v=QOVaHwm-Q6U',
+    'Mollets debout': 'https://www.youtube.com/watch?v=YyvSfVjQeL0',
     'Crunch': 'https://www.youtube.com/watch?v=Xyd_fa5zoEU',
-    'Plank': 'https://www.youtube.com/watch?v=pSHjTRCQxIw',
-    'Side plank': 'https://www.youtube.com/watch?v=K2Vpjzuzaw0',
+    'Planche': 'https://www.youtube.com/watch?v=pSHjTRCQxIw',
+    'Planche latérale': 'https://www.youtube.com/watch?v=K2Vpjzuzaw0',
     'Russian twist': 'https://www.youtube.com/watch?v=wkD8rjkodUI',
-    'Leg raises': 'https://www.youtube.com/watch?v=JB2oyawG9KI',
+    'Relevés de jambes': 'https://www.youtube.com/watch?v=JB2oyawG9KI',
     'Course à pied': 'https://www.youtube.com/watch?v=5F8n8g8yEuM',
     'Vélo': 'https://www.youtube.com/watch?v=YQBYfqDqZ4Y',
     'Rameur': 'https://www.youtube.com/watch?v=WU4D6BUrkQI',
     'Burpees': 'https://www.youtube.com/watch?v=TU8QYVW0gDU',
     'Jumping jacks': 'https://www.youtube.com/watch?v=UpH7rm0cYbM',
     'Mountain climbers cardio': 'https://www.youtube.com/watch?v=nmwgirgXLYM',
+    'Montées de genoux': 'https://www.youtube.com/watch?v=nmwgirgXLYM',
+    'Talons-fesses': 'https://www.youtube.com/watch?v=UpH7rm0cYbM',
   };
   return videoUrls[name];
 }
@@ -536,11 +538,11 @@ function getEquipmentForExercise(name: string): string[] {
     'Développé haltères pectoraux': ['banc', 'haltères'],
     'Pompes': ['aucun'],
     'Squat': ['barre', 'disques'],
-    'Deadlift': ['barre', 'disques'],
+    'Soulevé de terre': ['barre', 'disques'],
     'Tractions': ['barre de traction'],
     'Curl haltères': ['haltères'],
     'Extensions nuque': ['haltère'],
-    'Plank': ['aucun'],
+    'Planche': ['aucun'],
     'Course à pied': ['aucun'],
     'Vélo': ['vélo'],
     'Rameur': ['rameur'],
@@ -549,8 +551,8 @@ function getEquipmentForExercise(name: string): string[] {
 }
 
 function getDifficultyForExercise(name: string): 'beginner' | 'intermediate' | 'advanced' {
-  const beginner = ['Pompes', 'Plank', 'Crunch', 'Course à pied', 'Vélo'];
-  const advanced = ['Deadlift', 'Squat avant', 'Arnold press', 'Skull crushers'];
+  const beginner = ['Pompes', 'Planche', 'Crunch', 'Course à pied', 'Vélo'];
+  const advanced = ['Soulevé de terre', 'Squat avant', 'Arnold press', 'Skull crushers'];
 
   if (beginner.includes(name)) return 'beginner';
   if (advanced.includes(name)) return 'advanced';
@@ -607,8 +609,8 @@ function getEnglishName(name: string): string {
     'Rowing haltère': 'One-Arm Dumbbell Row',
     'Rowing barre': 'Barbell Row',
     'Squat': 'Squat',
-    'Deadlift': 'Deadlift',
-    'Plank': 'Plank',
+    'Soulevé de terre': 'Deadlift',
+    'Planche': 'Plank',
     'Course à pied': 'Running',
   };
   return translations[name] || name;

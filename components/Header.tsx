@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { NotificationIcon } from './NotificationIcon';
 import { ThemedText } from './ThemedText';
 
 const GLASS_BORDER = 'rgba(255,255,255,0.12)';
@@ -37,10 +38,11 @@ export default function Header({
       {/* Right side - Notifications + Profile (opens settings) */}
       <View style={styles.headerRight}>
         <BlurView intensity={28} tint="dark" style={styles.iconGlass}>
-          <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
-            <Ionicons name="notifications" size={22} color="#FFFFFF" />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          <NotificationIcon 
+            onPress={onNotificationPress}
+            size={22}
+            color="#FFFFFF"
+          />
         </BlurView>
         
         <BlurView intensity={28} tint="dark" style={styles.iconGlass}>
@@ -95,26 +97,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  notificationButton: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
   profileButton: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    backgroundColor: '#FF9800',
-    borderRadius: 4,
   },
 });
