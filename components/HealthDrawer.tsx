@@ -1,7 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import {
+  getMostRecentQuantitySample,
+  isHealthDataAvailable,
+  useHealthkitAuthorization
+} from '@kingstinct/react-native-healthkit';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,11 +18,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import type {
-  HealthKitPermissions,
-  HealthValue,
-} from 'react-native-health';
-import AppleHealthKit from 'react-native-health';
 
 const BORDER = "rgba(255,255,255,0.12)";
 
@@ -43,109 +43,75 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     distance: 0,
   });
 
-  // Permissions pour HealthKit
-  const permissions = useMemo(() => ({
-    permissions: {
-      read: [
-        AppleHealthKit.Constants.Permissions.Steps,
-        AppleHealthKit.Constants.Permissions.HeartRate,
-        AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
-        AppleHealthKit.Constants.Permissions.DistanceWalkingRunning,
-      ],
-      write: []
-    },
-  } as HealthKitPermissions), []);
+  // Permissions pour HealthKit avec la nouvelle API
+  const permissions = [
+    'HKQuantityTypeIdentifierStepCount',
+    'HKQuantityTypeIdentifierHeartRate',
+    'HKQuantityTypeIdentifierActiveEnergyBurned',
+    'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  ];
 
-  const fetchHealthData = useCallback(() => {
+  // Hook pour l'autorisation
+  const [authorizationStatus, requestAuth] = useHealthkitAuthorization(permissions);
+
+  const fetchHealthData = useCallback(async () => {
     if (!isConnected || Platform.OS !== 'ios') return;
 
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    try {
+      // Récupérer les données en parallèle avec la nouvelle API
+      const [stepsData, heartRateData, activeEnergyData, distanceData] = await Promise.allSettled([
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+      ]);
 
-    const options = {
-      startDate: startOfDay.toISOString(),
-      endDate: endOfDay.toISOString(),
-    };
+      setHealthData(prev => ({
+        ...prev,
+        steps: stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0,
+        heartRate: heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0,
+        activeEnergy: activeEnergyData.status === 'fulfilled' ? Math.round(activeEnergyData.value?.quantity || 0) : 0,
+        distance: distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0,
+      }));
 
-    // Récupérer les pas
-    AppleHealthKit.getStepCount(options, (callbackError: any, results: HealthValue) => {
-      if (!callbackError && results) {
-        setHealthData(prev => ({
-          ...prev,
-          steps: results.value || 0,
-        }));
-      }
-    });
-
-    // Récupérer la fréquence cardiaque
-    AppleHealthKit.getHeartRateSamples(options, (callbackError: any, results: HealthValue[]) => {
-      if (!callbackError && results && results.length > 0) {
-        const latestHeartRate = results[results.length - 1];
-        setHealthData(prev => ({
-          ...prev,
-          heartRate: latestHeartRate.value || 0,
-        }));
-      }
-    });
-
-    // Récupérer l'énergie active
-    AppleHealthKit.getActiveEnergyBurned(options, (callbackError: any, results: HealthValue[]) => {
-      if (!callbackError && results && results.length > 0) {
-        const totalCalories = results.reduce((sum: number, sample: HealthValue) => sum + (sample.value || 0), 0);
-        setHealthData(prev => ({
-          ...prev,
-          activeEnergy: totalCalories,
-        }));
-      }
-    });
-
-    // Récupérer la distance
-    AppleHealthKit.getDistanceWalkingRunning(options, (callbackError: any, results: HealthValue) => {
-      if (!callbackError && results) {
-        setHealthData(prev => ({
-          ...prev,
-          distance: results.value || 0,
-        }));
-      }
-    });
+      console.log('✅ Données de santé récupérées avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors de la récupération des données:', error);
+    }
   }, [isConnected]);
 
-  const checkAuthStatus = useCallback(() => {
-    AppleHealthKit.getAuthStatus(permissions, (error: any, results: any) => {
-      if (error) {
-        console.log('Erreur auth status:', error);
-        setIsConnected(false);
-      } else {
-        const hasPermissions = Object.values(results).some((status: any) => status === 2);
-        setIsConnected(hasPermissions);
-        if (hasPermissions) {
-          fetchHealthData();
-        }
-      }
-    });
-  }, [permissions, fetchHealthData]);
-
-  const checkHealthKitAvailability = useCallback(() => {
+  const checkAuthStatus = useCallback(async () => {
     try {
-      // Vérifier si AppleHealthKit est disponible
-      if (!AppleHealthKit || typeof AppleHealthKit.isAvailable !== 'function') {
-        console.log('AppleHealthKit non disponible ou mal importé');
+      const isAvailable = await isHealthDataAvailable();
+      if (!isAvailable) {
+        console.log('HealthKit non disponible');
         setIsConnected(false);
         return;
       }
 
-      AppleHealthKit.isAvailable((error: any, results: boolean) => {
-        if (error) {
-          console.log('HealthKit non disponible:', error);
-          setIsConnected(false);
-        } else {
-          console.log('HealthKit disponible:', results);
-          if (results) {
-            checkAuthStatus();
-          }
-        }
-      });
+      // Vérifier le statut d'autorisation
+      const hasPermissions = authorizationStatus === 'authorized';
+      setIsConnected(hasPermissions);
+      
+      if (hasPermissions) {
+        await fetchHealthData();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification du statut:', error);
+      setIsConnected(false);
+    }
+  }, [authorizationStatus, fetchHealthData]);
+
+  const checkHealthKitAvailability = useCallback(async () => {
+    try {
+      const isAvailable = await isHealthDataAvailable();
+      console.log('HealthKit disponible:', isAvailable);
+      
+      if (isAvailable) {
+        await checkAuthStatus();
+      } else {
+        setIsConnected(false);
+      }
     } catch (error) {
       console.error('Erreur lors de la vérification HealthKit:', error);
       setIsConnected(false);
@@ -159,42 +125,45 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     }
   }, [checkHealthKitAvailability]);
 
-  const connectToHealth = () => {
+  const connectToHealth = async () => {
     if (Platform.OS !== 'ios') {
       Alert.alert('Erreur', 'HealthKit n\'est disponible que sur iOS');
       return;
     }
 
+    console.log('🏥 Tentative de connexion à HealthKit...');
     setIsLoading(true);
     
     try {
-      AppleHealthKit.initHealthKit(permissions, (error: any) => {
-        setIsLoading(false);
-        
-        if (error) {
-          console.log('[ERROR] Cannot grant permissions!', error);
-          Alert.alert(
-            'Erreur de connexion',
-            'Impossible de se connecter à Apple Health. Vérifiez que l\'application Santé est installée et que les permissions sont accordées.',
-            [{ text: 'OK' }]
-          );
-          setIsConnected(false);
-        } else {
-          console.log('HealthKit initialisé avec succès');
-          setIsConnected(true);
-          fetchHealthData();
-          Alert.alert(
-            'Connexion réussie',
-            'Votre application est maintenant connectée à Apple Health !',
-            [{ text: 'OK' }]
-          );
-        }
-      });
+      // Vérifier si HealthKit est disponible
+      const isAvailable = await isHealthDataAvailable();
+      if (!isAvailable) {
+        throw new Error('HealthKit n\'est pas disponible sur cet appareil');
+      }
+
+      console.log('✅ HealthKit disponible, demande d\'autorisation...');
+      
+      // Demander les autorisations
+      await requestAuth();
+      
+      setIsLoading(false);
+      setIsConnected(true);
+      await fetchHealthData();
+      
+      Alert.alert(
+        'Connexion réussie',
+        'Votre application est maintenant connectée à Apple Health !',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
-      console.error('Erreur lors de l\'initialisation HealthKit:', error);
+      console.error('❌ Erreur lors de la connexion HealthKit:', error);
       setIsLoading(false);
       setIsConnected(false);
-      Alert.alert('Erreur', 'Erreur lors de l\'initialisation de HealthKit');
+      Alert.alert(
+        'Erreur de connexion',
+        `Impossible de se connecter à Apple Health.\n\nErreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}\n\nVérifiez que l'application Santé est installée et que les permissions sont accordées.`,
+        [{ text: 'OK' }]
+      );
     }
   };
 

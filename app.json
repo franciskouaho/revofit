@@ -68,6 +68,14 @@
         }
       ],
       [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "RevoFit a besoin d'accéder à vos données de santé pour synchroniser vos entraînements et améliorer votre expérience fitness.",
+          "NSHealthUpdateUsageDescription": "RevoFit souhaite enregistrer vos données d'entraînement dans Apple Health pour un suivi complet de votre activité physique.",
+          "background": true
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/notification_icon.png",
@@ -83,8 +91,7 @@
           "savePhotosPermission": "L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.",
           "isAccessMediaLocationEnabled": true
         }
-      ],
-      "react-native-health"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
