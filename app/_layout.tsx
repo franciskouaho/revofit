@@ -5,7 +5,6 @@ import React from 'react';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import '../global.css';
 
 import { OnboardingFlowProvider } from '@/components/onboarding';
 import { AuthProvider } from '@/contexts/AuthContext';
