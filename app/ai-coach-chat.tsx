@@ -588,7 +588,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },

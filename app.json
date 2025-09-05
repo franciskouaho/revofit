@@ -76,8 +76,7 @@
           "savePhotosPermission": "L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.",
           "isAccessMediaLocationEnabled": true
         }
-      ],
-      "./plugins/withHealthKit.js"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
