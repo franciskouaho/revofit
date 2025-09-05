@@ -4,13 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import LogoutButton from '@/components/LogoutButton';
 
 const { width } = Dimensions.get('window');
 
 export default function SettingsPage() {
   const router = useRouter();
   const { userProfile } = useAuth();
-  
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
@@ -133,7 +134,7 @@ export default function SettingsPage() {
                 <Ionicons name="diamond" size={14} color="#FFFFFF" />
                 <Text style={styles.premiumText}>Membre Premium</Text>
               </View>
-              
+
               {/* Informations utilisateur */}
               {userProfile && (
                 <View style={styles.userInfo}>
@@ -223,6 +224,11 @@ export default function SettingsPage() {
             </View>
           </View>
 
+          {/* Bouton de déconnexion */}
+          <View style={{ marginTop: 32, alignItems: 'center' }}>
+            <LogoutButton />
+          </View>
+
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </SafeAreaView>
@@ -266,22 +272,22 @@ const styles = StyleSheet.create({
   },
   premiumText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600', marginLeft: 6 },
   userInfo: { marginTop: 16, width: '100%' },
-  userInfoRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  userInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
     justifyContent: 'center',
     gap: 8
   },
-  userInfoText: { 
-    fontSize: 14, 
-    color: 'rgba(255, 255, 255, 0.8)', 
-    fontWeight: '500' 
+  userInfoText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontWeight: '500'
   },
   goalsSection: { paddingHorizontal: 20, marginBottom: 30 },
-  goalsContainer: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
+  goalsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 12
   },

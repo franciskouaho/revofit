@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,61 +11,13 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-
-// Mock HealthKit pour le développement
-const AppleHealthKit = {
-  isAvailable: (callback: (error: string | null, results: boolean) => void) => {
-    if (Platform.OS === 'ios') {
-      // Simuler une réponse positive pour iOS
-      setTimeout(() => callback(null, true), 100);
-    } else {
-      // Android n'a pas HealthKit
-      setTimeout(() => callback(null, false), 100);
-    }
-  },
-  getAuthStatus: (permissions: any, callback: (error: string | null, results: any) => void) => {
-    // Simuler des permissions accordées
-    setTimeout(() => callback(null, { steps: 2, heartRate: 2, activeEnergy: 2, distance: 2 }), 100);
-  },
-  initHealthKit: (permissions: any, callback: (error: string | null) => void) => {
-    if (Platform.OS === 'ios') {
-      // Simuler une initialisation réussie
-      setTimeout(() => callback(null), 1000);
-    } else {
-      setTimeout(() => callback('HealthKit non disponible sur Android'), 100);
-    }
-  },
-  getStepCount: (options: any, callback: (error: string | null, results: any[]) => void) => {
-    // Simuler des données de pas
-    setTimeout(() => callback(null, [{ value: 8500, startDate: new Date().toISOString() }]), 100);
-  },
-  getHeartRateSamples: (options: any, callback: (error: string | null, results: any[]) => void) => {
-    // Simuler des données de fréquence cardiaque
-    setTimeout(() => callback(null, [{ value: 72, startDate: new Date().toISOString() }]), 100);
-  },
-  getActiveEnergyBurned: (options: any, callback: (error: string | null, results: any[]) => void) => {
-    // Simuler des données d'énergie active
-    setTimeout(() => callback(null, [{ value: 450, startDate: new Date().toISOString() }]), 100);
-  },
-  getDistanceWalkingRunning: (options: any, callback: (error: string | null, results: any[]) => void) => {
-    // Simuler des données de distance
-    setTimeout(() => callback(null, [{ value: 6500, startDate: new Date().toISOString() }]), 100);
-  },
-  Constants: {
-    Permissions: {
-      Steps: 'Steps',
-      HeartRate: 'HeartRate',
-      ActiveEnergyBurned: 'ActiveEnergyBurned',
-      DistanceWalkingRunning: 'DistanceWalkingRunning',
-      Workout: 'Workout',
-    },
-  },
-};
-
-type HealthKitPermissions = any;
-type HealthValue = any;
+import type {
+  HealthKitPermissions,
+  HealthValue,
+} from 'react-native-health';
+import AppleHealthKit from 'react-native-health';
 
 const BORDER = "rgba(255,255,255,0.12)";
 
@@ -99,18 +51,13 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
         AppleHealthKit.Constants.Permissions.HeartRate,
         AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
         AppleHealthKit.Constants.Permissions.DistanceWalkingRunning,
-        AppleHealthKit.Constants.Permissions.Workout,
       ],
-      write: [
-        AppleHealthKit.Constants.Permissions.Steps,
-        AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
-        AppleHealthKit.Constants.Permissions.Workout,
-      ],
+      write: []
     },
   } as HealthKitPermissions), []);
 
   const fetchHealthData = useCallback(() => {
-    if (!isConnected) return;
+    if (!isConnected || Platform.OS !== 'ios') return;
 
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -122,17 +69,17 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     };
 
     // Récupérer les pas
-    AppleHealthKit.getStepCount(options, (callbackError: string | null, results: HealthValue[]) => {
-      if (!callbackError && results && results.length > 0) {
+    AppleHealthKit.getStepCount(options, (callbackError: any, results: HealthValue) => {
+      if (!callbackError && results) {
         setHealthData(prev => ({
           ...prev,
-          steps: results[0].value || 0,
+          steps: results.value || 0,
         }));
       }
     });
 
     // Récupérer la fréquence cardiaque
-    AppleHealthKit.getHeartRateSamples(options, (callbackError: string | null, results: HealthValue[]) => {
+    AppleHealthKit.getHeartRateSamples(options, (callbackError: any, results: HealthValue[]) => {
       if (!callbackError && results && results.length > 0) {
         const latestHeartRate = results[results.length - 1];
         setHealthData(prev => ({
@@ -143,28 +90,29 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     });
 
     // Récupérer l'énergie active
-    AppleHealthKit.getActiveEnergyBurned(options, (callbackError: string | null, results: HealthValue[]) => {
+    AppleHealthKit.getActiveEnergyBurned(options, (callbackError: any, results: HealthValue[]) => {
       if (!callbackError && results && results.length > 0) {
+        const totalCalories = results.reduce((sum: number, sample: HealthValue) => sum + (sample.value || 0), 0);
         setHealthData(prev => ({
           ...prev,
-          activeEnergy: results[0].value || 0,
+          activeEnergy: totalCalories,
         }));
       }
     });
 
     // Récupérer la distance
-    AppleHealthKit.getDistanceWalkingRunning(options, (callbackError: string | null, results: HealthValue[]) => {
-      if (!callbackError && results && results.length > 0) {
+    AppleHealthKit.getDistanceWalkingRunning(options, (callbackError: any, results: HealthValue) => {
+      if (!callbackError && results) {
         setHealthData(prev => ({
           ...prev,
-          distance: results[0].value || 0,
+          distance: results.value || 0,
         }));
       }
     });
   }, [isConnected]);
 
   const checkAuthStatus = useCallback(() => {
-    AppleHealthKit.getAuthStatus(permissions, (error: string | null, results: any) => {
+    AppleHealthKit.getAuthStatus(permissions, (error: any, results: any) => {
       if (error) {
         console.log('Erreur auth status:', error);
         setIsConnected(false);
@@ -179,49 +127,75 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
   }, [permissions, fetchHealthData]);
 
   const checkHealthKitAvailability = useCallback(() => {
-    AppleHealthKit.isAvailable((error: string | null, results: boolean) => {
-      if (error) {
-        console.log('HealthKit non disponible:', error);
+    try {
+      // Vérifier si AppleHealthKit est disponible
+      if (!AppleHealthKit || typeof AppleHealthKit.isAvailable !== 'function') {
+        console.log('AppleHealthKit non disponible ou mal importé');
         setIsConnected(false);
-      } else {
-        console.log('HealthKit disponible:', results);
-        if (results) {
-          checkAuthStatus();
-        }
+        return;
       }
-    });
+
+      AppleHealthKit.isAvailable((error: any, results: boolean) => {
+        if (error) {
+          console.log('HealthKit non disponible:', error);
+          setIsConnected(false);
+        } else {
+          console.log('HealthKit disponible:', results);
+          if (results) {
+            checkAuthStatus();
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors de la vérification HealthKit:', error);
+      setIsConnected(false);
+    }
   }, [checkAuthStatus]);
 
   // Vérifier si HealthKit est disponible
   useEffect(() => {
-    checkHealthKitAvailability();
+    if (Platform.OS === 'ios') {
+      checkHealthKitAvailability();
+    }
   }, [checkHealthKitAvailability]);
 
   const connectToHealth = () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Erreur', 'HealthKit n\'est disponible que sur iOS');
+      return;
+    }
+
     setIsLoading(true);
     
-    AppleHealthKit.initHealthKit(permissions, (error: string | null) => {
+    try {
+      AppleHealthKit.initHealthKit(permissions, (error: any) => {
+        setIsLoading(false);
+        
+        if (error) {
+          console.log('[ERROR] Cannot grant permissions!', error);
+          Alert.alert(
+            'Erreur de connexion',
+            'Impossible de se connecter à Apple Health. Vérifiez que l\'application Santé est installée et que les permissions sont accordées.',
+            [{ text: 'OK' }]
+          );
+          setIsConnected(false);
+        } else {
+          console.log('HealthKit initialisé avec succès');
+          setIsConnected(true);
+          fetchHealthData();
+          Alert.alert(
+            'Connexion réussie',
+            'Votre application est maintenant connectée à Apple Health !',
+            [{ text: 'OK' }]
+          );
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation HealthKit:', error);
       setIsLoading(false);
-      
-      if (error) {
-        console.log('[ERROR] Cannot grant permissions!', error);
-        Alert.alert(
-          'Erreur de connexion',
-          'Impossible de se connecter à Apple Health. Vérifiez que l\'application Santé est installée et que les permissions sont accordées.',
-          [{ text: 'OK' }]
-        );
-        setIsConnected(false);
-      } else {
-        console.log('HealthKit initialisé avec succès');
-        setIsConnected(true);
-        fetchHealthData();
-        Alert.alert(
-          'Connexion réussie',
-          'Votre application est maintenant connectée à Apple Health !',
-          [{ text: 'OK' }]
-        );
-      }
-    });
+      setIsConnected(false);
+      Alert.alert('Erreur', 'Erreur lors de l\'initialisation de HealthKit');
+    }
   };
 
   const disconnectFromHealth = () => {
@@ -401,15 +375,6 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                 </View>
               </View>
 
-              {/* Demo Notice */}
-              <View style={styles.section}>
-                <View style={styles.demoCard}>
-                  <Ionicons name="construct" size={20} color="#FFA726" />
-                  <Text style={styles.demoText}>
-                    Mode démonstration : Les données affichées sont simulées. Pour utiliser les vraies données Apple Health, créez un build de développement personnalisé.
-                  </Text>
-                </View>
-              </View>
             </ScrollView>
           </View>
         </View>
@@ -583,21 +548,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,215,0,0.2)',
   },
   infoText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    lineHeight: 20,
-    marginLeft: 12,
-    flex: 1,
-  },
-  demoCard: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,167,38,0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,167,38,0.2)',
-  },
-  demoText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
     lineHeight: 20,

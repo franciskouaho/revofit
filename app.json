@@ -47,6 +47,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-dev-client",
       [
         "expo-build-properties",
         {
@@ -54,8 +55,14 @@
             "useFrameworks": "static"
           },
           "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 26,
             "permissions": [
-              "com.android.vending.BILLING"
+              "com.android.vending.BILLING",
+              "android.permission.health.READ_STEPS",
+              "android.permission.health.WRITE_STEPS",
+              "android.permission.health.READ_ACTIVE_CALORIES_BURNED"
             ]
           }
         }
@@ -76,7 +83,8 @@
           "savePhotosPermission": "L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "react-native-health"
     ],
     "experiments": {
       "typedRoutes": true

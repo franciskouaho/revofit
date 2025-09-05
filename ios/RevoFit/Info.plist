@@ -37,6 +37,12 @@
           <string>com.googleusercontent.apps.336045610131-e2nfaiamqfs32dngbragj1l2v26qou9g</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>exp+revofit</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>1</string>
@@ -51,14 +57,14 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.</string>
     <key>NSHealthShareUsageDescription</key>
     <string>RevoFit a besoin d'accéder à vos données de santé pour synchroniser vos entraînements et améliorer votre expérience fitness.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>RevoFit souhaite enregistrer vos données d'entraînement dans Apple Health pour un suivi complet de votre activité physique.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>L'application a besoin d'accéder à vos photos pour sauvegarder les images de prières.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

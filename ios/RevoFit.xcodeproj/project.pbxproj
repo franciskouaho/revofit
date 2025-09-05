@@ -8,27 +8,27 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		18CEC6744493F671DCF9B910 /* Pods_RevoFit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9D298E2751C46E1CD7925AC /* Pods_RevoFit.framework */; };
+		1AC29FF7706748C6B3664556 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B529DC172E484FFBAA04104B /* GoogleService-Info.plist */; };
+		35B7F49B05995D43301D7E53 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A4BCBF29473846F8779E2F74 /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		995A80FCD775AB016680A045 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BAED2CFC1C075ECC089FA5F9 /* PrivacyInfo.xcprivacy */; };
-		AD362918741220A557A4EE0E /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F8F851251031D8F5C3DFBAD /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		D8546AF2ED784CC8AB688B03 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 56AEF6D592C74E418F883C36 /* GoogleService-Info.plist */; };
+		BD00BC9663A12C23A2ED9405 /* Pods_RevoFit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE26D45EE7552EFE770F6358 /* Pods_RevoFit.framework */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
+		FECCC0BD3BE3CC2A29F23D7A /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67002E2DD3C53E3DBA8F395 /* ExpoModulesProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0E8999D417690CD5AF4B2C17 /* Pods-RevoFit.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RevoFit.debug.xcconfig"; path = "Target Support Files/Pods-RevoFit/Pods-RevoFit.debug.xcconfig"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* RevoFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RevoFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = RevoFit/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = RevoFit/Info.plist; sourceTree = "<group>"; };
-		4F8F851251031D8F5C3DFBAD /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-RevoFit/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		56AEF6D592C74E418F883C36 /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "RevoFit/GoogleService-Info.plist"; sourceTree = "<group>"; };
+		4A23C79902E4E83B95E9DF66 /* Pods-RevoFit.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RevoFit.release.xcconfig"; path = "Target Support Files/Pods-RevoFit/Pods-RevoFit.release.xcconfig"; sourceTree = "<group>"; };
+		A0D58B7A6B3848ED0B9B94C5 /* Pods-RevoFit.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RevoFit.debug.xcconfig"; path = "Target Support Files/Pods-RevoFit/Pods-RevoFit.debug.xcconfig"; sourceTree = "<group>"; };
+		A4BCBF29473846F8779E2F74 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = RevoFit/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = RevoFit/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B132E6064808AECBB2BAFA6F /* Pods-RevoFit.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RevoFit.release.xcconfig"; path = "Target Support Files/Pods-RevoFit/Pods-RevoFit.release.xcconfig"; sourceTree = "<group>"; };
-		BAED2CFC1C075ECC089FA5F9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = RevoFit/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B529DC172E484FFBAA04104B /* GoogleService-Info.plist */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 4; includeInIndex = 0; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "RevoFit/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C9D298E2751C46E1CD7925AC /* Pods_RevoFit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RevoFit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE26D45EE7552EFE770F6358 /* Pods_RevoFit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RevoFit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D67002E2DD3C53E3DBA8F395 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-RevoFit/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = RevoFit/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* RevoFit-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "RevoFit-Bridging-Header.h"; path = "RevoFit/RevoFit-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -39,7 +39,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				18CEC6744493F671DCF9B910 /* Pods_RevoFit.framework in Frameworks */,
+				BD00BC9663A12C23A2ED9405 /* Pods_RevoFit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,8 +55,8 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				BAED2CFC1C075ECC089FA5F9 /* PrivacyInfo.xcprivacy */,
-				56AEF6D592C74E418F883C36 /* GoogleService-Info.plist */,
+				B529DC172E484FFBAA04104B /* GoogleService-Info.plist */,
+				A4BCBF29473846F8779E2F74 /* PrivacyInfo.xcprivacy */,
 			);
 			name = RevoFit;
 			sourceTree = "<group>";
@@ -65,17 +65,18 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C9D298E2751C46E1CD7925AC /* Pods_RevoFit.framework */,
+				CE26D45EE7552EFE770F6358 /* Pods_RevoFit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		7CEBEF1A36ED7C7BA684C3D6 /* RevoFit */ = {
+		2DCACAD16D61AA7FE35635F2 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				4F8F851251031D8F5C3DFBAD /* ExpoModulesProvider.swift */,
+				A0D58B7A6B3848ED0B9B94C5 /* Pods-RevoFit.debug.xcconfig */,
+				4A23C79902E4E83B95E9DF66 /* Pods-RevoFit.release.xcconfig */,
 			);
-			name = RevoFit;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -92,8 +93,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				BE5628B67377CD8178158EA7 /* Pods */,
-				E68CE43277D55C07E51A2CCC /* ExpoModulesProviders */,
+				2DCACAD16D61AA7FE35635F2 /* Pods */,
+				DEA24EA788D33C3FE3CF4C01 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -117,21 +118,20 @@
 			path = RevoFit/Supporting;
 			sourceTree = "<group>";
 		};
-		BE5628B67377CD8178158EA7 /* Pods */ = {
+		DEA24EA788D33C3FE3CF4C01 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				0E8999D417690CD5AF4B2C17 /* Pods-RevoFit.debug.xcconfig */,
-				B132E6064808AECBB2BAFA6F /* Pods-RevoFit.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		E68CE43277D55C07E51A2CCC /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				7CEBEF1A36ED7C7BA684C3D6 /* RevoFit */,
+				F91B81A67E2F6DA7668527D1 /* RevoFit */,
 			);
 			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
+		F91B81A67E2F6DA7668527D1 /* RevoFit */ = {
+			isa = PBXGroup;
+			children = (
+				D67002E2DD3C53E3DBA8F395 /* ExpoModulesProvider.swift */,
+			);
+			name = RevoFit;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,13 +142,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "RevoFit" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				E4B5824F7038B1070C5DDDE6 /* [Expo] Configure project */,
+				F3D5638008A663E63AD09A32 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				A7747F8E63444357BF2D2BFE /* [CP] Embed Pods Frameworks */,
+				B6C7097E0BF65E6E6BC8AA1E /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -198,8 +198,8 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				995A80FCD775AB016680A045 /* PrivacyInfo.xcprivacy in Resources */,
-				D8546AF2ED784CC8AB688B03 /* GoogleService-Info.plist in Resources */,
+				1AC29FF7706748C6B3664556 /* GoogleService-Info.plist in Resources */,
+				35B7F49B05995D43301D7E53 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -265,6 +265,8 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/React-cxxreact/React-cxxreact_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/SDWebImage/SDWebImage.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/boost/boost_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-launcher/EXDevLauncher.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/expo-dev-menu/EXDevMenu.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/glog/glog_privacy.bundle",
 			);
 			name = "[CP] Copy Pods Resources";
@@ -284,6 +286,8 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/React-cxxreact_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/SDWebImage.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/boost_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevLauncher.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/EXDevMenu.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/glog_privacy.bundle",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -291,7 +295,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RevoFit/Pods-RevoFit-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		A7747F8E63444357BF2D2BFE /* [CP] Embed Pods Frameworks */ = {
+		B6C7097E0BF65E6E6BC8AA1E /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -309,7 +313,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RevoFit/Pods-RevoFit-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		E4B5824F7038B1070C5DDDE6 /* [Expo] Configure project */ = {
+		F3D5638008A663E63AD09A32 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -336,7 +340,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				AD362918741220A557A4EE0E /* ExpoModulesProvider.swift in Sources */,
+				FECCC0BD3BE3CC2A29F23D7A /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,7 +349,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0E8999D417690CD5AF4B2C17 /* Pods-RevoFit.debug.xcconfig */;
+			baseConfigurationReference = A0D58B7A6B3848ED0B9B94C5 /* Pods-RevoFit.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -388,7 +392,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B132E6064808AECBB2BAFA6F /* Pods-RevoFit.release.xcconfig */;
+			baseConfigurationReference = 4A23C79902E4E83B95E9DF66 /* Pods-RevoFit.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
