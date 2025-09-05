@@ -2,8 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ImageBackground,
@@ -14,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useExercises } from "../../hooks/useExercises";
 
 const { width } = Dimensions.get("window");
 const BORDER = "rgba(255,255,255,0.12)";
@@ -24,77 +26,70 @@ const u = (idOrQuery: string) =>
     ? idOrQuery
     : `https://images.unsplash.com/${idOrQuery}?q=80&w=1200&auto=format&fit=crop`;
 
-/** ---- MUSCLES : grands groupes + sous-groupes (complet) ---- */
-const RAW_CATEGORIES = [
-  // Pecs
-  { title: "Pectoraux (global)", image: u("photo-1517963628607-235ccdd5476b") },
-  { title: "Haut des pectoraux", image: u("photo-1519741497674-611481863552") },
-  { title: "Bas des pectoraux", image: u("photo-1574689047510-7a04b6a8b19b") },
-  { title: "Pecs intérieurs", image: u("photo-1546484959-f9a53db89b87") },
-  // Dos
-  { title: "Dos (largeur)", image: u("photo-1546483875-ad9014c88eba") },
-  { title: "Dos (épaisseur)", image: u("photo-1517832606299-7ae9b720a186") },
-  { title: "Lats (grand dorsal)", image: u("photo-1598970434795-0c54fe7c0642") },
-  { title: "Lombaires", image: u("photo-1594737625785-c6683fcf2f8d") },
-  // Épaules
-  { title: "Épaules (antérieurs)", image: u("photo-1599058917212-d750089bc07f") },
-  { title: "Épaules (latéraux)", image: u("photo-1561214078-f3247647fc5e") },
-  { title: "Épaules (postérieurs)", image: u("photo-1518611012118-696072aa579a") },
-  { title: "Trapèzes", image: u("photo-1571907480495-4f1b1a2d873a") },
-  // Bras
-  { title: "Biceps (global)", image: u("photo-1571731956672-c372df0731df") },
-  { title: "Biceps (longue portion)", image: u("photo-1552674605-db6ffd4facb5") },
-  { title: "Biceps (courte portion)", image: u("photo-1621803958999-1ee04f4b0d89") },
-  { title: "Triceps (vaste latéral)", image: u("photo-1549049950-48d5887197a7") },
-  { title: "Triceps (vaste médial)", image: u("photo-1554284126-aa88f22d8b74") },
-  { title: "Avant-bras", image: u("photo-1516483638261-f4dbaf036963") },
-  // Jambes
-  { title: "Quadriceps", image: u("photo-1518459031867-a89b944bffe0") },
-  { title: "Ischio-jambiers", image: u("photo-1546484958-7ef3022881d8") },
-  { title: "Fessiers", image: u("photo-1571019614242-c5c5dee9f50b") },
-  { title: "Adducteurs", image: u("photo-1605296867304-46d5465a13f1") },
-  { title: "Abducteurs (hanches)", image: u("photo-1526401281623-3593f3c8d714") },
-  { title: "Mollets (gastrocnémiens)", image: u("photo-1507838153414-b4b713384a76") },
-  { title: "Mollets (soléaire)", image: u("photo-1521804906057-1df8fdb0ecce") },
-  // Core
-  { title: "Abdos (grand droit)", image: u("photo-1540206276207-3af25c08abc4") },
-  { title: "Obliques", image: u("photo-1544367567-0f2fcb009e0b") },
-  { title: "Transverse (gainage)", image: u("photo-1504805572947-34fad45aed93") },
-  // Mouvements/Focus salle
-  { title: "Développé couché", image: u("photo-1517963628607-235ccdd5476b") },
-  { title: "Développé incliné", image: u("photo-1519741497674-611481863552") },
-  { title: "Rowing barre", image: u("photo-1517832606299-7ae9b720a186") },
-  { title: "Tirage vertical", image: u("photo-1546483875-ad9014c88eba") },
-  { title: "Soulevé de terre", image: u("photo-1517423440428-a5a00ad493e8") },
-  { title: "Front squat", image: u("photo-1518459031867-a89b944bffe0") },
-  { title: "Back squat", image: u("photo-1518459031867-a89b944bffe0") },
-  { title: "Fentes", image: u("photo-1517832606299-7ae9b720a186") },
-  { title: "Hip thrust", image: u("photo-1571019614242-c5c5dee9f50b") },
-  { title: "Poulie triceps", image: u("photo-1549049950-48d5887197a7") },
-  { title: "Curl biceps", image: u("photo-1571731956672-c372df0731df") },
-  { title: "Élévations latérales", image: u("photo-1561214078-f3247647fc5e") },
-  { title: "Face pull", image: u("photo-1518611012118-696072aa579a") },
-];
+// Images par défaut pour les groupes musculaires
+const DEFAULT_IMAGES = {
+  'chest_global': u("photo-1517963628607-235ccdd5476b"),
+  'back_width': u("photo-1546483875-ad9014c88eba"),
+  'back_thickness': u("photo-1517832606299-7ae9b720a186"),
+  'shoulders_front': u("photo-1599058917212-d750089bc07f"),
+  'shoulders_lateral': u("photo-1561214078-f3247647fc5e"),
+  'shoulders_rear': u("photo-1518611012118-696072aa579a"),
+  'biceps_global': u("photo-1571731956672-c372df0731df"),
+  'triceps_lateral': u("photo-1549049950-48d5887197a7"),
+  'quadriceps': u("photo-1518459031867-a89b944bffe0"),
+  'hamstrings': u("photo-1546484958-7ef3022881d8"),
+  'glutes': u("photo-1571019614242-c5c5dee9f50b"),
+  'abs_rectus': u("photo-1540206276207-3af25c08abc4"),
+  'default': u("photo-1517963628607-235ccdd5476b")
+};
 
 export default function ExploreScreen() {
   const [focused, setFocused] = useState(false);
-  const [query, setQuery] = useState("");
+  const { 
+    loading, 
+    error, 
+    searchQuery, 
+    setSearchQuery, 
+    filteredExercises 
+  } = useExercises();
 
-  const data = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return RAW_CATEGORIES;
-    return RAW_CATEGORIES.filter((c) => c.title.toLowerCase().includes(q));
-  }, [query]);
+
+  // Fonction pour obtenir l'image d'un exercice
+  const getExerciseImage = (exercise: any) => {
+    if (exercise.imageUrl) {
+      return exercise.imageUrl;
+    }
+    // Utiliser l'image par défaut basée sur le premier groupe musculaire
+    const firstMuscleGroup = exercise.muscleGroups?.[0];
+    return DEFAULT_IMAGES[firstMuscleGroup as keyof typeof DEFAULT_IMAGES] || DEFAULT_IMAGES.default;
+  };
+
+  // Fonction pour obtenir la difficulté en français
+  const getDifficultyText = (difficulty: string) => {
+    const difficultyMap = {
+      'beginner': 'Débutant',
+      'intermediate': 'Intermédiaire',
+      'advanced': 'Avancé'
+    };
+    return difficultyMap[difficulty as keyof typeof difficultyMap] || difficulty;
+  };
 
   /** --- RENDER --- */
 
-  const renderItem = ({ item }: { item: { title: string; image: string } }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.card} 
       activeOpacity={0.88}
-      onPress={() => router.push("/workout/details")}
+      onPress={() => router.push({
+        pathname: "/workout/details",
+        params: { exercise: JSON.stringify(item) }
+      })}
     >
-      <ImageBackground source={{ uri: item.image }} style={styles.cardImage} imageStyle={styles.cardImageRadius}>
+      <ImageBackground 
+        source={{ uri: getExerciseImage(item) }} 
+        style={styles.cardImage} 
+        imageStyle={styles.cardImageRadius}
+      >
         {/* Overlay sombre pour la lisibilité */}
         <LinearGradient
           colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.15)"]}
@@ -104,12 +99,24 @@ export default function ExploreScreen() {
         <View style={styles.titleWrap}>
           <BlurView intensity={18} tint="dark" style={StyleSheet.absoluteFill} />
           <Text numberOfLines={2} style={styles.titleText}>
-            {item.title}
+            {item.name}
+          </Text>
+          <Text numberOfLines={1} style={styles.difficultyText}>
+            {getDifficultyText(item.difficulty)}
           </Text>
         </View>
       </ImageBackground>
     </TouchableOpacity>
   );
+
+  // Composant de chargement
+  const renderLoading = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#FFD700" />
+      <Text style={styles.loadingText}>Chargement des exercices...</Text>
+    </View>
+  );
+
 
   return (
     <View style={styles.container}>
@@ -136,10 +143,10 @@ export default function ExploreScreen() {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Rechercher un muscle / mouvement…"
+                placeholder="Rechercher un exercice…"
                 placeholderTextColor="#A6A6A6"
-                value={query}
-                onChangeText={setQuery}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
                 returnKeyType="search"
@@ -148,8 +155,8 @@ export default function ExploreScreen() {
                 keyboardAppearance="dark"
                 selectionColor="#FFD700"
               />
-              {query.length > 0 && (
-                <TouchableOpacity onPress={() => setQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.6)" />
                 </TouchableOpacity>
               )}
@@ -157,21 +164,37 @@ export default function ExploreScreen() {
           </View>
         </View>
 
-        {/* Grille (FlatList -> tailles uniformes & perf) */}
-        <FlatList
-          data={data}
-          keyExtractor={(item, idx) => item.title + "_" + idx}
-          renderItem={renderItem}
-          numColumns={3}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 12 }}
-          columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 4 }}
-          ListEmptyComponent={
-            <View style={{ padding: 24, alignItems: "center" }}>
-              <Text style={{ color: "rgba(255,255,255,0.7)" }}>Aucun résultat pour &quot;{query}&quot;.</Text>
-            </View>
-          }
-        />
+        {/* Contenu principal */}
+        {loading ? (
+          renderLoading()
+        ) : (
+          <FlatList
+            data={filteredExercises}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            numColumns={3}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 12 }}
+            columnWrapperStyle={{ justifyContent: "space-between", paddingHorizontal: 4 }}
+            ListEmptyComponent={
+              <View style={{ padding: 24, alignItems: "center" }}>
+                <Text style={{ color: "rgba(255,255,255,0.7)" }}>
+                  Aucun exercice trouvé pour &quot;{searchQuery}&quot;.
+                </Text>
+              </View>
+            }
+          />
+        )}
+        
+        {/* Message d'erreur discret en bas */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Ionicons name="information-circle" size={16} color="#FFD700" />
+            <Text style={styles.errorBannerText}>
+              {error.message}
+            </Text>
+          </View>
+        )}
       </SafeAreaView>
     </View>
   );
@@ -245,5 +268,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.3,
     paddingHorizontal: 4,
+  },
+  difficultyText: {
+    color: "#FFD700",
+    fontSize: 9,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 2,
+  },
+
+  /** Loading */
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: "center",
+  },
+
+
+  /** Error Banner */
+  errorBanner: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(255, 215, 0, 0.1)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 215, 0, 0.3)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  errorBannerText: {
+    color: "#FFD700",
+    fontSize: 12,
+    flex: 1,
   },
 });

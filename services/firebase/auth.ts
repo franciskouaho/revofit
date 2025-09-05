@@ -2,16 +2,16 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import {
-    createUserWithEmailAndPassword,
-    GoogleAuthProvider,
-    onAuthStateChanged,
-    signInWithCredential,
-    signInWithEmailAndPassword,
-    signOut,
-    updateProfile,
-    User
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  User
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { auth, firestore } from './config';
 
 // Configuration pour WebBrowser
@@ -28,7 +28,6 @@ export interface OnboardingData {
   height: number; // en cm
   weight: number; // en kg
   goals: string[];
-  experienceLevel: 'débutant' | 'intermédiaire' | 'avancé';
   targetWeight?: number;
   weeklyWorkouts: number;
 }
@@ -43,7 +42,6 @@ export interface UserProfile {
   height: number;
   weight: number;
   goals: string[];
-  experienceLevel: string;
   targetWeight?: number;
   weeklyWorkouts: number;
   createdAt: any;
@@ -51,77 +49,183 @@ export interface UserProfile {
   onboardingCompleted: boolean;
 }
 
+// Gestionnaire d'erreurs Firebase
+const handleAuthError = (error: any): string => {
+  switch (error.code) {
+    case 'auth/user-not-found':
+      return 'Aucun compte trouvé avec cet email';
+    case 'auth/wrong-password':
+      return 'Mot de passe incorrect';
+    case 'auth/invalid-email':
+      return 'Adresse email invalide';
+    case 'auth/user-disabled':
+      return 'Ce compte a été désactivé';
+    case 'auth/too-many-requests':
+      return 'Trop de tentatives. Veuillez réessayer plus tard';
+    case 'auth/network-request-failed':
+      return 'Erreur de connexion. Vérifiez votre internet';
+    case 'auth/email-already-in-use':
+      return 'Cette adresse email est déjà utilisée. Voulez-vous vous connecter à la place ?';
+    case 'auth/weak-password':
+      return 'Le mot de passe est trop faible';
+    default:
+      return error.message || 'Une erreur inattendue s\'est produite';
+  }
+};
+
 // Connexion utilisateur
 export const signInUser = async (email: string, password: string): Promise<User> => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    // Validation des entrées
+    if (!email.trim()) {
+      throw new Error('L\'email est requis');
+    }
+    if (!password) {
+      throw new Error('Le mot de passe est requis');
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
     return userCredential.user;
   } catch (error: any) {
-    throw new Error('Erreur de connexion: ' + error.message);
+    const errorMessage = error.code ? handleAuthError(error) : error.message;
+    throw new Error(errorMessage);
+  }
+};
+
+// Validation des données d'onboarding (interne)
+const validateOnboardingDataInternal = (data: OnboardingData): void => {
+  if (!data.firstName?.trim()) {
+    throw new Error('Le prénom est requis');
+  }
+  if (!data.lastName?.trim()) {
+    throw new Error('Le nom est requis');
+  }
+  if (!data.email?.trim()) {
+    throw new Error('L\'email est requis');
+  }
+  if (!/\S+@\S+\.\S+/.test(data.email)) {
+    throw new Error('L\'email n\'est pas valide');
+  }
+  if (!data.password || data.password.length < 6) {
+    throw new Error('Le mot de passe doit contenir au moins 6 caractères');
+  }
+  if (!data.gender) {
+    throw new Error('Le genre est requis');
+  }
+  if (!data.age || data.age < 13 || data.age > 100) {
+    throw new Error('L\'âge doit être entre 13 et 100 ans');
+  }
+  if (!data.height || data.height < 100 || data.height > 250) {
+    throw new Error('La taille doit être entre 100 et 250 cm');
+  }
+  if (!data.weight || data.weight < 30 || data.weight > 300) {
+    throw new Error('Le poids doit être entre 30 et 300 kg');
+  }
+  if (!data.goals || data.goals.length === 0) {
+    throw new Error('Au moins un objectif doit être sélectionné');
+  }
+  if (!data.weeklyWorkouts || data.weeklyWorkouts < 1 || data.weeklyWorkouts > 7) {
+    throw new Error('Le nombre d\'entraînements doit être entre 1 et 7 par semaine');
   }
 };
 
 // Inscription utilisateur avec données d'onboarding
 export const signUpUser = async (onboardingData: OnboardingData): Promise<User> => {
   try {
-    // Création du compte Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(
-      auth, 
-      onboardingData.email, 
-      onboardingData.password
-    );
+    // Validation des données
+    validateOnboardingDataInternal(onboardingData);
+
+    // Vérifier si l'utilisateur est déjà connecté
+    if (auth.currentUser) {
+      console.log('Utilisateur déjà connecté, déconnexion...');
+      await signOut(auth);
+    }
+
+    let userCredential;
+    
+    try {
+      // Essayer de créer un nouveau compte
+      userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        onboardingData.email.trim(), 
+        onboardingData.password
+      );
+    } catch (error: any) {
+      // Si l'email existe déjà, essayer de se connecter
+      if (error.code === 'auth/email-already-in-use') {
+        console.log('Email déjà utilisé, tentative de connexion...');
+        userCredential = await signInWithEmailAndPassword(
+          auth,
+          onboardingData.email.trim(),
+          onboardingData.password
+        );
+      } else {
+        throw error;
+      }
+    }
     
     const user = userCredential.user;
     
-    // Mise à jour du profil Firebase Auth
-    await updateProfile(user, {
-      displayName: `${onboardingData.firstName} ${onboardingData.lastName}`
-    });
+    // Vérifier si le profil existe déjà
+    const existingProfile = await getDoc(doc(firestore, 'users', user.uid, 'profile', 'main'));
     
-    // Création du profil utilisateur dans Firestore
-    const userProfile: UserProfile = {
-      uid: user.uid,
-      firstName: onboardingData.firstName,
-      lastName: onboardingData.lastName,
-      email: onboardingData.email,
-      gender: onboardingData.gender,
-      age: onboardingData.age,
-      height: onboardingData.height,
-      weight: onboardingData.weight,
-      goals: onboardingData.goals,
-      experienceLevel: onboardingData.experienceLevel,
-      targetWeight: onboardingData.targetWeight,
-      weeklyWorkouts: onboardingData.weeklyWorkouts,
-      createdAt: serverTimestamp(),
-      lastUpdated: serverTimestamp(),
-      onboardingCompleted: true
-    };
-    
-    // Sauvegarde du profil principal
-    await setDoc(doc(firestore, 'users', user.uid, 'profile', 'main'), userProfile);
-    
-    // Création des objectifs initiaux
-    await setDoc(doc(firestore, 'users', user.uid, 'goals', 'main'), {
-      fitnessGoals: onboardingData.goals,
-      targetWeight: onboardingData.targetWeight,
-      weeklyWorkouts: onboardingData.weeklyWorkouts,
-      experienceLevel: onboardingData.experienceLevel,
-      createdAt: serverTimestamp()
-    });
-    
-    // Création des préférences utilisateur
-    await setDoc(doc(firestore, 'users', user.uid, 'preferences', 'main'), {
-      notifications: true,
-      reminders: true,
-      dataSharing: true,
-      theme: 'dark',
-      language: 'fr',
-      createdAt: serverTimestamp()
-    });
+    if (!existingProfile.exists()) {
+      // Mise à jour du profil Firebase Auth
+      await updateProfile(user, {
+        displayName: `${onboardingData.firstName.trim()} ${onboardingData.lastName.trim()}`
+      });
+      
+      // Utilisation d'un batch pour les opérations Firestore (plus efficace)
+      const batch = writeBatch(firestore);
+      
+      // Création du profil utilisateur
+      const userProfile: UserProfile = {
+        uid: user.uid,
+        firstName: onboardingData.firstName.trim(),
+        lastName: onboardingData.lastName.trim(),
+        email: onboardingData.email.trim(),
+        gender: onboardingData.gender,
+        age: onboardingData.age,
+        height: onboardingData.height,
+        weight: onboardingData.weight,
+        goals: onboardingData.goals,
+        targetWeight: onboardingData.targetWeight || onboardingData.weight,
+        weeklyWorkouts: onboardingData.weeklyWorkouts,
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+        onboardingCompleted: true
+      };
+      
+      // Ajout des documents au batch
+      batch.set(doc(firestore, 'users', user.uid, 'profile', 'main'), userProfile);
+      
+      batch.set(doc(firestore, 'users', user.uid, 'goals', 'main'), {
+        fitnessGoals: onboardingData.goals,
+        targetWeight: onboardingData.targetWeight || onboardingData.weight,
+        weeklyWorkouts: onboardingData.weeklyWorkouts,
+        createdAt: serverTimestamp()
+      });
+      
+      batch.set(doc(firestore, 'users', user.uid, 'preferences', 'main'), {
+        notifications: true,
+        reminders: true,
+        dataSharing: true,
+        theme: 'dark',
+        language: 'fr',
+        createdAt: serverTimestamp()
+      });
+
+      // Exécution du batch
+      await batch.commit();
+    } else {
+      console.log('Profil utilisateur existe déjà, connexion réussie');
+    }
     
     return user;
   } catch (error: any) {
-    throw new Error('Erreur d\'inscription: ' + error.message);
+    console.error('Erreur lors de l\'inscription:', error);
+    const errorMessage = error.code ? handleAuthError(error) : error.message;
+    throw new Error(errorMessage);
   }
 };
 
@@ -130,32 +234,61 @@ export const signOutUser = async (): Promise<void> => {
   try {
     await signOut(auth);
   } catch (error: any) {
-    throw new Error('Erreur de déconnexion: ' + error.message);
+    const errorMessage = error.code ? handleAuthError(error) : error.message;
+    throw new Error(errorMessage);
   }
 };
 
 // Récupération du profil utilisateur
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
   try {
+    if (!uid) {
+      throw new Error('UID utilisateur requis');
+    }
+
     const userDoc = await getDoc(doc(firestore, 'users', uid, 'profile', 'main'));
     if (userDoc.exists()) {
-      return userDoc.data() as UserProfile;
+      const data = userDoc.data();
+      return {
+        ...data,
+        uid: data.uid || uid
+      } as UserProfile;
     }
     return null;
   } catch (error: any) {
-    throw new Error('Erreur récupération profil: ' + error.message);
+    console.error('Erreur récupération profil:', error);
+    throw new Error('Erreur lors de la récupération du profil');
   }
 };
 
 // Mise à jour du profil utilisateur
 export const updateUserProfile = async (uid: string, updates: Partial<UserProfile>): Promise<void> => {
   try {
+    if (!uid) {
+      throw new Error('UID utilisateur requis');
+    }
+
+    // Validation des données de mise à jour
+    if (updates.email && !/\S+@\S+\.\S+/.test(updates.email)) {
+      throw new Error('L\'email n\'est pas valide');
+    }
+    if (updates.age && (updates.age < 13 || updates.age > 100)) {
+      throw new Error('L\'âge doit être entre 13 et 100 ans');
+    }
+    if (updates.height && (updates.height < 100 || updates.height > 250)) {
+      throw new Error('La taille doit être entre 100 et 250 cm');
+    }
+    if (updates.weight && (updates.weight < 30 || updates.weight > 300)) {
+      throw new Error('Le poids doit être entre 30 et 300 kg');
+    }
+
     await setDoc(doc(firestore, 'users', uid, 'profile', 'main'), {
       ...updates,
       lastUpdated: serverTimestamp()
     }, { merge: true });
   } catch (error: any) {
-    throw new Error('Erreur mise à jour profil: ' + error.message);
+    console.error('Erreur mise à jour profil:', error);
+    throw new Error(error.message || 'Erreur lors de la mise à jour du profil');
   }
 };
 
@@ -241,7 +374,6 @@ export const signInWithGoogle = async (): Promise<User> => {
         height: 170, // Valeur par défaut, l'utilisateur pourra la modifier
         weight: 70, // Valeur par défaut, l'utilisateur pourra la modifier
         goals: ['perte_de_poids'], // Valeur par défaut, l'utilisateur pourra la modifier
-        experienceLevel: 'débutant', // Valeur par défaut, l'utilisateur pourra la modifier
         weeklyWorkouts: 3, // Valeur par défaut, l'utilisateur pourra la modifier
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
@@ -256,7 +388,6 @@ export const signInWithGoogle = async (): Promise<User> => {
         fitnessGoals: userProfile.goals,
         targetWeight: userProfile.weight,
         weeklyWorkouts: userProfile.weeklyWorkouts,
-        experienceLevel: userProfile.experienceLevel,
         createdAt: serverTimestamp()
       });
       
@@ -286,7 +417,7 @@ export const signOutGoogle = async (): Promise<void> => {
   }
 };
 
-// Validation des données d'onboarding
+// Validation des données d'onboarding (version publique)
 export const validateOnboardingData = (data: Partial<OnboardingData>) => {
   const errors: Record<string, string> = {};
   
@@ -328,10 +459,6 @@ export const validateOnboardingData = (data: Partial<OnboardingData>) => {
   
   if (!data.goals || data.goals.length === 0) {
     errors.goals = 'Au moins un objectif doit être sélectionné';
-  }
-  
-  if (!data.experienceLevel) {
-    errors.experienceLevel = 'Le niveau d\'expérience est requis';
   }
   
   if (!data.weeklyWorkouts || data.weeklyWorkouts < 1 || data.weeklyWorkouts > 7) {

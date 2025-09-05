@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -8,6 +9,7 @@ const { width } = Dimensions.get('window');
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { userProfile } = useAuth();
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
@@ -121,14 +123,57 @@ export default function SettingsPage() {
                   <Ionicons name="person" size={40} color="#0A0A0A" />
                 </LinearGradient>
               </View>
-              <Text style={styles.profileName}>Adam Smith</Text>
-              <Text style={styles.profileEmail}>adam.smith@email.com</Text>
+              <Text style={styles.profileName}>
+                {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "Utilisateur"}
+              </Text>
+              <Text style={styles.profileEmail}>
+                {userProfile?.email || "email@example.com"}
+              </Text>
               <View style={styles.premiumBadge}>
                 <Ionicons name="diamond" size={14} color="#FFFFFF" />
                 <Text style={styles.premiumText}>Membre Premium</Text>
               </View>
+              
+              {/* Informations utilisateur */}
+              {userProfile && (
+                <View style={styles.userInfo}>
+                  <View style={styles.userInfoRow}>
+                    <Ionicons name="person" size={16} color="#FFD700" />
+                    <Text style={styles.userInfoText}>
+                      {userProfile.gender === 'homme' ? 'Homme' : 'Femme'} • {userProfile.age} ans
+                    </Text>
+                  </View>
+                  <View style={styles.userInfoRow}>
+                    <Ionicons name="resize" size={16} color="#FFD700" />
+                    <Text style={styles.userInfoText}>
+                      {userProfile.height} cm • {userProfile.weight} kg
+                    </Text>
+                  </View>
+                  <View style={styles.userInfoRow}>
+                    <Ionicons name="fitness" size={16} color="#FFD700" />
+                    <Text style={styles.userInfoText}>
+                      {userProfile.weeklyWorkouts} entraînements/semaine
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
+
+          {/* Objectifs utilisateur */}
+          {userProfile && userProfile.goals && userProfile.goals.length > 0 && (
+            <View style={styles.goalsSection}>
+              <Text style={styles.sectionTitle}>Mes Objectifs</Text>
+              <View style={styles.goalsContainer}>
+                {userProfile.goals.map((goal, index) => (
+                  <View key={index} style={styles.goalChip}>
+                    <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
+                    <Text style={styles.goalText}>{goal}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
@@ -220,6 +265,42 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12,
   },
   premiumText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600', marginLeft: 6 },
+  userInfo: { marginTop: 16, width: '100%' },
+  userInfoRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8,
+    justifyContent: 'center',
+    gap: 8
+  },
+  userInfoText: { 
+    fontSize: 14, 
+    color: 'rgba(255, 255, 255, 0.8)', 
+    fontWeight: '500' 
+  },
+  goalsSection: { paddingHorizontal: 20, marginBottom: 30 },
+  goalsContainer: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 8,
+    marginTop: 12
+  },
+  goalChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6
+  },
+  goalText: {
+    fontSize: 12,
+    color: '#FFD700',
+    fontWeight: '600'
+  },
   quickActions: {
     flexDirection: 'row', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 20, marginBottom: 30,

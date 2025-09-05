@@ -6,18 +6,19 @@ import {
   FlatList,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
   ViewToken,
-  ViewabilityConfig
+  ViewabilityConfig,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../components/onboarding";
 
 /* ---------- Constantes UI ---------- */
 const ROW_H = 60;              // hauteur de chaque ligne
-const VISIBLE_ROWS = 5;        // nombre d'items visibles (centres + 2 au-dessus/2 au-dessous)
+const VISIBLE_ROWS = 5;        // nombre d’items visibles (centres + 2 au-dessus/2 au-dessous)
 const PILL_W = 240;
 const PILL_H = ROW_H * (VISIBLE_ROWS + 2); // marge extra pour arrondis
 
@@ -39,7 +40,7 @@ export default function AgeSelectionScreen() {
         });
       }, 0);
     }
-  }, []);
+  }, [ages, selectedAge]);
 
   const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
@@ -49,15 +50,22 @@ export default function AgeSelectionScreen() {
   };
 
   const viewabilityConfig: ViewabilityConfig = { itemVisiblePercentThreshold: 10 };
-
-  const onViewableItemsChanged = ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    if (viewableItems.length > 0) {
-      const centerItem = viewableItems.find(item => item.isViewable && item.index !== null);
-      if (centerItem && centerItem.index !== null) {
-        const age = ages[centerItem.index];
-        if (age !== selectedAge) setSelectedAge(age);
-      }
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      // pas indispensable, mais ça rend la mise à jour plus “vivante”
     }
+  ).current;
+
+  const handleBack = () => router.back();
+
+  const handlePick = (age: number) => {
+    // scroll vers l'item tapé et mettre à jour
+    const idx = ages.indexOf(age);
+    listRef.current?.scrollToOffset({
+      offset: idx * ROW_H,
+      animated: true,
+    });
+    setSelectedAge(age);
   };
 
   const handleNext = () => {
@@ -65,20 +73,22 @@ export default function AgeSelectionScreen() {
     router.push('/onboarding/height-selection');
   };
 
-  const handleBack = () => router.back();
-
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
-      {/* Fond thème Revo */}
+    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+      {/* Fond thème Revo : noir + halos olive */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
         locations={[0, 0.22, 0.78, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={StyleSheet.absoluteFill}
       />
 
-      {/* Header */}
+      {/* Vagues latérales */}
+      <SideWaves side="left" />
+      <SideWaves side="right" />
+
+      {/* header */}
       <SafeAreaView>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8 }}>
           <TouchableOpacity onPress={handleBack} style={{ height: 40, width: 40, borderRadius: 20, backgroundColor: "#2A2A2A", alignItems: "center", justifyContent: "center" }}>
@@ -104,90 +114,83 @@ export default function AgeSelectionScreen() {
       </SafeAreaView>
 
       {/* Contenu */}
-      <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 24 }}>
+      <View style={{ flex: 1, paddingHorizontal: 24 }}>
         {/* Titre */}
-        <View style={{ alignItems: 'center', marginBottom: 36 }}>
-          <Text style={{ fontSize: 22, fontWeight: '800', color: '#FF8C00', marginBottom: 8, letterSpacing: -0.5 }}>
-            Quel est votre âge ?
+        <View style={{ alignItems: "center", marginTop: 8, marginBottom: 26 }}>
+          <Text style={{ fontSize: 22, fontWeight: "800", color: "#9BE15D", marginBottom: 8 }}>
+            Quel âge avez-vous ?
           </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14.5, lineHeight: 24, textAlign: 'center' }}>
-            Votre âge nous aide à calculer vos objectifs{"\n"}et recommandations personnalisées.
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14.5, lineHeight: 22, textAlign: "center" }}>
+            Cela nous aide à créer votre{"\n"}entraînement personnalisé.
           </Text>
         </View>
 
-        {/* Sélecteur d'âge */}
-        <View style={{ alignItems: 'center', marginBottom: 40 }}>
-          <View style={{
-            width: PILL_W,
-            height: PILL_H,
-            borderRadius: PILL_W / 2,
-            backgroundColor: 'rgba(0,0,0,0.65)',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.15)',
-            overflow: 'hidden',
-            shadowColor: 'black',
-            shadowOpacity: 0.6,
-            shadowRadius: 24,
-            shadowOffset: { width: 0, height: 14 },
-            elevation: 16,
-          }}>
-            {/* Ligne de sélection au centre */}
-            <View style={{
-              position: 'absolute',
-              top: PILL_H / 2 - 1,
-              left: 0,
-              right: 0,
-              height: 2,
-              backgroundColor: '#FFD700',
-              zIndex: 1,
-            }} />
+        {/* Pilule centrale */}
+        <View style={{ alignItems: "center", justifyContent: "center", flex: 1 }}>
+          <View
+            style={{
+              width: PILL_W,
+              height: PILL_H,
+              borderRadius: PILL_W, // gros arrondi haut/bas
+              overflow: "hidden",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.15)",
+              backgroundColor: "rgba(17,17,17,0.7)",
+            }}
+          >
+            {/* Overlay sombre haut→bas dans la pilule */}
+            <LinearGradient
+              colors={["#FFFFFF10", "#00000055", "#00000080"]}
+              locations={[0, 0.5, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
 
+            {/* Lignes pointillées centré (au-dessus/au-dessous) */}
+            <View
+              pointerEvents="none"
+              style={{ position: "absolute", left: 20, right: 20, top: (PILL_H - ROW_H) / 2, height: ROW_H }}
+            >
+              <DottedLine position="top" />
+              <DottedLine position="bottom" />
+            </View>
+
+            {/* Liste des âges */}
             <FlatList
               ref={listRef}
               data={ages}
-              keyExtractor={(item) => item.toString()}
+              keyExtractor={(item) => String(item)}
               showsVerticalScrollIndicator={false}
               snapToInterval={ROW_H}
               decelerationRate="fast"
-              onScrollEndDrag={onMomentumEnd}
+              onMomentumScrollEnd={onMomentumEnd}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig}
               contentContainerStyle={{
-                paddingTop: PILL_H / 2 - ROW_H / 2,
-                paddingBottom: PILL_H / 2 - ROW_H / 2,
+                paddingVertical: (PILL_H - ROW_H) / 2, // centre l’élément sélectionné
               }}
-              renderItem={({ item: age }) => (
-                <View style={{
-                  height: ROW_H,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Text style={{
-                    fontSize: 24,
-                    fontWeight: 'bold',
-                    color: age === selectedAge ? '#FFD700' : 'rgba(255,255,255,0.6)',
-                    textAlign: 'center',
-                  }}>
-                    {age}
-                  </Text>
-                </View>
-              )}
+              renderItem={({ item }) => {
+                const dist = Math.abs(item - selectedAge);
+                // style progressif comme le mock
+                const style = getRowStyle(dist, item === selectedAge);
+                return (
+                  <TouchableOpacity
+                    onPress={() => handlePick(item)}
+                    activeOpacity={0.8}
+                    style={{ height: ROW_H, alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Text style={style}>{item}</Text>
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         </View>
 
-        {/* Affichage de l'âge sélectionné */}
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 4 }}>
-            Âge sélectionné
-          </Text>
-          <Text style={{ color: '#FFD700', fontSize: 32, fontWeight: 'bold' }}>
-            {selectedAge} ans
-          </Text>
-        </View>
       </View>
 
-      {/* Bouton */}
+      {/* bouton */}
       <SafeAreaView>
         <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
           <TouchableOpacity
@@ -210,6 +213,93 @@ export default function AgeSelectionScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/* --- style dynamique par distance au centre --- */
+function getRowStyle(distance: number, isSelected: boolean) {
+  if (isSelected) {
+    return {
+      fontSize: 34,
+      fontWeight: "900" as const,
+      color: "#FFFFFF",
+      letterSpacing: 0.6,
+    };
+  }
+  if (distance === 1) {
+    return {
+      fontSize: 26,
+      fontWeight: "700" as const,
+      color: "#B0B0B0",
+      opacity: 0.75,
+    };
+  }
+  if (distance === 2) {
+    return {
+      fontSize: 20,
+      fontWeight: "600" as const,
+      color: "#8A8E95",
+      opacity: 0.5,
+    };
+  }
+  return {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    color: "#6B6F77",
+    opacity: 0.28,
+  };
+}
+
+/* ----- petite ligne pointillée horizontale ----- */
+function DottedLine({ position }: { position: "top" | "bottom" }) {
+  const dots = Array.from({ length: 18 });
+  return (
+    <View
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        height: 1,
+        top: position === "top" ? 0 : undefined,
+        bottom: position === "bottom" ? 0 : undefined,
+        flexDirection: "row",
+        justifyContent: "space-between",
+      }}
+    >
+      {dots.map((_, i) => (
+        <View key={i} style={{ width: 6, height: 1, backgroundColor: "rgba(255,255,255,0.25)" }} />
+      ))}
+    </View>
+  );
+}
+
+/* ------- décor : vagues latérales -------- */
+function SideWaves({ side }: { side: "left" | "right" }) {
+  const rows = useMemo(() => Array.from({ length: 8 }), []);
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        { position: "absolute", top: 0, bottom: 0, width: 80, justifyContent: "center" },
+        side === "left" ? { left: 0 } : { right: 0 },
+      ]}
+    >
+      {rows.map((_, i) => (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            width: 64,
+            height: 24,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.12)",
+            top: 120 + i * 36,
+            opacity: 0.06 + i * 0.015,
+          }}
+        />
+      ))}
     </View>
   );
 }

@@ -6,16 +6,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useEffect, useRef } from "react";
 import {
-  Animated,
-  Dimensions,
-  Easing,
-  Modal,
-  PanResponder,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Easing,
+    Modal,
+    PanResponder,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -130,6 +130,11 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
     }
   };
 
+  const handleEmailSignIn = () => {
+    onClose();
+    router.push("/auth/login");
+  };
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       {/* Backdrop flouté + clic pour fermer */}
@@ -212,6 +217,12 @@ const LoginDrawer: React.FC<LoginDrawerProps> = ({ visible, onClose }) => {
               <GlassButton onPress={handleGoogleSignIn}>
                 <Ionicons name="logo-google" size={20} color="#4285F4" style={{ marginRight: 10 }} />
                 <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>Continuer avec Google</Text>
+              </GlassButton>
+
+              {/* Email (glass noir) */}
+              <GlassButton onPress={handleEmailSignIn}>
+                <Ionicons name="mail" size={20} color="#FFD700" style={{ marginRight: 10 }} />
+                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>Continuer avec Email</Text>
               </GlassButton>
             </View>
 

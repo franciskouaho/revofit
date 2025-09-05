@@ -4,14 +4,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Animated,
-  Easing,
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Easing,
+    Image,
+    ImageBackground,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
@@ -25,8 +25,11 @@ export default function WorkoutActiveScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
 
+  // Récupérer les données de l'exercice depuis les paramètres
+  const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
+
   const [exerciseConfig, setExerciseConfig] = useState({
-    name: (params.exerciseName as string) || "Gainage coude",
+    name: exercise?.name || (params.exerciseName as string) || "Gainage coude",
     sets: parseInt(params.sets as string) || 4,
     reps: parseInt(params.reps as string) || 1,
     restTime: (params.restTime as string) || "2 min"
@@ -99,7 +102,7 @@ export default function WorkoutActiveScreen() {
           <BlurView intensity={18} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, styles.border]} />
           <Image
-            source={{ uri: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=240&h=240&fit=crop" }}
+            source={{ uri: exercise?.imageUrl || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=240&h=240&fit=crop" }}
             style={styles.nextImg}
           />
           <Text style={styles.nextTxt}>Exercice suivant</Text>
@@ -121,7 +124,7 @@ export default function WorkoutActiveScreen() {
         {/* Image principale */}
         <View style={[styles.heroWrap, { marginTop: -insets.top }]}>
           <ImageBackground
-            source={{ uri: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=1200&fit=crop" }}
+            source={{ uri: exercise?.imageUrl || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=1200&fit=crop" }}
             style={styles.hero}
           />
           {/* Filtre noir pour améliorer la visibilité */}
@@ -236,6 +239,7 @@ export default function WorkoutActiveScreen() {
                   pathname: "/workout/details",
                   params: { 
                     completedSet: "true",
+                    exercise: params.exercise, // Passer les données de l'exercice
                     exerciseName: exerciseConfig.name,
                     templateId: params.templateId
                   }

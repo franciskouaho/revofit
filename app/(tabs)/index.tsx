@@ -2,6 +2,7 @@ import Header from '@/components/Header';
 import WorkoutStatusBar from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +17,7 @@ const GLASS_BG = 'rgba(255,255,255,0.06)';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { userProfile } = useAuth();
 
   const userStats = {
     calories: 1200,
@@ -60,7 +62,7 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <Header
           greeting="Bonjour"
-          userName="Adam Smith"
+          userName={userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "Utilisateur"}
           onNotificationPress={handleNotificationPress}
           onProfilePress={handleProfilePress}
         />

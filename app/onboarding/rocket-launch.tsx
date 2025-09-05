@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -22,13 +22,37 @@ export default function RocketLaunchScreen() {
   
   const rocketPosition = useRef(new Animated.Value(0)).current;
   const rocketScale = useRef(new Animated.Value(1)).current;
-  const progressBarWidth = useRef(new Animated.Value(0)).current;
   const starsOpacity = useRef(new Animated.Value(0)).current;
 
   const { onboardingData } = useOnboarding();
-  const { signUp, loading } = useAuth();
+  const { signUp } = useAuth();
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleCompleteOnboarding = useCallback(async () => {
+    try {
+      // Ajouter des valeurs par défaut manquantes
+      const completeData = {
+        ...onboardingData,
+        weeklyWorkouts: onboardingData.weeklyWorkouts || 3,
+        targetWeight: onboardingData.targetWeight || onboardingData.weight
+      };
+
+      // Inscription avec Firebase
+      await signUp(completeData);
+      
+      setIsComplete(true);
+      
+      // Redirection vers l'app principale après un délai
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 2000);
+    } catch (error: any) {
+      Alert.alert('Erreur d\'inscription', error.message);
+      setIsLaunching(false);
+      setProgress(0);
+    }
+  }, [onboardingData, signUp]);
 
   // Effet pour démarrer l'intervalle quand on appuie
   useEffect(() => {
@@ -47,6 +71,9 @@ export default function RocketLaunchScreen() {
           return prev + 2;
         });
       }, 50);
+    } else if (!isPressed && progress > 0 && progress < 100) {
+      // Si l'utilisateur relâche avant 100%, remettre à zéro
+      setProgress(0);
     }
 
     return () => {
@@ -57,14 +84,12 @@ export default function RocketLaunchScreen() {
     };
   }, [isPressed, progress]);
 
-  // Animation de la barre de progression
+  // Effet pour déclencher le lancement automatiquement à 100%
   useEffect(() => {
-    Animated.timing(progressBarWidth, {
-      toValue: progress,
-      duration: 100,
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
+    if (progress >= 100 && !isLaunching && !isComplete) {
+      setIsLaunching(true);
+    }
+  }, [progress, isLaunching, isComplete]);
 
   // Animation du lancement
   useEffect(() => {
@@ -93,34 +118,7 @@ export default function RocketLaunchScreen() {
         handleCompleteOnboarding();
       });
     }
-  }, [isLaunching]);
-
-  const handleCompleteOnboarding = async () => {
-    try {
-      // Ajouter des valeurs par défaut manquantes
-      const completeData = {
-        ...onboardingData,
-        experienceLevel: onboardingData.experienceLevel || 'débutant',
-        weeklyWorkouts: onboardingData.weeklyWorkouts || 3,
-        targetWeight: onboardingData.targetWeight || onboardingData.weight
-      };
-
-      // Inscription avec Firebase
-      await signUp(completeData);
-      
-      setIsComplete(true);
-      
-      // Redirection vers l'app principale après un délai
-      setTimeout(() => {
-        router.replace('/(tabs)');
-      }, 2000);
-    } catch (error: any) {
-      Alert.alert('Erreur d\'inscription', error.message);
-      setIsLaunching(false);
-      setProgress(0);
-      progressBarWidth.setValue(0);
-    }
-  };
+  }, [isLaunching, starsOpacity, rocketScale, rocketPosition, handleCompleteOnboarding]);
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -235,27 +233,11 @@ export default function RocketLaunchScreen() {
             </Animated.View>
           </View>
 
-          {/* Barre de progression */}
+          {/* Pourcentage et message */}
           {!isComplete && (
-            <View style={{ width: '100%', marginBottom: 40 }}>
-              <View style={{
-                height: 8,
-                backgroundColor: '#2A2A2A',
-                borderRadius: 4,
-                overflow: 'hidden',
-              }}>
-                <Animated.View style={{
-                  height: '100%',
-                  width: progressBarWidth.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ['0%', '100%'],
-                  }),
-                  backgroundColor: '#FFD700',
-                  borderRadius: 4,
-                }} />
-              </View>
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginTop: 8 }}>
-                {progress}% - {isLaunching ? 'Lancement en cours...' : 'Maintenez appuyé'}
+            <View style={{ width: '100%', marginBottom: 40, alignItems: 'center' }}>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+                {progress}% - {isLaunching ? 'Lancement en cours...' : progress >= 100 ? 'Prêt à lancer !' : 'Maintenez appuyé'}
               </Text>
             </View>
           )}
@@ -276,9 +258,9 @@ export default function RocketLaunchScreen() {
                 marginBottom: 40,
               }}
             >
-              <Text style={{ color: '#FFD700', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
-                Maintenez appuyé{'\n'}pour lancer
-              </Text>
+                          <Text style={{ color: '#FFD700', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
+              Maintenez appuyé{'\n'}pour lancer
+            </Text>
             </View>
           )}
 

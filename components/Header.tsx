@@ -1,3 +1,4 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React from 'react';
@@ -15,17 +16,21 @@ interface HeaderProps {
 
 export default function Header({ 
   greeting = "Good Morning", 
-  userName = "Adam Smith",
+  userName,
   onNotificationPress,
   onProfilePress
 }: HeaderProps) {
+  const { userProfile } = useAuth();
+  
+  // Utiliser le nom passé en prop ou celui du profil utilisateur
+  const displayName = userName || (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "Utilisateur");
   return (
     <View style={styles.header}>
       {/* Left side - Greeting only */}
       <View style={styles.headerLeft}>
         <View style={styles.greetingContainer}>
           <ThemedText style={styles.greeting}>{greeting}</ThemedText>
-          <ThemedText style={styles.userName}>{userName}</ThemedText>
+          <ThemedText style={styles.userName}>{displayName}</ThemedText>
         </View>
       </View>
 

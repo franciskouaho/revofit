@@ -49,8 +49,12 @@ function Glass({
 export default function WorkoutDetailsScreen() {
   const params = useLocalSearchParams();
   const [completedSets, setCompletedSets] = useState<number[]>([]);
+  
+  // Récupérer les données de l'exercice depuis les paramètres
+  const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
+  
   const [exerciseConfig, setExerciseConfig] = useState({
-    name: (params.exerciseName as string) || "Gainage coude",
+    name: exercise?.name || (params.exerciseName as string) || "Gainage coude",
     sets: 4,
     reps: 1,
     restTime: "2 min"
@@ -90,6 +94,7 @@ export default function WorkoutDetailsScreen() {
     router.push({
       pathname: "/workout/active",
       params: {
+        exercise: params.exercise, // Passer les données de l'exercice
         exerciseName: exerciseConfig.name,
         sets: exerciseConfig.sets.toString(),
         reps: exerciseConfig.reps.toString(),
@@ -132,7 +137,7 @@ export default function WorkoutDetailsScreen() {
           <View style={styles.hero}>
             <ImageBackground
               source={{
-                uri: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&q=80&auto=format&fit=crop",
+                uri: exercise?.imageUrl || "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&q=80&auto=format&fit=crop",
               }}
               style={styles.heroImg}
             >
@@ -148,17 +153,17 @@ export default function WorkoutDetailsScreen() {
                   <View style={styles.heroFooterRow}>
                     <View style={styles.meta}>
                       <Ionicons name="pulse" size={16} color="#FFD700" />
-                      <Text style={styles.metaText}>Intensité élevée</Text>
+                      <Text style={styles.metaText}>{exercise?.difficulty || "Niveau"}</Text>
                     </View>
                     <View style={styles.separator} />
                     <View style={styles.meta}>
                       <Ionicons name="flame" size={16} color="#FFD700" />
-                      <Text style={styles.metaText}>~345 kcal</Text>
+                      <Text style={styles.metaText}>{exercise?.equipment?.join(', ') || "Équipement"}</Text>
                     </View>
                     <View style={styles.separator} />
                     <View style={styles.meta}>
                       <Ionicons name="time" size={16} color="#FFD700" />
-                      <Text style={styles.metaText}>59 min</Text>
+                      <Text style={styles.metaText}>{exercise?.muscleGroups?.length || 0} groupes</Text>
                     </View>
                   </View>
                 </Glass>
@@ -167,32 +172,34 @@ export default function WorkoutDetailsScreen() {
               {/* Badge titre */}
               <View style={styles.heroBadgeWrap}>
                 <Glass padding={12} style={styles.heroBadge}>
-                  <Text style={styles.heroTitle}>Entraînement Gainage</Text>
-                  <Text style={styles.heroSubtitle}>Corps entier • Focus gainage</Text>
+                  <Text style={styles.heroTitle}>{exercise?.name || "Exercice"}</Text>
+                  <Text style={styles.heroSubtitle}>
+                    {exercise?.muscleGroups?.join(' • ') || "Groupe musculaire"} • {exercise?.difficulty || "Niveau"}
+                  </Text>
                 </Glass>
               </View>
             </ImageBackground>
           </View>
 
           <View style={{ paddingHorizontal: 20 }}>
-            {/* Chips d’infos */}
+            {/* Chips d'infos */}
             <View style={styles.chipsRow}>
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
                   <Ionicons name="barbell" size={14} color="#FFD700" />
-                  <Text style={styles.chipText}>Poids du corps</Text>
+                  <Text style={styles.chipText}>{exercise?.equipment?.join(', ') || "Équipement"}</Text>
                 </View>
               </Glass>
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
                   <Ionicons name="speedometer" size={14} color="#4ECDC4" />
-                  <Text style={styles.chipText}>Intermédiaire</Text>
+                  <Text style={styles.chipText}>{exercise?.difficulty || "Niveau"}</Text>
                 </View>
               </Glass>
               <Glass padding={10} style={styles.chip}>
                 <View style={styles.chipRow}>
-                  <Ionicons name="time-outline" size={14} color="#9FA8DA" />
-                  <Text style={styles.chipText}>1 min</Text>
+                  <Ionicons name="body" size={14} color="#9FA8DA" />
+                  <Text style={styles.chipText}>{exercise?.muscleGroups?.length || 0} groupes</Text>
                 </View>
               </Glass>
             </View>
@@ -210,14 +217,32 @@ export default function WorkoutDetailsScreen() {
 
             {/* Description (glass) */}
             <Glass>
-              <Text style={styles.blockTitle}>Aperçu</Text>
-              <Text style={styles.desc}>
-                Lentraînement de gainage est conçu pour renforcer la stabilité du corps entier avec une
-                structure axée sur le contrôle. Attendez-vous à des exercices de stabilisation, un travail
-                contrôlé et des accessoires ciblés pour les épaules et les triceps.{" "}
-                <Text style={{ color: "#FFD700", fontWeight: "700" }}>Voir plus…</Text>
-              </Text>
+              <Text style={styles.blockTitle}>Instructions</Text>
+              {exercise?.instructions?.map((instruction: string, index: number) => (
+                <View key={index} style={styles.instructionItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.instructionText}>{instruction}</Text>
+                </View>
+              ))}
             </Glass>
+
+            {/* Conseils */}
+            {exercise?.tips && exercise.tips.length > 0 && (
+              <>
+                <View style={{ height: 16 }} />
+                <Glass>
+                  <Text style={styles.blockTitle}>Conseils</Text>
+                  {exercise.tips.map((tip: string, index: number) => (
+                    <View key={index} style={styles.tipItem}>
+                      <Ionicons name="bulb" size={16} color="#FFD700" />
+                      <Text style={styles.tipText}>{tip}</Text>
+                    </View>
+                  ))}
+                </Glass>
+              </>
+            )}
 
             {/* Exercise details */}
             <View style={{ height: 16 }} />
@@ -237,7 +262,7 @@ export default function WorkoutDetailsScreen() {
                      <View style={styles.thumb}>
                        <ImageBackground
                          source={{
-                           uri: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80&auto=format&fit=crop",
+                           uri: exercise?.imageUrl || "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80&auto=format&fit=crop",
                          }}
                          style={{ flex: 1 }}
                          imageStyle={{ borderRadius: 10 }}
@@ -254,7 +279,7 @@ export default function WorkoutDetailsScreen() {
                      <View style={{ flex: 1, paddingHorizontal: 12 }}>
                                          <Text style={styles.exerciseName}>{exerciseConfig.name}</Text>
                   <Text style={styles.exerciseSub}>
-                    Gainage • Anti-extension • Série {setNumber}
+                    {exercise?.muscleGroups?.join(' • ') || "Groupe musculaire"} • Série {setNumber}
                   </Text>
                      </View>
 
@@ -492,4 +517,41 @@ const styles = StyleSheet.create({
     borderColor: BORDER,
   },
   noteText: { color: "#fff", fontWeight: "700" },
+
+  // Styles pour les instructions et conseils
+  instructionItem: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 12,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#FFD700",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepNumberText: {
+    color: "#000000",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  instructionText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
+  tipItem: {
+    flexDirection: "row",
+    marginBottom: 12,
+    gap: 12,
+  },
+  tipText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    lineHeight: 20,
+    flex: 1,
+  },
 });

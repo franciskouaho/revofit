@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ColorValue, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../components/onboarding";
@@ -46,28 +46,28 @@ export default function GoalsSelectionScreen() {
     { id: "sports", title: "Activités sportives", selected: false, gradient: ["#CCC", "#CCC"], ring: "#B0B0B0" },
     { id: "nutrition", title: "Gain nutritionnel", selected: false, gradient: ["#CCC", "#CCC"], ring: "#B0B0B0" },
   ]);
-
   const { nextStep } = useOnboarding();
 
   const toggle = (id: string) => {
     setGoals((prev) => {
-      const updated = prev.map((goal) => {
-        if (goal.id === id) {
-          return { ...goal, selected: !goal.selected };
-        }
-        return goal;
-      });
-      return updated;
+      const goal = prev.find(g => g.id === id);
+      if (!goal) return prev;
+      
+      if (goal.selected) {
+        // Désélectionner
+        return prev.map(g => g.id === id ? { ...g, selected: false } : g);
+      } else {
+        // Sélectionner
+        return prev.map(g => g.id === id ? { ...g, selected: true } : g);
+      }
     });
   };
 
-  const selectedGoals = goals.filter((goal) => goal.selected);
-  const hasSelection = selectedGoals.length > 0;
-
   const handleNext = () => {
-    if (hasSelection) {
-      const goalTitles = selectedGoals.map(goal => goal.title);
-      nextStep({ goals: goalTitles });
+    const selectedGoals = goals.filter(g => g.selected);
+    if (selectedGoals.length >= 1) {
+      const goalIds = selectedGoals.map(g => g.id);
+      nextStep({ goals: goalIds });
       router.push('/onboarding/email-selection');
     }
   };
@@ -75,8 +75,8 @@ export default function GoalsSelectionScreen() {
   const handleBack = () => router.back();
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
-      {/* Fond thème Revo */}
+    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
+      {/* fond thème */}
       <LinearGradient
         colors={["#2a2a00", "#000000", "#000000", "#2a2a00"]}
         locations={[0, 0.22, 0.78, 1]}
@@ -84,8 +84,10 @@ export default function GoalsSelectionScreen() {
         end={{ x: 1, y: 1 }}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
+      <SideWaves side="left" />
+      <SideWaves side="right" />
 
-      {/* Header */}
+      {/* header */}
       <SafeAreaView>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8 }}>
           <TouchableOpacity onPress={handleBack} style={{ height: 40, width: 40, borderRadius: 20, backgroundColor: "#2A2A2A", alignItems: "center", justifyContent: "center" }}>
@@ -103,6 +105,7 @@ export default function GoalsSelectionScreen() {
             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "white" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
           </View>
 
           {/* Espace vide à droite pour équilibrer */}
@@ -110,100 +113,79 @@ export default function GoalsSelectionScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Contenu */}
-      <View style={{ flex: 1, paddingHorizontal: 24 }}>
+      {/* content */}
+      <View style={{ flex: 1, justifyContent: "flex-start", paddingHorizontal: 24, paddingTop: 20 }}>
         {/* Titre */}
-        <View style={{ alignItems: 'center', marginTop: 40, marginBottom: 32 }}>
-          <GradientText
-            text="Quels sont vos objectifs ?"
-            colors={["#FFD700", "#FFA500"]}
-            style={{ fontSize: 24, fontWeight: '800', textAlign: 'center' }}
-          />
-          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, textAlign: 'center', marginTop: 8, lineHeight: 20 }}>
-            Sélectionnez vos objectifs principaux pour{"\n"}personnaliser votre expérience RevoFit.
+        <View style={{ alignItems: "center", marginBottom: 32 }}>
+          <Text style={{ fontSize: 22, fontWeight: "800", color: "#FF8C00", marginBottom: 10 }}>Quel est votre objectif ?</Text>
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 14.5, lineHeight: 22, textAlign: "center" }}>
+            Choisissez au minimum 1 objectif pour{"\n"}personnaliser votre entraînement.
+          </Text>
+          <Text style={{ color: "#FFD700", fontSize: 14, marginTop: 8, fontWeight: "600" }}>
+            {goals.filter(g => g.selected).length} objectif{goals.filter(g => g.selected).length > 1 ? 's' : ''} sélectionné{goals.filter(g => g.selected).length > 1 ? 's' : ''}
           </Text>
         </View>
 
-        {/* Grille d'objectifs */}
-        <View style={{ flex: 1, marginBottom: 20 }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {goals.map((goal) => (
-              <TouchableOpacity
-                key={goal.id}
-                onPress={() => toggle(goal.id)}
-                style={{
-                  width: '48%',
-                  marginBottom: 16,
-                  borderRadius: 16,
-                  overflow: 'hidden',
-                  borderWidth: 2,
-                  borderColor: goal.selected ? goal.ring : 'transparent',
-                }}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={goal.selected ? goal.gradient : ['#2A2A2A', '#1A1A1A']}
-                  style={{
-                    padding: 20,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: 100,
-                  }}
+        {/* LISTE – alignée à droite */}
+        <View style={{ gap: 8 }}>
+          {goals.map((g) => {
+            const selected = g.selected;
+            return (
+              <TouchableOpacity key={g.id} onPress={() => toggle(g.id)} activeOpacity={0.9} style={{ width: "100%" }}>
+                <View
+                  style={[
+                    { width: "100%", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 12 },
+                    selected ? { backgroundColor: "rgba(255,255,255,0.00)", borderWidth: 0 } : { backgroundColor: "transparent" },
+                    selected && {
+                      shadowColor: g.ring,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 18,
+                      elevation: 6,
+                    },
+                  ]}
                 >
-                  <Text style={{
-                    color: goal.selected ? '#000' : '#FFFFFF',
-                    fontSize: 16,
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                  }}>
-                    {goal.title}
-                  </Text>
-                  {goal.selected && (
-                    <View style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: 'rgba(0,0,0,0.3)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Ionicons name="checkmark" size={16} color="#000" />
-                    </View>
+                  {/* check à gauche */}
+                  <View
+                    style={[
+                      { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: "center", justifyContent: "center", backgroundColor: "transparent", alignSelf: "center" },
+                      { borderColor: selected ? g.ring : "#6B7280" },
+                    ]}
+                  >
+                    {selected && <Ionicons name="checkmark" size={14} color={g.ring} />}
+                  </View>
+
+                  {/* texte à droite */}
+                  {selected ? (
+                    <GradientText text={g.title} colors={g.gradient} style={{ fontSize: 28, fontWeight: "700", letterSpacing: 0.2, textAlign: "right" }} />
+                  ) : (
+                    <Text style={{ fontSize: 28, fontWeight: "600", color: "#B0B0B0", opacity: 0.6, letterSpacing: 0.2, textAlign: "right" }}>{g.title}</Text>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
         </View>
 
-        {/* Compteur de sélection */}
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
-            {selectedGoals.length} objectif{selectedGoals.length > 1 ? 's' : ''} sélectionné{selectedGoals.length > 1 ? 's' : ''}
-          </Text>
-        </View>
       </View>
 
-      {/* Bouton */}
+      {/* bouton */}
       <SafeAreaView>
         <View style={{ paddingHorizontal: 8, paddingBottom: 16 }}>
           <TouchableOpacity
             onPress={handleNext}
-            disabled={!hasSelection}
+            disabled={goals.filter(g => g.selected).length === 0}
             style={{
               height: 56,
               borderRadius: 28,
-              backgroundColor: hasSelection ? "#FFD700" : "#2A2A2A",
+              backgroundColor: goals.filter(g => g.selected).length > 0 ? "#FFD700" : "#2A2A2A",
               alignItems: "center",
               justifyContent: "center",
-              opacity: hasSelection ? 1 : 0.5,
+              opacity: goals.filter(g => g.selected).length > 0 ? 1 : 0.5,
             }}
           >
             <Text style={{ 
-              color: hasSelection ? "#000" : "#666", 
+              color: goals.filter(g => g.selected).length > 0 ? "#000" : "#666", 
               fontSize: 18, 
               fontWeight: "800" 
             }}>
@@ -212,6 +194,36 @@ export default function GoalsSelectionScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/* ------ vagues ------ */
+function SideWaves({ side }: { side: "left" | "right" }) {
+  const rows = useMemo(() => Array.from({ length: 10 }), []);
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        { position: "absolute", top: 0, bottom: 0, width: 90, justifyContent: "center" },
+        side === "left" ? { left: 0 } : { right: 0 },
+      ]}
+    >
+      {rows.map((_, i) => (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            top: 140 + i * 36,
+            width: 70,
+            height: 26,
+            borderRadius: 13,
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.12)",
+            opacity: 0.06 + i * 0.015,
+          }}
+        />
+      ))}
     </View>
   );
 }
