@@ -3,21 +3,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  ImageBackground,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ImageBackground,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { WorkoutTemplate } from "../services/storage";
+import { ExerciseTemplate } from "../types/exercise";
 
 const BORDER = "rgba(255,255,255,0.12)";
 
 interface WorkoutTemplateCardProps {
-  template: WorkoutTemplate;
-  onPress: (template: WorkoutTemplate) => void;
+  template: ExerciseTemplate;
+  onPress: (template: ExerciseTemplate) => void;
   onDelete?: (templateId: string) => void;
-  onExercisePress?: (exercise: string, template: WorkoutTemplate) => void;
+  onExercisePress?: (exercise: string, template: ExerciseTemplate) => void;
 }
 
 export default function WorkoutTemplateCard({
@@ -26,8 +26,10 @@ export default function WorkoutTemplateCard({
   onDelete,
   onExercisePress,
 }: WorkoutTemplateCardProps) {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', {
+  const formatDate = (date: any) => {
+    if (!date) return 'Récent';
+    const dateObj = date.toDate ? date.toDate() : new Date(date);
+    return dateObj.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
     });
@@ -41,7 +43,7 @@ export default function WorkoutTemplateCard({
     >
       {/* Image de gauche */}
       <ImageBackground
-        source={{ uri: template.coverImage || "https://images.unsplash.com/photo-1517963628607-235ccdd5476b?q=80&w=400&auto=format&fit=crop" }}
+        source={{ uri: template.imageUrl || "https://images.unsplash.com/photo-1517963628607-235ccdd5476b?q=80&w=400&auto=format&fit=crop" }}
         style={styles.cardImage}
         imageStyle={styles.cardImageRadius}
       >
@@ -63,7 +65,7 @@ export default function WorkoutTemplateCard({
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Text style={styles.title} numberOfLines={2}>
-              {template.title}
+              {template.name}
             </Text>
           </View>
           
@@ -97,9 +99,9 @@ export default function WorkoutTemplateCard({
         {/* Footer avec date et bouton start */}
         <View style={styles.footer}>
           <View style={styles.dateContainer}>
-            <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,0.7)" />
+            <Ionicons name="time" size={12} color="rgba(255,255,255,0.7)" />
             <Text style={styles.dateText}>
-              {formatDate(template.createdAt)}
+              {template.duration} min
             </Text>
           </View>
           

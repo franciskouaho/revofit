@@ -4,21 +4,22 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useRef, useState } from "react";
 import {
-    Alert,
-    Animated,
-    Easing,
-    KeyboardAvoidingView,
-    Modal,
-    PanResponder,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { StorageService, WorkoutTemplate } from "../services/storage";
-import ExerciseSelector from "./ExerciseSelector";
+import { WorkoutTemplateService } from "../services/firebase/workouts";
+import { ExerciseTemplate } from "../types/exercise";
+import FirebaseExerciseSelector from "./FirebaseExerciseSelector";
 
 const BORDER = "rgba(255,255,255,0.12)";
 const SURFACE = "rgba(0,0,0,0.55)";
@@ -29,7 +30,7 @@ interface TemplateDrawerProps {
   visible: boolean;
   onClose: () => void;
   onGenerate: (type: string) => void;
-  onTemplateCreated?: (template: WorkoutTemplate) => void;
+  onTemplateCreated?: (template: ExerciseTemplate) => void;
 }
 
 export default function TemplateDrawer({
@@ -64,7 +65,7 @@ export default function TemplateDrawer({
         Animated.timing(backdrop, { toValue: 0, duration: 180, useNativeDriver: true }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, slideY, backdrop]);
 
   // Swipe-to-dismiss
   const dragY = useRef(new Animated.Value(0)).current;
@@ -90,11 +91,50 @@ export default function TemplateDrawer({
 
   const handleCreateTemplate = async () => {
     try {
-      const template = await StorageService.saveWorkoutTemplate({
-        title: templateTitle.trim(),
+      // Récupérer les exercices Firebase correspondants aux IDs sélectionnés
+      const { ExerciseService } = await import("../services/firebase/exercises");
+      const exercises = [];
+      
+      for (const exerciseId of selectedExercises) {
+        const response = await ExerciseService.getExerciseById(exerciseId);
+        if (response.success && response.data && !Array.isArray(response.data)) {
+          exercises.push(response.data);
+        }
+      }
+
+      if (exercises.length === 0) {
+        Alert.alert("Erreur", "Aucun exercice valide sélectionné.");
+        return;
+      }
+
+      // Déterminer les groupes musculaires et équipements à partir des exercices
+      const muscleGroups = [...new Set(exercises.flatMap(ex => ex.muscleGroups))];
+      const equipment = [...new Set(exercises.flatMap(ex => ex.equipment))];
+      
+      // Déterminer la difficulté moyenne
+      const difficulties = exercises.map(ex => ex.difficulty);
+      const difficultyCounts = difficulties.reduce((acc, diff) => {
+        acc[diff] = (acc[diff] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      const mostCommonDifficulty = Object.entries(difficultyCounts)
+        .sort(([,a], [,b]) => (b as number) - (a as number))[0][0] as 'beginner' | 'intermediate' | 'advanced';
+
+      const templateData = {
+        name: templateTitle.trim(),
         description: description.trim(),
-        exercises: selectedExercises,
-      });
+        muscleGroups: muscleGroups,
+        exercises: exercises,
+        duration: Math.max(15, exercises.length * 5), // Estimation basée sur le nombre d'exercices
+        difficulty: mostCommonDifficulty,
+        equipment: equipment,
+        imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80&auto=format&fit=crop",
+        isPublic: true,
+        createdBy: "user123" // TODO: Récupérer depuis AuthContext
+      };
+
+      // Créer le template dans Firebase
+      const template = await WorkoutTemplateService.createTemplate(templateData);
 
       // Reset form
       setTemplateTitle("Template d'entraînement");
@@ -109,10 +149,11 @@ export default function TemplateDrawer({
 
       Alert.alert(
         "Template créé !",
-        `Le template "${template.title}" a été créé avec ${template.exercises.length} exercices.`,
+        `Le template "${template.name}" a été créé avec ${template.exercises.length} exercices.`,
         [{ text: "OK" }]
       );
     } catch (error) {
+      console.error("Erreur lors de la création du template:", error);
       Alert.alert(
         "Erreur",
         "Impossible de créer le template. Veuillez réessayer.",
@@ -275,8 +316,8 @@ export default function TemplateDrawer({
         </KeyboardAvoidingView>
       </Animated.View>
 
-      {/* Exercise selector */}
-      <ExerciseSelector
+      {/* Exercise selector Firebase */}
+      <FirebaseExerciseSelector
         visible={showExerciseSelector}
         onClose={() => setShowExerciseSelector(false)}
         selectedExercises={selectedExercises}

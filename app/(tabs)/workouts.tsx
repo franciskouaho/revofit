@@ -5,12 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     Alert,
     FlatList,
     ImageBackground,
     Modal,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,18 +20,19 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
-import { StorageService, WorkoutTemplate } from "../../services/storage";
+import { useWorkouts } from "../../hooks/useWorkouts";
+import { ExerciseTemplate } from "../../types/exercise";
 
 const BORDER = "rgba(255,255,255,0.12)";
 
 /** --------- Menu Modal Component ---------- */
 function WorkoutMenuModal({ visible, onClose, onGenerateWorkout }: { visible: boolean; onClose: () => void; onGenerateWorkout: () => void }) {
   const menuOptions = [
-    { title: "Start Empty Workout", icon: "person", onPress: () => console.log("Start Empty Workout") },
-    { title: "Generate Workout", icon: "star", onPress: onGenerateWorkout },
-    { title: "Log Past Workout", icon: "time", onPress: () => console.log("Log Past Workout") },
-    { title: "Add Template", icon: "clipboard", onPress: () => console.log("Add Template") },
-    { title: "Add Custom Exercise", icon: "fitness", onPress: () => console.log("Add Custom Exercise") },
+    { title: "Commencer un Entraînement Vide", icon: "person", onPress: () => console.log("Start Empty Workout") },
+    { title: "Générer un Entraînement", icon: "star", onPress: onGenerateWorkout },
+    { title: "Enregistrer un Entraînement Passé", icon: "time", onPress: () => console.log("Log Past Workout") },
+    { title: "Ajouter un Template", icon: "clipboard", onPress: () => console.log("Add Template") },
+    { title: "Ajouter un Exercice Personnalisé", icon: "fitness", onPress: () => console.log("Add Custom Exercise") },
   ];
 
   return (
@@ -199,56 +201,87 @@ const Glass = ({ children, style, blur = 18 }: any) => (
 export default function WorkoutScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [templateDrawerVisible, setTemplateDrawerVisible] = useState(false);
-  const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Hook Firebase pour les workouts
+  const { templates, loading, error, refetch, deleteTemplate } = useWorkouts();
+  
+  // Debug: Afficher les templates dans la console
+  React.useEffect(() => {
+    console.log("🔍 Templates chargés:", templates.length);
+    console.log("🔍 Templates:", templates);
+    console.log("🔍 Loading:", loading);
+    console.log("🔍 Error:", error);
+  }, [templates, loading, error]);
 
-  useEffect(() => {
-    loadTemplates();
-  }, []);
-
-  const loadTemplates = async () => {
-    try {
-      const loadedTemplates = await StorageService.getWorkoutTemplates();
-      setTemplates(loadedTemplates);
-    } catch (error) {
-      console.error('Erreur lors du chargement des templates:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
   };
 
-  const handleGenerate = (params: any) => {
-    console.log("Generating workout with params:", params);
-    // Ici vous pouvez ajouter la logique pour générer l'entraînement
-  };
 
   const handleTemplate = (type: string) => {
     console.log("Creating template:", type);
     // Ici vous pouvez ajouter la logique pour créer le template
   };
 
-  const handleTemplateCreated = (newTemplate: WorkoutTemplate) => {
-    setTemplates(prev => [newTemplate, ...prev]);
+  const handleTemplateCreated = (newTemplate: any) => {
+    // Le template sera automatiquement ajouté via le hook Firebase
+    console.log("Template créé:", newTemplate);
+    // Rafraîchir la liste
+    refetch();
   };
 
-  const handleTemplatePress = (template: WorkoutTemplate) => {
+  const handleTemplatePress = (template: ExerciseTemplate) => {
     router.push({
-      pathname: "/template-exercises",
-      params: { templateId: template.id }
+      pathname: "/workout/details",
+      params: { 
+        templateId: template.id,
+        templateName: template.name,
+        template: JSON.stringify(template)
+      }
     });
   };
 
-  const handleExercisePress = (exercise: string, template: WorkoutTemplate) => {
-    console.log("Exercise pressed:", exercise, "from template:", template.title);
+  const handleExercisePress = (exercise: string, template: ExerciseTemplate) => {
+    console.log("Exercise pressed:", exercise, "from template:", template.name);
     // Ici vous pouvez ajouter la logique pour naviguer vers les détails de l'exercice
     // Par exemple : router.push(`/exercise/${exercise.id}`)
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
     try {
-      await StorageService.deleteWorkoutTemplate(templateId);
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      // Confirmation avant suppression
+      Alert.alert(
+        "Supprimer le template",
+        "Êtes-vous sûr de vouloir supprimer ce template ? Cette action est irréversible.",
+        [
+          {
+            text: "Annuler",
+            style: "cancel"
+          },
+          {
+            text: "Supprimer",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const success = await deleteTemplate(templateId);
+                if (success) {
+                  Alert.alert("Succès", "Template supprimé avec succès !");
+                } else {
+                  Alert.alert("Erreur", "Impossible de supprimer le template.");
+                }
+              } catch (error) {
+                console.error("Erreur lors de la suppression:", error);
+                Alert.alert("Erreur", "Une erreur est survenue lors de la suppression.");
+              }
+            }
+          }
+        ]
+      );
     } catch (error) {
+      console.error("Erreur lors de la suppression:", error);
       Alert.alert("Erreur", "Impossible de supprimer le template.");
     }
   };
@@ -295,7 +328,18 @@ export default function WorkoutScreen() {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 36 }}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          contentContainerStyle={{ paddingBottom: 36 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#fff"
+              colors={["#FFD700"]}
+            />
+          }
+        >
           {/* grand gauge section */}
           <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
             <LinearGradient
@@ -347,17 +391,30 @@ export default function WorkoutScreen() {
             <Glass>
               {/* semaine */}
               <View style={{ marginBottom: 12 }}>
-                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", marginBottom: 8 }}>My Week</Text>
+                <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", marginBottom: 8 }}>Ma Semaine</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
-                  {[
-                    { d: "31", l: "SUN", active: true },
-                    { d: "1", l: "MON" },
-                    { d: "2", l: "TUE" },
-                    { d: "3", l: "WED" },
-                    { d: "4", l: "THU" },
-                    { d: "5", l: "FRI" },
-                    { d: "6", l: "SAT" },
-                  ].map((it, i) => (
+                  {(() => {
+                    const today = new Date();
+                    const currentDay = today.getDay(); // 0 = dimanche, 1 = lundi, etc.
+                    const days = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
+                    
+                    // Générer les 7 jours en commençant par le jour actuel
+                    const weekDays = [];
+                    for (let i = 0; i < 7; i++) {
+                      const date = new Date(today);
+                      date.setDate(today.getDate() + i); // Commencer par aujourd'hui
+                      const dayNumber = date.getDate();
+                      const dayName = days[(currentDay + i) % 7]; // Calculer le nom du jour
+                      const isActive = i === 0; // Le premier jour (aujourd'hui) est actif
+                      
+                      weekDays.push({
+                        d: dayNumber.toString(),
+                        l: dayName,
+                        active: isActive
+                      });
+                    }
+                    return weekDays;
+                  })().map((it, i) => (
                     <View
                       key={i}
                       style={{
@@ -385,8 +442,8 @@ export default function WorkoutScreen() {
                   <View style={{ padding: 16, flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <Ionicons name="flash" size={18} color="#FFD700" />
                     <View>
-                      <Text style={{ color: "#fff", fontWeight: "900" }}>0 Weeks</Text>
-                      <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 2 }}>current streak</Text>
+                      <Text style={{ color: "#fff", fontWeight: "900" }}>0 Semaines</Text>
+                      <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 2 }}>série actuelle</Text>
                     </View>
                   </View>
                 </Glass>
@@ -419,10 +476,10 @@ export default function WorkoutScreen() {
                 />
                 <View style={{ padding: 16 }}>
                   <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900", marginBottom: 4 }}>
-                    Learning Phase
+                    Phase d'Apprentissage
                   </Text>
                   <Text style={{ color: "rgba(255,255,255,0.9)" }}>
-                    It takes up to 5 workouts for Train to learn how you move.
+                    Il faut jusqu'à 5 entraînements pour que l'IA apprenne vos mouvements.
                   </Text>
                 </View>              
               </ImageBackground>
@@ -443,20 +500,39 @@ export default function WorkoutScreen() {
               </TouchableOpacity>
             </View>
 
-            {loading ? (
+            {error ? (
               <Glass>
                 <View style={{ alignItems: "center", paddingVertical: 20 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.7)" }}>Chargement...</Text>
+                  <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+                  <Text style={{ color: "#FF6B6B", fontSize: 16, fontWeight: "800", marginTop: 12 }}>
+                    Erreur de chargement
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6, textAlign: "center" }}>
+                    {error}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={refetch}
+                    style={{ marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "#FFD700", borderRadius: 20 }}
+                  >
+                    <Text style={{ color: "#000", fontWeight: "700" }}>Réessayer</Text>
+                  </TouchableOpacity>
+                </View>
+              </Glass>
+            ) : loading ? (
+              <Glass>
+                <View style={{ alignItems: "center", paddingVertical: 20 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.7)" }}>Chargement des entraînements...</Text>
                 </View>
               </Glass>
             ) : templates.length === 0 ? (
               <Glass>
                 <View style={{ alignItems: "center", paddingVertical: 8 }}>
-                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", marginTop: 8 }}>
-                    Aucun Template
+                  <Ionicons name="fitness" size={48} color="rgba(255,255,255,0.3)" />
+                  <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800", marginTop: 12 }}>
+                    Aucun Entraînement Disponible
                   </Text>
                   <Text style={{ color: "rgba(255,255,255,0.7)", marginTop: 6, textAlign: "center" }}>
-                    Créez votre premier template d'entraînement personnalisé.
+                    Les entraînements seront bientôt disponibles dans cette section.
                   </Text>
 
                   <View style={{ height: 12 }} />
@@ -473,7 +549,7 @@ export default function WorkoutScreen() {
                         style={{ paddingHorizontal: 22, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 8 }}
                       >
                         <Ionicons name="add" size={18} color="#000" />
-                        <Text style={{ color: "#000", fontWeight: "900" }}>Créer le premier</Text>
+                        <Text style={{ color: "#000", fontWeight: "900" }}>Créer un template</Text>
                       </LinearGradient>
                     </View>
                   </TouchableOpacity>
