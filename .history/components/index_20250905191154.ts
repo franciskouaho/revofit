@@ -1,0 +1,12 @@
+// Export de tous les composants
+export { default as AuthGuard } from './AuthGuard';
+export { default as GoogleSignInButton } from './GoogleSignInButton';
+export { default as LogoutButton } from './LogoutButton';
+export { default as UserProfile } from './UserProfile';
+export { NotificationIcon } from './NotificationIcon';
+
+// Export des composants d'onboarding
+export * from './onboarding';
+
+// Export des utilitaires
+export * from '../utils';

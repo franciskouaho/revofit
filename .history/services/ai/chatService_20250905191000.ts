@@ -5,14 +5,9 @@
 
 import { ChatMessage } from '../firebase/notifications';
 
-// Configuration OpenAI - SÉCURISÉE
+// Configuration OpenAI
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY || '';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-
-// Vérification de sécurité
-if (!OPENAI_API_KEY && __DEV__) {
-  console.warn('⚠️ Clé API OpenAI non configurée. Ajoutez EXPO_PUBLIC_OPENAI_API_KEY dans votre fichier .env');
-}
 
 // Types pour l'IA
 export interface AIChatMessage {
@@ -145,10 +140,10 @@ Format de réponse:
   private static parseAIResponse(message: string): AIChatResponse {
     // Extraire les suggestions (mots-clés simples)
     const suggestions = this.extractSuggestions(message);
-
+    
     // Extraire les recommandations d'exercices
     const workoutRecommendations = this.extractWorkoutRecommendations(message);
-
+    
     // Extraire les conseils nutritionnels
     const nutritionAdvice = this.extractNutritionAdvice(message);
 
@@ -165,20 +160,20 @@ Format de réponse:
    */
   private static extractSuggestions(message: string): string[] {
     const suggestions: string[] = [];
-
+    
     // Suggestions communes basées sur le contenu
     if (message.toLowerCase().includes('exercice') || message.toLowerCase().includes('entraînement')) {
       suggestions.push('Voir les exercices', 'Programmer un entraînement');
     }
-
+    
     if (message.toLowerCase().includes('nutrition') || message.toLowerCase().includes('alimentation')) {
       suggestions.push('Voir la nutrition', 'Planifier les repas');
     }
-
+    
     if (message.toLowerCase().includes('objectif') || message.toLowerCase().includes('progression')) {
       suggestions.push('Voir les statistiques', 'Définir un objectif');
     }
-
+    
     if (message.toLowerCase().includes('motivation') || message.toLowerCase().includes('conseil')) {
       suggestions.push('Voir les conseils', 'Parler à un coach');
     }
@@ -191,7 +186,7 @@ Format de réponse:
    */
   private static extractWorkoutRecommendations(message: string): any[] {
     const recommendations: any[] = [];
-
+    
     // Recherche de patterns d'exercices dans le message
     const exercisePatterns = [
       { pattern: /(\d+)\s*(?:séries?|sets?)\s*de\s*(\d+)\s*(?:reps?|répétitions?)/gi, sets: 1, reps: 2 },
@@ -218,7 +213,7 @@ Format de réponse:
    */
   private static extractNutritionAdvice(message: string): any[] {
     const advice: any[] = [];
-
+    
     // Recherche de patterns nutritionnels
     const nutritionPatterns = [
       { pattern: /(\d+)\s*(?:g|grammes?)\s*de\s*(\w+)/gi, quantity: 1, food: 2 },
@@ -318,10 +313,10 @@ export class CoachService {
     try {
       // Simulation d'envoi - à remplacer par une vraie API
       console.log(`Message envoyé au coach ${coachId}: ${message}`);
-
+      
       // Ici, vous pourriez sauvegarder le message dans Firebase
       // et envoyer une notification push au coach
-
+      
       return true;
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message au coach:', error);
