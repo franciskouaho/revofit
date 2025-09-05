@@ -62,4 +62,4 @@ dist/
 *.tgz
 *.tar.gz
 
-app-example
+.history
