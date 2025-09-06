@@ -236,6 +236,18 @@ export default function GenerateWorkoutPage() {
   ]);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Effet pour masquer automatiquement le toast
+  useEffect(() => {
+    if (showSuccessToast) {
+      const timer = setTimeout(() => {
+        setShowSuccessToast(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessToast]);
 
   const handleGenerate = async () => {
     if (!user) {
@@ -270,15 +282,14 @@ export default function GenerateWorkoutPage() {
       const template = AIWorkoutGenerator.convertToExerciseTemplate(workout, user.uid);
       await WorkoutTemplateService.createTemplate(template);
       
-      Alert.alert(
-        "Succès !",
-        `Votre plan d'entraînement a été généré et ajouté à vos templates.\n\n${savedExercises.length} exercices ont été ajoutés à la page explore.`,
-        [
-          { text: "Voir mes workouts", onPress: () => router.push("/(tabs)/workouts") },
-          { text: "Voir les exercices", onPress: () => router.push("/(tabs)/explore") },
-          { text: "OK" }
-        ]
-      );
+      // Afficher le toast de succès
+      setSuccessMessage(`Workout généré ! ${savedExercises.length} exercices ajoutés.`);
+      setShowSuccessToast(true);
+      
+      // Fermer automatiquement le drawer et rediriger après un délai
+      setTimeout(() => {
+        router.replace("/(tabs)/workouts");
+      }, 2000); // 2 secondes pour voir le toast
     } catch (error) {
       console.error('Erreur génération workout:', error);
       Alert.alert(
@@ -461,6 +472,18 @@ export default function GenerateWorkoutPage() {
         </ScrollView>
       </SafeAreaView>
 
+      {/* Toast de succès */}
+      {showSuccessToast && (
+        <View style={styles.toastContainer}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={[StyleSheet.absoluteFill, styles.toastBorder]} />
+          <View style={styles.toastContent}>
+            <Ionicons name="checkmark-circle" size={24} color={LIME} />
+            <Text style={styles.toastText}>{successMessage}</Text>
+          </View>
+        </View>
+      )}
+
     </View>
   );
 }
@@ -634,6 +657,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+
+  /* Toast de succès */
+  toastContainer: {
+    position: "absolute",
+    top: 100,
+    left: 20,
+    right: 20,
+    borderRadius: 16,
+    overflow: "hidden",
+    zIndex: 1000,
+  },
+  toastBorder: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: LIME,
+  },
+  toastContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+  },
+  toastText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1,
   },
 
 });

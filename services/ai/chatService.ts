@@ -64,14 +64,21 @@ export class AIChatService {
   ): Promise<AIChatResponse> {
     try {
       if (!OPENAI_API_KEY) {
+        console.error('❌ Clé API OpenAI non configurée');
         throw new Error('Clé API OpenAI non configurée');
       }
+
+      console.log('🔑 Clé API OpenAI trouvée, envoi de la requête...');
 
       const systemPrompt = this.buildSystemPrompt(context);
       const messages: AIChatMessage[] = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
       ];
+
+      // Créer un AbortController pour gérer le timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 secondes
 
       const response = await fetch(OPENAI_API_URL, {
         method: 'POST',
@@ -82,10 +89,14 @@ export class AIChatService {
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
           messages,
-          max_tokens: 500,
+          max_tokens: 2000, // Augmenté pour les workouts
           temperature: 0.7,
         }),
+        signal: controller.signal
       });
+
+      // Nettoyer le timeout
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`Erreur API OpenAI: ${response.status}`);
@@ -97,6 +108,24 @@ export class AIChatService {
       return this.parseAIResponse(aiMessage);
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message à l\'IA:', error);
+      
+      // Gestion spécifique des erreurs
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            message: 'La requête a pris trop de temps. Veuillez réessayer.',
+            suggestions: ['Réessayer', 'Vérifier votre connexion']
+          };
+        }
+        
+        if (error.message.includes('API OpenAI')) {
+          return {
+            message: 'Erreur de connexion avec l\'IA. Vérifiez votre connexion internet.',
+            suggestions: ['Réessayer', 'Vérifier la connexion']
+          };
+        }
+      }
+      
       return {
         message: 'Désolé, je rencontre un problème technique. Veuillez réessayer plus tard.',
         suggestions: ['Réessayer', 'Contacter le support']

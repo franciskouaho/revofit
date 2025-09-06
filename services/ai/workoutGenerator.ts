@@ -85,6 +85,8 @@ PARAMÈTRES:
 - Groupes musculaires ciblés: ${params.muscleGroups.join(', ')}
 - Informations supplémentaires: ${params.additionalInfo || 'Aucune'}
 
+IMPORTANT: Réponds UNIQUEMENT avec un JSON valide, sans texte avant ou après.
+
 FORMAT DE RÉPONSE OBLIGATOIRE (JSON valide):
 {
   "title": "Titre du workout",
@@ -128,6 +130,7 @@ RÈGLES IMPORTANTES:
 Génère un workout motivant et efficace !`;
   }
 
+
   /**
    * Parse la durée en minutes
    */
@@ -146,13 +149,81 @@ Génère un workout motivant et efficace !`;
    */
   private static parseWorkoutResponse(response: string, params: WorkoutGenerationParams): GeneratedWorkout {
     try {
-      // Essayer d'extraire le JSON de la réponse
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Format de réponse invalide');
+      console.log('🔍 Réponse IA brute:', response);
+      
+      // Vérifier si c'est un message d'erreur
+      if (response.includes('Désolé, je rencontre un problème technique') || 
+          response.includes('problème technique') ||
+          response.includes('Erreur')) {
+        console.log('⚠️ Message d\'erreur détecté, utilisation du fallback');
+        return this.generateFallbackWorkout(params);
       }
-
-      const workoutData = JSON.parse(jsonMatch[0]);
+      
+      // Nettoyer la réponse et essayer plusieurs méthodes d'extraction JSON
+      let workoutData;
+      
+      // Méthode 1: Chercher un JSON complet entre accolades
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          workoutData = JSON.parse(jsonMatch[0]);
+          console.log('✅ JSON extrait avec regex:', workoutData);
+        } catch {
+          console.log('❌ Échec parsing regex, essai méthode 2');
+        }
+      }
+      
+      // Méthode 2: Chercher un JSON entre ```json et ```
+      if (!workoutData) {
+        const codeBlockMatch = response.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+        if (codeBlockMatch) {
+          try {
+            workoutData = JSON.parse(codeBlockMatch[1]);
+            console.log('✅ JSON extrait du code block:', workoutData);
+          } catch {
+            console.log('❌ Échec parsing code block, essai méthode 3');
+          }
+        }
+      }
+      
+      // Méthode 3: Essayer de parser directement la réponse
+      if (!workoutData) {
+        try {
+          workoutData = JSON.parse(response);
+          console.log('✅ JSON parsé directement:', workoutData);
+        } catch {
+          console.log('❌ Échec parsing direct, essai méthode 4');
+        }
+      }
+      
+      // Méthode 4: Chercher un JSON valide en testant différentes parties
+      if (!workoutData) {
+        const lines = response.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          for (let j = i + 1; j < lines.length; j++) {
+            const testJson = lines.slice(i, j).join('\n');
+            try {
+              const parsed = JSON.parse(testJson);
+              if (parsed && typeof parsed === 'object' && parsed.exercises) {
+                workoutData = parsed;
+                console.log('✅ JSON trouvé dans les lignes:', workoutData);
+                break;
+              }
+            } catch {
+              // Continuer à chercher
+            }
+          }
+          if (workoutData) break;
+        }
+      }
+      
+      if (!workoutData) {
+        console.error('❌ Impossible d\'extraire un JSON valide de la réponse:', response);
+        console.log('🔄 Génération d\'un workout de fallback...');
+        
+        // Générer un workout de fallback avec des exercices de base
+        workoutData = this.generateFallbackWorkout(params);
+      }
       
       // Validation des données requises
       if (!workoutData.title || !workoutData.exercises || !Array.isArray(workoutData.exercises)) {

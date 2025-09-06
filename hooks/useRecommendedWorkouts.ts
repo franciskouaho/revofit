@@ -44,7 +44,7 @@ export function useRecommendedWorkouts(): UseRecommendedWorkoutsReturn {
       setError(null);
       
       // Récupérer tous les templates disponibles
-      const templates = await WorkoutTemplateService.getAllTemplates();
+      const templates = await WorkoutTemplateService.getAllTemplates(user.uid);
       
       if (templates.length === 0) {
         setWorkouts([]);

@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
     ExerciseProgressService,
     WorkoutSessionService,
@@ -46,6 +47,7 @@ interface UseExerciseProgressReturn {
 }
 
 export const useWorkouts = (): UseWorkoutsReturn => {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<ExerciseTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export const useWorkouts = (): UseWorkoutsReturn => {
       setLoading(true);
       setError(null);
       
-      const data = await WorkoutTemplateService.getAllTemplates();
+      const data = await WorkoutTemplateService.getAllTemplates(user?.uid);
       setTemplates(data);
     } catch (err) {
       console.error("💥 Erreur lors de la récupération des templates:", err);
@@ -65,7 +67,7 @@ export const useWorkouts = (): UseWorkoutsReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.uid]);
 
   // Fonction pour refetch les données
   const refetch = useCallback(async () => {

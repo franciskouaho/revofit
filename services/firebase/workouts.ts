@@ -42,22 +42,61 @@ export class WorkoutTemplateService {
   /**
    * Récupère tous les templates d'exercices
    */
-  static async getAllTemplates(): Promise<ExerciseTemplate[]> {
+  static async getAllTemplates(userId?: string): Promise<ExerciseTemplate[]> {
     try {
-      // Requête simplifiée sans orderBy pour éviter l'index
-      const q = query(
-        collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
-        where('isPublic', '==', true)
-      );
+      let q;
       
-      const snapshot = await getDocs(q);
-      const templates = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as ExerciseTemplate));
-      
-      // Tri côté client pour éviter l'index
-      return templates.sort((a, b) => a.name.localeCompare(b.name));
+      if (userId) {
+        // Récupérer les templates publics ET les templates de l'utilisateur
+        const publicQuery = query(
+          collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+          where('isPublic', '==', true)
+        );
+        
+        const userQuery = query(
+          collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+          where('createdBy', '==', userId)
+        );
+        
+        // Exécuter les deux requêtes en parallèle
+        const [publicSnapshot, userSnapshot] = await Promise.all([
+          getDocs(publicQuery),
+          getDocs(userQuery)
+        ]);
+        
+        // Combiner les résultats
+        const publicTemplates = publicSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        
+        const userTemplates = userSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        
+        // Fusionner et dédupliquer (au cas où un template public serait aussi créé par l'utilisateur)
+        const allTemplates = [...publicTemplates, ...userTemplates];
+        const uniqueTemplates = allTemplates.filter((template, index, self) => 
+          index === self.findIndex(t => t.id === template.id)
+        );
+        
+        return uniqueTemplates.sort((a, b) => a.name.localeCompare(b.name));
+      } else {
+        // Fallback: seulement les templates publics
+        q = query(
+          collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+          where('isPublic', '==', true)
+        );
+        
+        const snapshot = await getDocs(q);
+        const templates = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        
+        return templates.sort((a, b) => a.name.localeCompare(b.name));
+      }
     } catch (error) {
       console.error('Erreur lors de la récupération des templates:', error);
       return [];
@@ -184,22 +223,69 @@ export class WorkoutTemplateService {
   /**
    * Écoute les changements des templates en temps réel
    */
-  static watchTemplates(callback: (templates: ExerciseTemplate[]) => void) {
-    const q = query(
-      collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
-      where('isPublic', '==', true)
-    );
-    
-    return onSnapshot(q, (snapshot) => {
-      const templates = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as ExerciseTemplate));
+  static watchTemplates(callback: (templates: ExerciseTemplate[]) => void, userId?: string) {
+    if (userId) {
+      // Écouter les templates publics ET les templates de l'utilisateur
+      const publicQuery = query(
+        collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+        where('isPublic', '==', true)
+      );
       
-      // Tri côté client pour éviter l'index
-      const sortedTemplates = templates.sort((a, b) => a.name.localeCompare(b.name));
-      callback(sortedTemplates);
-    });
+      const userQuery = query(
+        collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+        where('createdBy', '==', userId)
+      );
+      
+      let publicTemplates: ExerciseTemplate[] = [];
+      let userTemplates: ExerciseTemplate[] = [];
+      
+      const updateCallback = () => {
+        const allTemplates = [...publicTemplates, ...userTemplates];
+        const uniqueTemplates = allTemplates.filter((template, index, self) => 
+          index === self.findIndex(t => t.id === template.id)
+        );
+        const sortedTemplates = uniqueTemplates.sort((a, b) => a.name.localeCompare(b.name));
+        callback(sortedTemplates);
+      };
+      
+      const unsubscribePublic = onSnapshot(publicQuery, (snapshot) => {
+        publicTemplates = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        updateCallback();
+      });
+      
+      const unsubscribeUser = onSnapshot(userQuery, (snapshot) => {
+        userTemplates = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        updateCallback();
+      });
+      
+      // Retourner une fonction pour se désabonner des deux listeners
+      return () => {
+        unsubscribePublic();
+        unsubscribeUser();
+      };
+    } else {
+      // Fallback: seulement les templates publics
+      const q = query(
+        collection(firestore, COLLECTIONS.EXERCISE_TEMPLATES),
+        where('isPublic', '==', true)
+      );
+      
+      return onSnapshot(q, (snapshot) => {
+        const templates = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as ExerciseTemplate));
+        
+        const sortedTemplates = templates.sort((a, b) => a.name.localeCompare(b.name));
+        callback(sortedTemplates);
+      });
+    }
   }
 }
 
