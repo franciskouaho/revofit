@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Animated,
     Easing,
@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+import { useExerciseSets } from "../../hooks/useExerciseSets";
 
 const BORDER = "rgba(255,255,255,0.12)";
 const SURFACE = "rgba(255,255,255,0.07)";
@@ -27,6 +28,13 @@ export default function WorkoutActiveScreen() {
 
   // Récupérer les données de l'exercice depuis les paramètres
   const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
+  
+  // Hook pour gérer les séries
+  const { completeSet } = useExerciseSets({
+    exerciseId: exercise?.id || 'default-exercise',
+    exerciseName: exercise?.name || (params.exerciseName as string) || 'Exercice',
+    templateId: params.templateId as string
+  });
 
   const [exerciseConfig, setExerciseConfig] = useState({
     name: exercise?.name || (params.exerciseName as string) || "Gainage coude",
@@ -112,7 +120,19 @@ export default function WorkoutActiveScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.roundIcon}>
+          <TouchableOpacity 
+            onPress={() => {
+              router.push({
+                pathname: "/workout/details",
+                params: {
+                  exercise: params.exercise,
+                  exerciseName: exerciseConfig.name,
+                  templateId: params.templateId
+                }
+              });
+            }} 
+            style={styles.roundIcon}
+          >
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
@@ -233,12 +253,26 @@ export default function WorkoutActiveScreen() {
             <TouchableOpacity 
               style={[styles.pillBtn, styles.pillPrimary]} 
               activeOpacity={0.9}
-              onPress={() => {
-                // Ajouter une série complétée et revenir à details
-                router.push({
+              onPress={async () => {
+                // Marquer la série comme complétée dans Firebase
+                const setNumber = parseInt(params.currentSetNumber as string) || 1;
+                const success = await completeSet(
+                  setNumber,
+                  exerciseConfig.sets,
+                  exerciseConfig.reps,
+                  weight, // Utiliser le poids saisi
+                  undefined, // duration
+                  exerciseConfig.restTime
+                );
+
+                if (success) {
+                  console.log(`✅ Série ${setNumber} marquée comme complétée dans Firebase`);
+                }
+
+                // Revenir à details
+                router.replace({
                   pathname: "/workout/details",
                   params: { 
-                    completedSet: "true",
                     exercise: params.exercise, // Passer les données de l'exercice
                     exerciseName: exerciseConfig.name,
                     templateId: params.templateId

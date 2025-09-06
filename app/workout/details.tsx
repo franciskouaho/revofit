@@ -4,14 +4,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useExerciseSets } from "../../hooks/useExerciseSets";
 
 const BORDER = "rgba(255,255,255,0.12)";
 const SURFACE = "rgba(255,255,255,0.06)";
@@ -48,10 +49,16 @@ function Glass({
 
 export default function WorkoutDetailsScreen() {
   const params = useLocalSearchParams();
-  const [completedSets, setCompletedSets] = useState<number[]>([]);
   
   // Récupérer les données de l'exercice depuis les paramètres
   const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
+  
+  // Utiliser le hook Firebase pour les séries
+  const { completedSets, loading: setsLoading } = useExerciseSets({
+    exerciseId: exercise?.id || 'default-exercise',
+    exerciseName: exercise?.name || (params.exerciseName as string) || 'Exercice',
+    templateId: params.templateId as string
+  });
   
   const [exerciseConfig, setExerciseConfig] = useState({
     name: exercise?.name || (params.exerciseName as string) || "Gainage coude",
@@ -60,18 +67,7 @@ export default function WorkoutDetailsScreen() {
     restTime: "2 min"
   });
   
-  // Vérifier si une série a été complétée
-  React.useEffect(() => {
-    if (params.completedSet === "true") {
-      setCompletedSets(prev => {
-        const newSetId = prev.length + 1;
-        if (newSetId <= exerciseConfig.sets) {
-          return [...prev, newSetId];
-        }
-        return prev;
-      });
-    }
-  }, [params.completedSet, exerciseConfig.sets]);
+  // Note: Les séries sont maintenant gérées directement par Firebase depuis l'écran actif
 
   // Mettre à jour la configuration depuis les métriques
   React.useEffect(() => {
@@ -83,14 +79,13 @@ export default function WorkoutDetailsScreen() {
         restTime: (params.restTime as string) || "2 min"
       };
       setExerciseConfig(newConfig);
-      // Réinitialiser les séries complétées quand on change la configuration
-      setCompletedSets([]);
+      // Note: Les séries complétées sont maintenant gérées par Firebase
     }
   }, [params.fromMetrics, params.sets, params.reps, params.restTime, params.exerciseName, exerciseConfig.name]);
   
   const handleSetMetrics = () => router.push("/workout/metrics");
   
-  const handleExercisePress = () => {
+  const handleExercisePress = (setNumber: number) => {
     router.push({
       pathname: "/workout/active",
       params: {
@@ -98,7 +93,8 @@ export default function WorkoutDetailsScreen() {
         exerciseName: exerciseConfig.name,
         sets: exerciseConfig.sets.toString(),
         reps: exerciseConfig.reps.toString(),
-        restTime: exerciseConfig.restTime
+        restTime: exerciseConfig.restTime,
+        currentSetNumber: setNumber.toString()
       }
     });
   };
@@ -250,6 +246,11 @@ export default function WorkoutDetailsScreen() {
                           <Glass>
                 <View style={styles.blockHeader}>
                   <Text style={styles.blockTitle}>{totalSets} séries dexercice</Text>
+                  {setsLoading && (
+                    <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 12 }}>
+                      Chargement...
+                    </Text>
+                  )}
                 </View>
 
                                             {/* Cartes des séries */}
@@ -293,7 +294,7 @@ export default function WorkoutDetailsScreen() {
                      ) : (
                        <TouchableOpacity 
                          style={styles.playButton}
-                         onPress={handleExercisePress}
+                         onPress={() => handleExercisePress(setNumber)}
                          activeOpacity={0.9}
                        >
                          <LinearGradient
