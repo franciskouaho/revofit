@@ -1,6 +1,7 @@
 // app/(tabs)/stats.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
+import { useHealthData } from '@/hooks/useHealthData';
 import { useStatsData } from '@/hooks/useStatsData';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -105,48 +106,81 @@ export default function StatsScreen() {
     error,
   } = useStatsData();
 
-  // Données calculées pour les KPIs
+  // Données de santé réelles
+  const {
+    healthData,
+    historicalData,
+    monthlyData: healthMonthlyData,
+    loading: healthLoading,
+    error: healthError,
+  } = useHealthData();
+
+  // Données calculées pour les KPIs avec les vraies données de santé
   const kpis = [
     { 
-      label: 'Total calories', 
-      value: `${(totalCalories / 1000).toFixed(1)}k`, 
+      label: 'Calories brûlées', 
+      value: healthData ? `${Math.round(healthData.caloriesBurned)}` : `${(totalCalories / 1000).toFixed(1)}k`, 
       diff: '+6%', 
       icon: 'flame', 
       color: '#FFD700', 
-      series: weeklyData.map(d => Math.round(d.calories / 1000)) 
+      series: historicalData.slice(-7).map(d => Math.round(d.caloriesBurned / 100)) || weeklyData.map(d => Math.round(d.calories / 1000)) 
     },
     { 
-      label: 'Entraînements', 
-      value: totalWorkouts.toString(), 
-      diff: '+2', 
-      icon: 'barbell', 
+      label: 'Pas aujourd\'hui', 
+      value: healthData ? healthData.steps.toLocaleString() : totalSteps.toLocaleString(), 
+      diff: '+2k', 
+      icon: 'walk', 
       color: '#4CAF50', 
-      series: weeklyData.map(d => d.workouts) 
+      series: historicalData.slice(-7).map(d => Math.round(d.steps / 1000)) || weeklyData.map(d => Math.round(d.steps / 1000)) 
     },
     { 
       label: 'Temps actif', 
-      value: `${Math.round(totalWorkouts * 1.5)}h`, 
+      value: healthData ? `${Math.round(healthData.exerciseMinutes / 60)}h` : `${Math.round(totalWorkouts * 1.5)}h`, 
       diff: '+5h', 
       icon: 'time', 
       color: '#4ECDC4', 
-      series: [6, 5, 6, 7, 8, 9, 7, 8] 
+      series: historicalData.slice(-7).map(d => Math.round(d.exerciseMinutes / 60)) || [6, 5, 6, 7, 8, 9, 7, 8] 
     },
     { 
       label: 'Distance', 
-      value: `${Math.round(personalRecords.longestDistance)} km`, 
+      value: healthData ? `${(healthData.distance / 1000).toFixed(1)} km` : `${Math.round(personalRecords.longestDistance)} km`, 
       diff: '+12', 
-      icon: 'walk', 
+      icon: 'trail-sign', 
       color: '#9FA8DA', 
-      series: weeklyData.map(d => Math.round(d.steps / 1000)) 
+      series: historicalData.slice(-7).map(d => Math.round(d.distance / 1000)) || weeklyData.map(d => Math.round(d.steps / 1000)) 
     },
   ];
 
-  // Métriques corporelles (placeholder - à connecter avec des données réelles)
+  // Métriques corporelles avec les vraies données de santé
   const body = [
-    { name: 'Poids', value: '73.0 kg', change: '-0.5 kg', up: false, color: '#4CAF50' },
-    { name: 'Masse musculaire', value: '28.5 kg', change: '+0.3 kg', up: true, color: '#FFD700' },
-    { name: 'Masse grasse', value: '15.2%', change: '-0.8%', up: false, color: '#FF6B6B' },
-    { name: 'IMC', value: '22.1', change: '-0.2', up: false, color: '#4ECDC4' },
+    { 
+      name: 'Poids', 
+      value: healthData ? `${healthData.weight} kg` : '73.0 kg', 
+      change: '-0.5 kg', 
+      up: false, 
+      color: '#4CAF50' 
+    },
+    { 
+      name: 'Masse grasse', 
+      value: healthData ? `${healthData.bodyFat}%` : '15.2%', 
+      change: '-0.8%', 
+      up: false, 
+      color: '#FF6B6B' 
+    },
+    { 
+      name: 'Étages montés', 
+      value: healthData ? `${healthData.floorsClimbed}` : '12', 
+      change: '+3', 
+      up: true, 
+      color: '#FFD700' 
+    },
+    { 
+      name: 'FC moyenne', 
+      value: healthData ? `${healthData.heartRate.average} bpm` : '72 bpm', 
+      change: '-3 bpm', 
+      up: false, 
+      color: '#4ECDC4' 
+    },
   ];
 
   // Répartition d'activité (placeholder)
@@ -176,39 +210,47 @@ export default function StatsScreen() {
     { name: 'Fibres', g: 28, color: '#4ECDC4' },
   ];
 
-  // Données pour les mini-cards de santé
+  // Données pour les mini-cards de santé avec les vraies données
   const healthMetrics = [
     {
       label: 'Pas (7j)',
-      value: totalSteps.toLocaleString(),
+      value: historicalData.length > 0 ? 
+        historicalData.slice(-7).reduce((sum, d) => sum + d.steps, 0).toLocaleString() : 
+        totalSteps.toLocaleString(),
       icon: 'walk',
       color: '#FFD700',
-      series: weeklyData.map(d => Math.round(d.steps / 1000))
+      series: historicalData.slice(-7).map(d => Math.round(d.steps / 1000)) || weeklyData.map(d => Math.round(d.steps / 1000))
     },
     {
-      label: 'Dénivelé',
-      value: '1 120 m',
+      label: 'Distance (7j)',
+      value: historicalData.length > 0 ? 
+        `${(historicalData.slice(-7).reduce((sum, d) => sum + d.distance, 0) / 1000).toFixed(1)} km` : 
+        '12.5 km',
       icon: 'trail-sign',
       color: '#9FA8DA',
-      series: [2, 4, 1, 5, 3, 6, 4]
+      series: historicalData.slice(-7).map(d => Math.round(d.distance / 1000)) || [2, 4, 1, 5, 3, 6, 4]
     },
     {
-      label: 'Hydratation',
-      value: '2.3 L/j',
-      icon: 'water',
+      label: 'Calories (7j)',
+      value: historicalData.length > 0 ? 
+        `${Math.round(historicalData.slice(-7).reduce((sum, d) => sum + d.caloriesBurned, 0) / 1000)}k` : 
+        '15.2k',
+      icon: 'flame',
       color: '#4ECDC4',
-      series: [1.8, 2.0, 2.4, 2.7, 2.3, 2.1, 2.5]
+      series: historicalData.slice(-7).map(d => Math.round(d.caloriesBurned / 100)) || [1.8, 2.0, 2.4, 2.7, 2.3, 2.1, 2.5]
     },
     {
-      label: 'Pace course',
-      value: `${personalRecords.bestPace}'/km`,
-      icon: 'speedometer',
+      label: 'Exercice (7j)',
+      value: historicalData.length > 0 ? 
+        `${Math.round(historicalData.slice(-7).reduce((sum, d) => sum + d.exerciseMinutes, 0) / 60)}h` : 
+        '8.5h',
+      icon: 'fitness',
       color: '#FF6B6B',
-      series: [6, 5.6, 5.2, 5.1, 4.9, 5.1, 5.0]
+      series: historicalData.slice(-7).map(d => Math.round(d.exerciseMinutes / 60)) || [6, 5.6, 5.2, 5.1, 4.9, 5.1, 5.0]
     },
   ];
 
-  if (loading) {
+  if (loading || healthLoading) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -228,7 +270,7 @@ export default function StatsScreen() {
     );
   }
 
-  if (error) {
+  if (error || healthError) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -241,7 +283,7 @@ export default function StatsScreen() {
         <SafeAreaView style={styles.safeArea}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
-            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error}</Text>
+            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error || healthError}</Text>
           </View>
         </SafeAreaView>
       </View>

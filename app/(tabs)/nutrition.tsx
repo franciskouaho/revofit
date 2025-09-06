@@ -1,11 +1,13 @@
 // app/(tabs)/nutrition.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
+import { useNutrition } from '@/hooks/useNutrition';
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     ScrollView,
     StyleSheet,
@@ -19,11 +21,51 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function NutritionScreen() {
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Données nutritionnelles réelles
+  const {
+    dailyNutrition,
+    nutritionGoal,
+    recipes,
+    loading,
+    error,
+    searchRecipes,
+    loadRecipes,
+  } = useNutrition();
+
+  // Objectifs nutritionnels avec les vraies données
   const nutritionGoals = [
-    { name: 'Calories',   current: 1850, target: 2200, unit: 'kcal', color: '#FFD700', icon: 'flame' },
-    { name: 'Protéines',  current: 120,  target: 150,  unit: 'g',    color: '#4CAF50', icon: 'fitness' },
-    { name: 'Glucides',   current: 180,  target: 250,  unit: 'g',    color: '#FF6B6B', icon: 'leaf' },
-    { name: 'Lipides',    current: 65,   target: 80,   unit: 'g',    color: '#9C27B0', icon: 'water' },
+    { 
+      name: 'Calories',   
+      current: dailyNutrition?.totalCalories || 0, 
+      target: nutritionGoal?.calories || 2200, 
+      unit: 'kcal', 
+      color: '#FFD700', 
+      icon: 'flame' 
+    },
+    { 
+      name: 'Protéines',  
+      current: dailyNutrition?.totalProtein || 0, 
+      target: nutritionGoal?.protein || 150, 
+      unit: 'g',    
+      color: '#4CAF50', 
+      icon: 'fitness' 
+    },
+    { 
+      name: 'Glucides',   
+      current: dailyNutrition?.totalCarbs || 0, 
+      target: nutritionGoal?.carbs || 250, 
+      unit: 'g',    
+      color: '#FF6B6B', 
+      icon: 'leaf' 
+    },
+    { 
+      name: 'Lipides',    
+      current: dailyNutrition?.totalFats || 0, 
+      target: nutritionGoal?.fats || 80, 
+      unit: 'g',    
+      color: '#9C27B0', 
+      icon: 'water' 
+    },
   ];
 
   const mealCategories = [
@@ -33,59 +75,94 @@ export default function NutritionScreen() {
     { name: 'Dîner',           icon: 'moon',        color: '#9C27B0' },
   ];
 
-  const featuredRecipes = [
+  // Gérer la recherche de recettes
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchRecipes(query);
+    } else {
+      await loadRecipes();
+    }
+  };
+
+  // Recettes affichées (recherche ou toutes)
+  const displayedRecipes = recipes.length > 0 ? recipes : [
     {
-      id: 1,
+      id: '1',
       name: 'Bowl protéiné quinoa',
-      category: 'Déjeuner',
-      calories: 420, protein: 28, carbs: 45, fats: 12, time: '25 min', difficulty: 'Facile',
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
+      category: 'lunch',
+      calories: 420, protein: 28, carbs: 45, fats: 12, prepTime: 25, difficulty: 'easy',
+      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
       tags: ['Végétarien', 'Riche en protéines', 'Sans gluten']
     },
     {
-      id: 2,
+      id: '2',
       name: 'Smoothie vert énergisant',
-      category: 'Petit-déjeuner',
-      calories: 180, protein: 15, carbs: 22, fats: 4, time: '5 min', difficulty: 'Facile',
-      image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop',
+      category: 'breakfast',
+      calories: 180, protein: 15, carbs: 22, fats: 4, prepTime: 5, difficulty: 'easy',
+      imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop',
       tags: ['Vegan', 'Rapide', 'Énergisant']
     },
     {
-      id: 3,
+      id: '3',
       name: 'Saumon grillé légumes',
-      category: 'Dîner',
-      calories: 380, protein: 35, carbs: 18, fats: 22, time: '35 min', difficulty: 'Moyen',
-      image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop',
+      category: 'dinner',
+      calories: 380, protein: 35, carbs: 18, fats: 22, prepTime: 35, difficulty: 'medium',
+      imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop',
       tags: ['Oméga-3', 'Riche en protéines', 'Anti-inflammatoire']
     },
     {
-      id: 4,
+      id: '4',
       name: 'Salade de pois chiches',
-      category: 'Goûter',
-      calories: 220, protein: 12, carbs: 28, fats: 8, time: '15 min', difficulty: 'Facile',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop',
+      category: 'snack',
+      calories: 220, protein: 12, carbs: 28, fats: 8, prepTime: 15, difficulty: 'easy',
+      imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop',
       tags: ['Végétarien', 'Fibres', 'Rapide']
     }
   ];
 
-  const weeklyMealPlan = [
-    {
-      day: 'Lun',
-      meals: [
-        { name: 'Omelette avocat', calories: 320, completed: true },
-        { name: 'Salade quinoa',   calories: 450, completed: true },
-        { name: 'Saumon légumes',  calories: 380, completed: false }
-      ]
-    },
-    {
-      day: 'Mar',
-      meals: [
-        { name: 'Smoothie banane', calories: 280, completed: true },
-        { name: 'Poulet riz',      calories: 520, completed: true },
-        { name: 'Soupe légumes',   calories: 180, completed: false }
-      ]
-    }
-  ];
+  // Supprimé car non utilisé
+
+  // États de chargement et d'erreur
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
+          locations={[0, 0.15, 0.7, 1]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#FFD700" />
+            <Text style={{ color: '#fff', marginTop: 16 }}>Chargement des données nutritionnelles...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
+          locations={[0, 0.15, 0.7, 1]}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={StyleSheet.absoluteFill}
+        />
+        <SafeAreaView style={styles.safeArea}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
+            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error}</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -102,7 +179,7 @@ export default function NutritionScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Header glass */}
           <View style={styles.header}>
-            <View style={styles.headerGlass}>
+            <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
               <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
               <View style={styles.headerInner}>
                 <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
@@ -124,7 +201,7 @@ export default function NutritionScreen() {
                   placeholder="Rechercher des recettes..."
                   placeholderTextColor="rgba(255,255,255,0.7)"
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={handleSearch}
                 />
                 <Ionicons name="filter" size={18} color="rgba(255,255,255,0.7)" />
               </View>
@@ -187,15 +264,15 @@ export default function NutritionScreen() {
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipesScroll}>
-              {featuredRecipes.map((recipe) => (
+              {displayedRecipes.map((recipe) => (
                 <TouchableOpacity key={recipe.id} style={styles.recipeCard} activeOpacity={0.9}>
-                  <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                  <Image source={{ uri: recipe.imageUrl || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop' }} style={styles.recipeImage} />
                   <View style={styles.recipeContent}>
                     <View style={styles.recipeHeader}>
                       <ThemedText style={styles.recipeName} numberOfLines={2}>{recipe.name}</ThemedText>
                       <View style={styles.recipeStats}>
                         <ThemedText style={styles.recipeCalories}>{recipe.calories} kcal</ThemedText>
-                        <ThemedText style={styles.recipeTime}>{recipe.time}</ThemedText>
+                        <ThemedText style={styles.recipeTime}>{recipe.prepTime} min</ThemedText>
                       </View>
                     </View>
                     <View style={styles.recipeMacros}>
