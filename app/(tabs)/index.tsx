@@ -3,6 +3,7 @@ import WorkoutStatusBar from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHealthDataSimple } from '@/hooks/useHealthData';
 import { useRecommendedWorkouts } from '@/hooks/useRecommendedWorkouts';
 import { useTodayWorkout } from '@/hooks/useTodayWorkout';
 import { useUserStats } from '@/hooks/useUserStats';
@@ -11,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,6 +28,9 @@ export default function HomeScreen() {
   const { workout: todayWorkout, loading: workoutLoading } = useTodayWorkout();
   const { workouts: recommended, loading: recommendedLoading } = useRecommendedWorkouts();
   const { status: workoutStatus, loading: statusLoading } = useWorkoutStatus();
+  
+  // Hook pour les données de santé
+  const { steps: healthSteps, distance: healthDistance, flights: healthFlights } = useHealthDataSimple();
 
   // Données par défaut en cas de chargement
   const defaultStats = {
@@ -68,11 +71,17 @@ export default function HomeScreen() {
   const currentWorkout = todayWorkout || defaultWorkout;
   const currentRecommended = recommended.length > 0 ? recommended : defaultRecommended;
   const currentStatus = workoutStatus || defaultStatus;
+  
+  // Combiner les données de santé avec les stats existantes
+  const combinedStats = {
+    ...currentStats,
+    steps: healthSteps > 0 ? healthSteps : currentStats.steps,
+  };
 
   const handleNotificationPress = () => router.push('/notifications');
   const handleProfilePress = () => router.push('/settings');
 
-  const progress = Math.min(1, currentStats.weeklyGoal.done / Math.max(1, currentStats.weeklyGoal.target));
+  const progress = Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target));
 
   // Indicateur de chargement global
   const isLoading = statsLoading || workoutLoading || recommendedLoading || statusLoading;
@@ -118,13 +127,13 @@ export default function HomeScreen() {
                   <Ionicons name="flame" size={18} color="#FFD700" />
                   <ThemedText style={styles.streakTitle}>Série actuelle</ThemedText>
                 </View>
-                <ThemedText style={styles.streakValue}>{currentStats.streak} jours</ThemedText>
+                <ThemedText style={styles.streakValue}>{combinedStats.streak} jours</ThemedText>
 
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressBar, { width: `${progress * 100}%` }]} />
                 </View>
                 <ThemedText style={styles.progressText}>
-                  Semaine : {currentStats.weeklyGoal.done}/{currentStats.weeklyGoal.target}
+                  Semaine : {combinedStats.weeklyGoal.done}/{combinedStats.weeklyGoal.target}
                 </ThemedText>
               </View>
 
@@ -132,7 +141,7 @@ export default function HomeScreen() {
                 <View style={styles.pointsBadge}>
                   <Ionicons name="trophy" size={16} color="#000" />
                 </View>
-                <ThemedText style={styles.pointsValue}>{currentStats.points}</ThemedText>
+                <ThemedText style={styles.pointsValue}>{combinedStats.points}</ThemedText>
                 <ThemedText style={styles.pointsLabel}>points</ThemedText>
 
                 <TouchableOpacity style={styles.streakCTA} onPress={() => router.push('/workouts')}>
@@ -145,11 +154,31 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.statsGrid}>
-              <GlassStat icon="flame" label="Calories" value={`${currentStats.calories} Kcal`} />
-              <GlassStat icon="footsteps" label="Pas" value={`${currentStats.steps}`} />
-              <GlassStat icon="heart" label="Battements" value={`${currentStats.heartRate} bpm`} />
-              <GlassStat icon="barbell" label="Entraînements" value={`${currentStats.workouts.completed}/${currentStats.workouts.total}`} />
+              <GlassStat icon="flame" label="Calories" value={`${combinedStats.calories} Kcal`} />
+              <GlassStat icon="footsteps" label="Pas" value={`${combinedStats.steps.toLocaleString()}`} />
+              <GlassStat icon="heart" label="Battements" value={`${combinedStats.heartRate} bpm`} />
+              <GlassStat icon="barbell" label="Entraînements" value={`${combinedStats.workouts.completed}/${combinedStats.workouts.total}`} />
             </View>
+
+            {/* Données de santé supplémentaires */}
+            {(healthDistance > 0 || healthFlights > 0) && (
+              <View style={styles.healthDataGrid}>
+                {healthDistance > 0 && (
+                  <GlassStat 
+                    icon="location" 
+                    label="Distance" 
+                    value={`${(healthDistance / 1000).toFixed(1)} km`} 
+                  />
+                )}
+                {healthFlights > 0 && (
+                  <GlassStat 
+                    icon="trending-up" 
+                    label="Étages" 
+                    value={`${healthFlights}`} 
+                  />
+                )}
+              </View>
+            )}
           </View>
 
           {/* Défi de la semaine */}
@@ -343,6 +372,7 @@ const styles = StyleSheet.create({
 
   /* Stats grid */
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  healthDataGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   statCardGlass: {
     width: '47%', minHeight: 100, padding: 16, borderRadius: 16,
     borderWidth: 1, borderColor: GLASS_BORDER, backgroundColor: GLASS_BG, overflow: 'hidden',

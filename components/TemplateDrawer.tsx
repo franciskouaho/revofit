@@ -11,12 +11,14 @@ import {
   Modal,
   PanResponder,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { GeneratedExercise, GeneratedWorkout } from "../services/ai/workoutGenerator";
 import { WorkoutTemplateService } from "../services/firebase/workouts";
 import { ExerciseTemplate } from "../types/exercise";
 import FirebaseExerciseSelector from "./FirebaseExerciseSelector";
@@ -31,6 +33,8 @@ interface TemplateDrawerProps {
   onClose: () => void;
   onGenerate: (type: string) => void;
   onTemplateCreated?: (template: ExerciseTemplate) => void;
+  aiGeneratedExercises?: GeneratedExercise[];
+  generatedWorkout?: GeneratedWorkout | null;
 }
 
 export default function TemplateDrawer({
@@ -38,11 +42,23 @@ export default function TemplateDrawer({
   onClose,
   onGenerate,
   onTemplateCreated,
+  aiGeneratedExercises,
+  generatedWorkout,
 }: TemplateDrawerProps) {
   const [templateTitle, setTemplateTitle] = useState("Template d'entraînement");
   const [description, setDescription] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [showExerciseSelector, setShowExerciseSelector] = useState(false);
+
+  // Initialiser avec les exercices IA si disponibles
+  React.useEffect(() => {
+    if (aiGeneratedExercises && aiGeneratedExercises.length > 0) {
+      setTemplateTitle(generatedWorkout?.title || "Workout IA");
+      setDescription(generatedWorkout?.description || "");
+      // Pré-sélectionner tous les exercices générés par l'IA
+      setSelectedExercises(aiGeneratedExercises.map((_, index) => index.toString()));
+    }
+  }, [aiGeneratedExercises, generatedWorkout]);
 
   const titleLimit = 60;
   const descLimit = 240;
@@ -89,16 +105,58 @@ export default function TemplateDrawer({
 
   const canCreate = useMemo(() => titleLen > 0 && selectedExercises.length > 0, [titleLen, selectedExercises.length]);
 
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner': return '#4CAF50';
+      case 'intermediate': return '#FF9800';
+      case 'advanced': return '#F44336';
+      default: return '#9E9E9E';
+    }
+  };
+
+  const getDifficultyText = (difficulty: string) => {
+    switch (difficulty) {
+      case 'beginner': return 'Débutant';
+      case 'intermediate': return 'Intermédiaire';
+      case 'advanced': return 'Avancé';
+      default: return 'Inconnu';
+    }
+  };
+
   const handleCreateTemplate = async () => {
     try {
-      // Récupérer les exercices Firebase correspondants aux IDs sélectionnés
-      const { ExerciseService } = await import("../services/firebase/exercises");
-      const exercises = [];
+      let exercises = [];
       
-      for (const exerciseId of selectedExercises) {
-        const response = await ExerciseService.getExerciseById(exerciseId);
-        if (response.success && response.data && !Array.isArray(response.data)) {
-          exercises.push(response.data);
+      // Si on a des exercices générés par l'IA, les utiliser
+      if (aiGeneratedExercises && aiGeneratedExercises.length > 0) {
+        // Filtrer les exercices sélectionnés parmi ceux générés par l'IA
+        const selectedAiExercises = selectedExercises.map(index => 
+          aiGeneratedExercises[parseInt(index)]
+        ).filter(Boolean);
+
+        // Convertir les exercices IA en format Firebase
+        exercises = selectedAiExercises.map(ex => ({
+          id: ex.nameEn.toLowerCase().replace(/\s+/g, '-'),
+          name: ex.name,
+          nameEn: ex.nameEn,
+          muscleGroups: ex.muscleGroups,
+          equipment: ex.equipment,
+          difficulty: ex.difficulty,
+          instructions: ex.instructions,
+          tips: ex.tips,
+          imageUrl: `https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D`,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }));
+      } else {
+        // Logique normale pour les exercices Firebase
+        const { ExerciseService } = await import("../services/firebase/exercises");
+        
+        for (const exerciseId of selectedExercises) {
+          const response = await ExerciseService.getExerciseById(exerciseId);
+          if (response.success && response.data && !Array.isArray(response.data)) {
+            exercises.push(response.data);
+          }
         }
       }
 
@@ -295,6 +353,62 @@ export default function TemplateDrawer({
               <Text style={styles.helper}>Optionnel mais recommandé pour repérer plus vite tes templates.</Text>
             </View>
 
+            {/* Affichage des exercices IA si disponibles */}
+            {aiGeneratedExercises && aiGeneratedExercises.length > 0 && (
+              <View style={styles.aiExercisesSection}>
+                <Text style={styles.aiExercisesTitle}>Exercices générés par l&apos;IA</Text>
+                <ScrollView style={styles.aiExercisesList} showsVerticalScrollIndicator={false}>
+                  {aiGeneratedExercises.map((exercise, index) => {
+                    const isSelected = selectedExercises.includes(index.toString());
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.aiExerciseItem, isSelected && styles.aiExerciseItemSelected]}
+                        onPress={() => {
+                          const currentSelection = selectedExercises || [];
+                          const next = currentSelection.includes(index.toString())
+                            ? currentSelection.filter((id) => id !== index.toString())
+                            : [...currentSelection, index.toString()];
+                          setSelectedExercises(next);
+                        }}
+                        activeOpacity={0.9}
+                      >
+                        <View style={styles.aiExerciseContent}>
+                          <View style={[styles.aiExerciseDot, isSelected ? { backgroundColor: LIME } : null]} />
+                          <View style={styles.aiExerciseInfo}>
+                            <Text style={[styles.aiExerciseName, isSelected && styles.aiExerciseNameSelected]}>
+                              {exercise.name}
+                            </Text>
+                            <Text style={styles.aiExerciseDetails}>
+                              {exercise.sets} séries × {exercise.reps} reps • {exercise.rest}s repos
+                            </Text>
+                            <View style={styles.aiExerciseMeta}>
+                              <View style={[styles.aiDifficultyBadge, { backgroundColor: getDifficultyColor(exercise.difficulty) }]}>
+                                <Text style={styles.aiDifficultyText}>{getDifficultyText(exercise.difficulty)}</Text>
+                              </View>
+                              <Text style={styles.aiEquipmentText}>{exercise.equipment.join(', ')}</Text>
+                            </View>
+                            <View style={styles.aiExerciseMuscles}>
+                              {exercise.muscleGroups.map((muscle, i) => (
+                                <View key={i} style={styles.aiMuscleTag}>
+                                  <Text style={styles.aiMuscleText}>{muscle}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          </View>
+                        </View>
+                        {isSelected ? (
+                          <Ionicons name="checkmark-circle" size={18} color={LIME} />
+                        ) : (
+                          <Ionicons name="add-circle-outline" size={18} color="rgba(255,255,255,0.55)" />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
+
             {/* CTA */}
             <TouchableOpacity
               activeOpacity={0.9}
@@ -452,5 +566,103 @@ const styles = StyleSheet.create({
     alignItems: "center", justifyContent: "center",
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1, borderColor: BORDER,
+  },
+
+  /* AI Exercises Styles */
+  aiExercisesSection: {
+    marginBottom: 20,
+  },
+  aiExercisesTitle: {
+    color: LIME,
+    fontSize: 16,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  aiExercisesList: {
+    maxHeight: 300,
+  },
+  aiExerciseItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  aiExerciseItemSelected: {
+    backgroundColor: "rgba(216,255,73,0.10)",
+    borderColor: LIME,
+  },
+  aiExerciseContent: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  aiExerciseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.35)",
+    marginRight: 12,
+    marginTop: 6,
+  },
+  aiExerciseInfo: {
+    flex: 1,
+  },
+  aiExerciseName: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  aiExerciseNameSelected: {
+    color: LIME,
+  },
+  aiExerciseDetails: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  aiExerciseMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    gap: 8,
+  },
+  aiDifficultyBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  aiDifficultyText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  aiEquipmentText: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 11,
+  },
+  aiExerciseMuscles: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+  },
+  aiMuscleTag: {
+    backgroundColor: "rgba(216,255,73,0.15)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(216,255,73,0.3)",
+  },
+  aiMuscleText: {
+    color: LIME,
+    fontSize: 10,
+    fontWeight: "600",
   },
 });

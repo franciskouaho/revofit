@@ -49,7 +49,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     'HKQuantityTypeIdentifierHeartRate',
     'HKQuantityTypeIdentifierActiveEnergyBurned',
     'HKQuantityTypeIdentifierDistanceWalkingRunning',
-  ];
+  ] as const;
 
   // Hook pour l'autorisation
   const [authorizationStatus, requestAuth] = useHealthkitAuthorization(permissions);
@@ -90,7 +90,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       }
 
       // Vérifier le statut d'autorisation
-      const hasPermissions = authorizationStatus === 'authorized';
+      const hasPermissions = authorizationStatus !== null;
       setIsConnected(hasPermissions);
       
       if (hasPermissions) {

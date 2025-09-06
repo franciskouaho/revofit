@@ -8,16 +8,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    FlatList,
-    ImageBackground,
-    Modal,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  ImageBackground,
+  Modal,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -247,9 +247,22 @@ export default function WorkoutScreen() {
   };
 
   const handleExercisePress = (exercise: string, template: ExerciseTemplate) => {
-    console.log("Exercise pressed:", exercise, "from template:", template.name);
-    // Ici vous pouvez ajouter la logique pour naviguer vers les détails de l'exercice
-    // Par exemple : router.push(`/exercise/${exercise.id}`)
+    // Trouver l'exercice dans le template par son nom
+    const exerciseData = template.exercises.find(ex => ex.name === exercise);
+    
+    if (exerciseData) {
+      router.push({
+        pathname: "/workout/details",
+        params: {
+          exercise: JSON.stringify(exerciseData),
+          exerciseName: exerciseData.name,
+          templateId: template.id,
+          templateName: template.name
+        }
+      });
+    } else {
+      console.log("Exercise not found:", exercise);
+    }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
@@ -494,10 +507,10 @@ export default function WorkoutScreen() {
                 />
                 <View style={{ padding: 16 }}>
                   <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900", marginBottom: 4 }}>
-                    Phase d'Apprentissage
+                    Phase d&apos;Apprentissage
                   </Text>
                   <Text style={{ color: "rgba(255,255,255,0.9)" }}>
-                    Il faut jusqu'à 5 entraînements pour que l'IA apprenne vos mouvements.
+                    Il faut jusqu&apos;à 5 entraînements pour que l&apos;IA apprenne vos mouvements.
                   </Text>
                 </View>              
               </ImageBackground>

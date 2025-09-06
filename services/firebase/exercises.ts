@@ -4,43 +4,33 @@
  */
 
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  writeBatch,
-  serverTimestamp,
-  onSnapshot,
-  DocumentSnapshot,
-  QuerySnapshot,
-  QueryConstraint,
-  DocumentData
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    QueryConstraint,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    where
 } from 'firebase/firestore';
-import { firestore } from './config';
 import {
-  Exercise,
-  MuscleGroup,
-  ExerciseTemplate,
-  WorkoutSession,
-  ExerciseProgress,
-  ExerciseFilters,
-  MuscleGroupFilters,
-  ExerciseResponse,
-  MuscleGroupResponse,
-  ExerciseError,
-  UseExercisesReturn,
-  UseMuscleGroupsReturn,
-  UseExerciseProgressReturn
+    Exercise,
+    ExerciseFilters,
+    ExerciseProgress,
+    ExerciseResponse,
+    MuscleGroup,
+    MuscleGroupFilters,
+    MuscleGroupResponse,
+    WorkoutSession
 } from '../../types/exercise';
+import { firestore } from './config';
 
 // Collections Firebase
 const COLLECTIONS = {
@@ -477,6 +467,40 @@ export class ExerciseService {
   }
 
   /**
+   * Crée un nouvel exercice
+   */
+  static async createExercise(exercise: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>): Promise<ExerciseResponse> {
+    try {
+      const docRef = await addDoc(collection(firestore, COLLECTIONS.EXERCISES), {
+        ...exercise,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      const newExercise = {
+        id: docRef.id,
+        ...exercise,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Exercise;
+      
+      return {
+        success: true,
+        data: newExercise
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'EXERCISE_CREATE_ERROR',
+          message: 'Erreur lors de la création de l\'exercice',
+          details: error
+        }
+      };
+    }
+  }
+
+  /**
    * Écoute tous les exercices en temps réel
    */
   static watchAllExercises(callback: (exercises: Exercise[]) => void) {
@@ -667,8 +691,6 @@ export class WorkoutSessionService {
 
 // Export des services
 export {
-  MuscleGroupService,
-  ExerciseService,
-  ExerciseProgressService,
-  WorkoutSessionService
+    ExerciseProgressService, ExerciseService, MuscleGroupService, WorkoutSessionService
 };
+

@@ -3,8 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Easing,
@@ -17,6 +18,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../contexts/AuthContext";
+import { AIWorkoutGenerator } from "../services/ai/workoutGenerator";
+import { WorkoutTemplateService } from "../services/firebase/workouts";
 
 /* -------------------- Theme -------------------- */
 const BORDER = "rgba(255,255,255,0.12)";
@@ -74,15 +78,20 @@ function Selector({
       easing: isOpen ? Easing.out(Easing.quad) : Easing.in(Easing.quad),
       useNativeDriver: true,
     }).start();
-  }, [isOpen]);
+  }, [isOpen, openAnim]);
 
-  const isSelected = (opt: string) =>
-    multi ? (selected as string[])?.includes(opt) : selected === opt;
+  const isSelected = (opt: string) => {
+    return multi ? (selected as string[])?.includes(opt) : selected === opt;
+  };
 
   const toggle = (opt: string) => {
     if (multi) {
       const set = new Set(selected as string[]);
-      set.has(opt) ? set.delete(opt) : set.add(opt);
+      if (set.has(opt)) {
+        set.delete(opt);
+      } else {
+        set.add(opt);
+      }
       onSelect(Array.from(set));
     } else {
       onSelect(opt);
@@ -216,6 +225,7 @@ function Selector({
 
 /* -------------------- Main Page -------------------- */
 export default function GenerateWorkoutPage() {
+  const { user } = useAuth();
   const [equipment, setEquipment] = useState("Large Gym");
   const [duration, setDuration] = useState("1h 0m");
   const [intensity, setIntensity] = useState("Medium");
@@ -225,17 +235,62 @@ export default function GenerateWorkoutPage() {
     "Glutes",
   ]);
   const [additionalInfo, setAdditionalInfo] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerate = () => {
-    const params = { equipment, duration, intensity, muscleGroups, additionalInfo };
-    Alert.alert(
-      "Workout Generated!",
-      `Equipment: ${params.equipment}\nDuration: ${params.duration}\nIntensity: ${params.intensity}\nMuscle Groups: ${params.muscleGroups.join(
-        ", "
-      )}\nAdditional Info: ${params.additionalInfo}`,
-      [{ text: "OK" }]
-    );
+  const handleGenerate = async () => {
+    if (!user) {
+      Alert.alert("Erreur", "Vous devez être connecté pour générer un workout.");
+      return;
+    }
+
+    // Vérifier si la clé API OpenAI est configurée
+    if (!process.env.EXPO_PUBLIC_OPENAI_API_KEY) {
+      Alert.alert(
+        "Configuration requise",
+        "La génération IA nécessite une clé API OpenAI. Veuillez configurer EXPO_PUBLIC_OPENAI_API_KEY dans votre fichier .env",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const params = { equipment, duration, intensity, muscleGroups, additionalInfo };
+      console.log('🚀 Génération du workout avec les paramètres:', params);
+      const workout = await AIWorkoutGenerator.generateWorkout(params);
+      console.log('✅ Workout généré:', workout);
+      
+      // Sauvegarder les exercices générés par l'IA dans la base de données
+      console.log('💾 Sauvegarde des exercices dans la base de données...');
+      const savedExercises = await AIWorkoutGenerator.saveGeneratedExercises(workout);
+      console.log('✅ Exercices sauvegardés:', savedExercises.length);
+      
+      // Convertir directement en template et sauvegarder
+      const template = AIWorkoutGenerator.convertToExerciseTemplate(workout, user.uid);
+      await WorkoutTemplateService.createTemplate(template);
+      
+      Alert.alert(
+        "Succès !",
+        `Votre plan d'entraînement a été généré et ajouté à vos templates.\n\n${savedExercises.length} exercices ont été ajoutés à la page explore.`,
+        [
+          { text: "Voir mes workouts", onPress: () => router.push("/(tabs)/workouts") },
+          { text: "Voir les exercices", onPress: () => router.push("/(tabs)/explore") },
+          { text: "OK" }
+        ]
+      );
+    } catch (error) {
+      console.error('Erreur génération workout:', error);
+      Alert.alert(
+        "Erreur",
+        "Impossible de générer le plan d'entraînement. Veuillez réessayer.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
 
   const chips = [
     { icon: "barbell-outline", text: equipment },
@@ -379,26 +434,37 @@ export default function GenerateWorkoutPage() {
             </Text>
           </View>
 
+
           {/* CTA */}
           <TouchableOpacity
-            style={styles.generateButton}
+            style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
             onPress={handleGenerate}
             activeOpacity={0.92}
+            disabled={isGenerating}
           >
             <LinearGradient
-              colors={[LIME, LIME_DARK]}
+              colors={isGenerating ? ["#666", "#555"] : [LIME, LIME_DARK]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.generateGradient}
             >
-              <Text style={styles.generateText}>Generate Workout</Text>
+              {isGenerating ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#071100" />
+                  <Text style={styles.generateText}>Génération...</Text>
+                </View>
+              ) : (
+                <Text style={styles.generateText}>Generate Workout</Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
+
     </View>
   );
 }
+
 
 /* -------------------- Styles -------------------- */
 const styles = StyleSheet.create({
@@ -549,6 +615,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
+
   /* CTA */
   generateButton: {
     marginHorizontal: 20,
@@ -560,6 +627,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
+  generateButtonDisabled: { opacity: 0.6 },
   generateGradient: { paddingVertical: 18, alignItems: "center" },
   generateText: { color: "#071100", fontWeight: "900", fontSize: 18 },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+
 });
