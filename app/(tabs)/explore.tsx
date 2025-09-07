@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     ActivityIndicator,
     Dimensions,
@@ -50,7 +50,8 @@ export default function ExploreScreen() {
     error, 
     searchQuery, 
     setSearchQuery, 
-    filteredExercises 
+    filteredExercises,
+    isFromCache
   } = useExercises();
 
 
@@ -86,9 +87,13 @@ export default function ExploreScreen() {
       })}
     >
       <ImageBackground 
-        source={{ uri: getExerciseImage(item) }} 
+        source={{ 
+          uri: getExerciseImage(item),
+          cache: 'force-cache' // Force le cache des images
+        }} 
         style={styles.cardImage} 
         imageStyle={styles.cardImageRadius}
+        resizeMode="cover"
       >
         {/* Overlay sombre pour la lisibilité */}
         <LinearGradient
@@ -113,7 +118,9 @@ export default function ExploreScreen() {
   const renderLoading = () => (
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color="#FFD700" />
-      <Text style={styles.loadingText}>Chargement des exercices...</Text>
+      <Text style={styles.loadingText}>
+        {isFromCache ? 'Mise à jour...' : 'Chargement des exercices...'}
+      </Text>
     </View>
   );
 

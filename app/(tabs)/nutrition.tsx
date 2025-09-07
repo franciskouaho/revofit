@@ -36,6 +36,7 @@ export default function NutritionScreen() {
     recipes,
     loading,
     error,
+    isFromCache,
     searchRecipes,
     loadRecipes,
   } = useNutrition();

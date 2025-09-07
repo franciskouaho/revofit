@@ -103,6 +103,7 @@ export default function StatsScreen() {
     monthlyData,
     personalRecords,
     loading,
+    isFromCache,
     error,
   } = useStatsData();
 

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DailyActivity, UserStats, UserStatsService } from '@/services/firebase/userStats';
 import { WorkoutSession, WorkoutSessionService } from '@/services/firebase/workouts';
 import { UserStreak, WorkoutStatus, WorkoutStatusService } from '@/services/firebase/workoutStatus';
+import { StatsCacheService } from '@/services/storage/statsCache';
 import { useEffect, useState } from 'react';
 
 export interface StatsData {
@@ -50,6 +51,7 @@ export interface StatsData {
   
   // État de chargement
   loading: boolean;
+  isFromCache: boolean;
   error: string | null;
 }
 
@@ -77,6 +79,7 @@ export function useStatsData(): StatsData {
       longestStreak: 0,
     },
     loading: true,
+    isFromCache: false,
     error: null,
   });
 
@@ -87,7 +90,33 @@ export function useStatsData(): StatsData {
     }
 
     try {
-      setData(prev => ({ ...prev, loading: true, error: null }));
+      setData(prev => ({ ...prev, loading: true, error: null, isFromCache: false }));
+
+      // Essayer d'abord le cache
+      const cachedData = await StatsCacheService.getAllCachedStatsData();
+      if (cachedData) {
+        console.log('📱 Chargement depuis le cache statistiques');
+        setData(prev => ({ ...prev, ...cachedData, loading: false, isFromCache: true }));
+        
+        // Mettre à jour en arrière-plan
+        fetchFromAPI();
+        return;
+      }
+
+      // Charger depuis l'API
+      await fetchFromAPI();
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données de statistiques:', error);
+      setData(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Impossible de charger les statistiques',
+      }));
+    }
+  };
+
+  const fetchFromAPI = async () => {
+    try {
 
       // Récupérer toutes les données en parallèle
       const [
@@ -167,7 +196,7 @@ export function useStatsData(): StatsData {
         longestStreak: longestStreak,
       };
 
-      setData({
+      const newData = {
         userStats,
         dailyActivity,
         workoutSessions,
@@ -184,8 +213,14 @@ export function useStatsData(): StatsData {
         monthlyData,
         personalRecords,
         loading: false,
+        isFromCache: false,
         error: null,
-      });
+      };
+
+      setData(newData);
+      
+      // Sauvegarder dans le cache
+      await StatsCacheService.saveAllStatsData(newData);
 
     } catch (error) {
       console.error('Erreur lors de la récupération des données de statistiques:', error);

@@ -13,6 +13,7 @@ import { HealthKitProvider } from '@/contexts/HealthKitContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { configureGoogleSignIn } from '@/services/firebase/auth';
 import { initializeNotifications } from '@/services/notificationManager';
+import { PreloaderService } from '@/services/preloader';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,10 +24,13 @@ export default function RootLayout() {
     'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
   });
 
-  // Configuration Google Sign-In et Notifications
+  // Configuration Google Sign-In, Notifications et Préchargement
   React.useEffect(() => {
     configureGoogleSignIn();
     initializeNotifications();
+    
+    // Précharger toutes les données en arrière-plan
+    PreloaderService.preloadAllDataInBackground();
   }, []);
 
   if (!loaded) {

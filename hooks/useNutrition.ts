@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { DailyNutrition, Meal, NutritionGoal, nutritionService, Recipe } from '../services/firebase/nutrition';
+import { NutritionCacheService } from '../services/storage/nutritionCache';
 
 export interface UseNutritionReturn {
   // Données nutritionnelles
@@ -16,6 +17,7 @@ export interface UseNutritionReturn {
 
   // États de chargement
   loading: boolean;
+  isFromCache: boolean;
 
   // États d'erreur
   error: string | null;
@@ -41,6 +43,7 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   // Date sélectionnée (par défaut aujourd'hui)
   const currentDate = selectedDate || new Date().toISOString().split('T')[0];
@@ -150,6 +153,9 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
       const dayMeals = await nutritionService.getMealsByDate(userId, currentDate);
       setMeals(dayMeals);
       
+      // Sauvegarder dans le cache
+      await NutritionCacheService.saveDailyNutrition(daily, currentDate);
+      
       console.log('✅ Nutrition quotidienne mise à jour');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -185,6 +191,9 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
       // Recharger l'objectif
       const updatedGoal = await nutritionService.getNutritionGoal(userId);
       setNutritionGoalState(updatedGoal);
+      
+      // Sauvegarder dans le cache
+      await NutritionCacheService.saveNutritionGoal(updatedGoal);
       
       console.log('✅ Objectif nutritionnel défini');
     } catch (err) {
@@ -228,6 +237,10 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
       console.log('📚 Chargement des recettes...');
       const results = await nutritionService.getRecipes(category);
       setRecipes(results);
+      
+      // Sauvegarder dans le cache
+      await NutritionCacheService.saveRecipes(results);
+      
       console.log('✅ Recettes chargées:', results.length, 'recettes');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -238,7 +251,7 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
     }
   }, []);
 
-  // Charger les données au montage
+  // Charger les données au montage avec cache
   useEffect(() => {
     if (!userId) return;
 
@@ -246,10 +259,43 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
       try {
         setLoading(true);
         setError(null);
-        
+        setIsFromCache(false);
+
+        // Essayer d'abord le cache
+        const [cachedGoal, cachedDailyNutrition, cachedRecipes] = await Promise.all([
+          NutritionCacheService.getCachedNutritionGoal(),
+          NutritionCacheService.getCachedDailyNutrition(currentDate),
+          NutritionCacheService.getCachedRecipes()
+        ]);
+
+        if (cachedGoal && cachedDailyNutrition && cachedRecipes) {
+          console.log('📱 Chargement depuis le cache nutrition');
+          setNutritionGoalState(cachedGoal);
+          setDailyNutrition(cachedDailyNutrition);
+          setRecipes(cachedRecipes);
+          setIsFromCache(true);
+          setLoading(false);
+
+          // Mettre à jour en arrière-plan
+          loadFromAPI();
+          return;
+        }
+
+        // Charger depuis l'API
+        await loadFromAPI();
+      } catch (err) {
+        console.error('❌ Erreur lors du chargement initial:', err);
+        setError('Impossible de charger les données nutritionnelles');
+        setLoading(false);
+      }
+    };
+
+    const loadFromAPI = async () => {
+      try {
         // Charger l'objectif nutritionnel
         const goal = await nutritionService.getNutritionGoal(userId);
         setNutritionGoalState(goal);
+        await NutritionCacheService.saveNutritionGoal(goal);
 
         // Charger la nutrition quotidienne
         await refreshDailyNutrition();
@@ -257,7 +303,7 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
         // Charger quelques recettes populaires
         await loadRecipes();
       } catch (err) {
-        console.error('❌ Erreur lors du chargement initial:', err);
+        console.error('❌ Erreur API nutrition:', err);
         setError('Impossible de charger les données nutritionnelles');
       } finally {
         setLoading(false);
@@ -295,6 +341,7 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
     nutritionGoal,
     recipes,
     loading,
+    isFromCache,
     error,
     addMeal,
     updateMeal,
