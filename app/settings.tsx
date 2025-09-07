@@ -1,4 +1,3 @@
-import LogoutButton from '@/components/LogoutButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +9,7 @@ const { width } = Dimensions.get('window');
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { userProfile, deleteAccount } = useAuth();
+  const { userProfile, deleteAccount, signOut } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
@@ -257,8 +256,31 @@ export default function SettingsPage() {
           </View>
 
           {/* Bouton de déconnexion */}
-          <View style={{ marginTop: 32, alignItems: 'center' }}>
-            <LogoutButton />
+          <View style={styles.logoutSection}>
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={async () => {
+                try {
+                  await signOut();
+                  // L'utilisateur sera automatiquement redirigé vers la page de connexion
+                  // grâce au contexte d'authentification
+                } catch (error: any) {
+                  Alert.alert(
+                    'Erreur',
+                    error.message || 'Une erreur est survenue lors de la déconnexion',
+                    [{ text: 'OK' }]
+                  );
+                }
+              }}
+            >
+              <View style={styles.logoutButtonContent}>
+                <View style={styles.logoutIcon}>
+                  <Ionicons name="log-out" size={20} color="#FF4444" />
+                </View>
+                <Text style={styles.logoutText}>Se déconnecter</Text>
+                <Ionicons name="chevron-forward" size={20} color="rgba(255, 68, 68, 0.5)" />
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.bottomSpacing} />
@@ -551,5 +573,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+  // Styles pour le bouton de déconnexion
+  logoutSection: {
+    paddingHorizontal: 20,
+    marginTop: 32,
+    marginBottom: 20,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.3)',
+    overflow: 'hidden',
+  },
+  logoutButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+  },
+  logoutIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  logoutText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FF4444',
+    fontWeight: '600',
   },
 });
