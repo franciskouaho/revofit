@@ -1,7 +1,7 @@
 import { SubtitleText } from '@/components/ThemedText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, Image, View } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,12 +10,18 @@ export default function SplashScreen() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
+            console.log('🔄 [SPLASH] Vérification de l\'état d\'authentification...');
+            console.log('👤 [SPLASH] Utilisateur:', user ? user.uid : 'null');
+            console.log('⏳ [SPLASH] Loading:', loading);
+            
             if (!loading) {
                 if (user) {
                     // Utilisateur connecté, rediriger vers l'app principale
+                    console.log('✅ [SPLASH] Utilisateur connecté, redirection vers /(tabs)');
                     router.replace('/(tabs)');
                 } else {
                     // Utilisateur non connecté, rediriger vers l'onboarding
+                    console.log('🚪 [SPLASH] Utilisateur non connecté, redirection vers /onboarding');
                     router.replace('/onboarding');
                 }
             }

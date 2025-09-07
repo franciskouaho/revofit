@@ -233,8 +233,22 @@ export const signUpUser = async (onboardingData: OnboardingData): Promise<User> 
 // Déconnexion
 export const signOutUser = async (): Promise<void> => {
   try {
+    console.log('🔥 [AUTH] Début de la déconnexion...');
+    
+    // Vérifier si un utilisateur est connecté
+    if (!auth.currentUser) {
+      console.log('⚠️ [AUTH] Aucun utilisateur connecté');
+      return;
+    }
+    
+    console.log('👤 [AUTH] Utilisateur connecté:', auth.currentUser.uid);
+    
+    // Effectuer la déconnexion
     await signOut(auth);
+    
+    console.log('✅ [AUTH] Déconnexion réussie');
   } catch (error: any) {
+    console.error('❌ [AUTH] Erreur lors de la déconnexion:', error);
     const errorMessage = error.code ? handleAuthError(error) : error.message;
     throw new Error(errorMessage);
   }

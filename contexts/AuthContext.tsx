@@ -47,13 +47,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Écouter les changements d'état d'authentification
   useEffect(() => {
     const unsubscribe = onAuthStateChange(async (user) => {
+      console.log('🔄 [AUTH_CONTEXT] Changement d\'état d\'authentification détecté');
+      console.log('👤 [AUTH_CONTEXT] Nouvel utilisateur:', user ? user.uid : 'null');
+      
       setUser(user);
       if (user) {
+        console.log('📥 [AUTH_CONTEXT] Chargement du profil utilisateur...');
         await loadUserProfile(user.uid);
       } else {
+        console.log('🚪 [AUTH_CONTEXT] Utilisateur déconnecté, suppression du profil');
         setUserProfile(null);
       }
       setLoading(false);
+      console.log('✅ [AUTH_CONTEXT] État d\'authentification mis à jour');
     });
 
     return unsubscribe;
@@ -98,10 +104,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fonction de déconnexion
   const signOut = async () => {
     try {
+      console.log('🔄 [AUTH_CONTEXT] Début de la déconnexion...');
       setLoading(true);
+      
       const { signOutUser } = await import('../services/firebase/auth');
       await signOutUser();
+      
+      console.log('✅ [AUTH_CONTEXT] Déconnexion terminée, état mis à jour');
+      // L'état sera automatiquement mis à jour via onAuthStateChanged
     } catch (error) {
+      console.error('❌ [AUTH_CONTEXT] Erreur lors de la déconnexion:', error);
       setLoading(false);
       throw error;
     }

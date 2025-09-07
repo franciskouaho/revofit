@@ -250,22 +250,50 @@ export default function SettingsPage() {
 
           {/* Bouton de déconnexion */}
           <View style={styles.logoutSection}>
-            <TouchableOpacity 
-              style={styles.logoutButton}
-              onPress={async () => {
-                try {
-                  await signOut();
-                  // L'utilisateur sera automatiquement redirigé vers la page de connexion
-                  // grâce au contexte d'authentification
-                } catch (error: any) {
-                  Alert.alert(
-                    'Erreur',
-                    error.message || 'Une erreur est survenue lors de la déconnexion',
-                    [{ text: 'OK' }]
-                  );
-                }
-              }}
-            >
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={async () => {
+              try {
+                console.log('🚪 [SETTINGS] Bouton de déconnexion pressé');
+                
+                // Afficher une confirmation avant la déconnexion
+                Alert.alert(
+                  'Déconnexion',
+                  'Êtes-vous sûr de vouloir vous déconnecter ?',
+                  [
+                    {
+                      text: 'Annuler',
+                      style: 'cancel'
+                    },
+                    {
+                      text: 'Se déconnecter',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await signOut();
+                          console.log('✅ [SETTINGS] Déconnexion réussie, redirection automatique...');
+                          
+                          // Redirection forcée vers le splash screen après un court délai
+                          setTimeout(() => {
+                            router.replace('/splash');
+                          }, 500);
+                        } catch (error: any) {
+                          console.error('❌ [SETTINGS] Erreur lors de la déconnexion:', error);
+                          Alert.alert(
+                            'Erreur de déconnexion',
+                            error.message || 'Une erreur est survenue lors de la déconnexion',
+                            [{ text: 'OK' }]
+                          );
+                        }
+                      }
+                    }
+                  ]
+                );
+              } catch (error: any) {
+                console.error('❌ [SETTINGS] Erreur lors de l\'affichage de la confirmation:', error);
+              }
+            }}
+          >
               <View style={styles.logoutButtonContent}>
                 <View style={styles.logoutIcon}>
                   <Ionicons name="log-out" size={20} color="#FF4444" />
