@@ -185,11 +185,14 @@ class HealthKitService {
       const permissions = [
         'HKQuantityTypeIdentifierStepCount' as const,
         'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
+        'HKQuantityTypeIdentifierBasalEnergyBurned' as const,
         'HKQuantityTypeIdentifierHeartRate' as const,
         'HKQuantityTypeIdentifierDistanceWalkingRunning' as const,
         'HKQuantityTypeIdentifierFlightsClimbed' as const,
+        'HKQuantityTypeIdentifierAppleExerciseTime' as const,
         'HKQuantityTypeIdentifierBodyMass' as const,
         'HKQuantityTypeIdentifierBodyFatPercentage' as const,
+        'HKQuantityTypeIdentifierAppleStandTime' as const,
       ];
 
       // Demander les autorisations
@@ -212,35 +215,60 @@ class HealthKitService {
 
       const today = new Date();
 
-      // Récupérer les données du jour avec des échantillons récents
-      const [stepsData, caloriesData, heartRateData, distanceData, floorsData, exerciseData, weightData] = await Promise.allSettled([
+      // Récupérer les données du jour avec getMostRecentQuantitySample
+      const [stepsData, activeCaloriesData, basalCaloriesData, heartRateData, distanceData, floorsData, exerciseData, weightData, standData] = await Promise.allSettled([
         getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierBasalEnergyBurned'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleExerciseTime'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierBodyMass'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleStandTime'),
       ]);
+
+      // Récupérer les valeurs individuelles
+      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+      const activeCalories = activeCaloriesData.status === 'fulfilled' ? Math.round(activeCaloriesData.value?.quantity || 0) : 0;
+      const basalCalories = basalCaloriesData.status === 'fulfilled' ? Math.round(basalCaloriesData.value?.quantity || 0) : 0;
+      const totalCalories = activeCalories + basalCalories;
+      const distance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
+      const floors = floorsData.status === 'fulfilled' ? Math.round(floorsData.value?.quantity || 0) : 0;
+      const exerciseMinutes = exerciseData.status === 'fulfilled' ? Math.round((exerciseData.value?.quantity || 0) / 60) : 0;
+      const weight = weightData.status === 'fulfilled' ? Math.round(weightData.value?.quantity || 0) : 0;
+      const standHours = standData.status === 'fulfilled' ? Math.round((standData.value?.quantity || 0) / 3600) : 0;
+      
+      // Récupérer la fréquence cardiaque
+      const heartRate = heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0;
 
       const healthData: Partial<HealthData> = {
         date: today.toISOString().split('T')[0],
-        steps: stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0,
-        caloriesBurned: caloriesData.status === 'fulfilled' ? Math.round(caloriesData.value?.quantity || 0) : 0,
-        activeCalories: caloriesData.status === 'fulfilled' ? Math.round(caloriesData.value?.quantity || 0) : 0,
-        heartRate: heartRateData.status === 'fulfilled' ? { 
-          resting: Math.round(heartRateData.value?.quantity || 0), 
-          average: Math.round(heartRateData.value?.quantity || 0), 
-          max: Math.round(heartRateData.value?.quantity || 0) 
-        } : { resting: 0, average: 0, max: 0 },
-        distance: distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0,
-        floorsClimbed: floorsData.status === 'fulfilled' ? Math.round(floorsData.value?.quantity || 0) : 0,
-        exerciseMinutes: exerciseData.status === 'fulfilled' ? Math.round((exerciseData.value?.quantity || 0) / 60) : 0,
-        weight: weightData.status === 'fulfilled' ? Math.round(weightData.value?.quantity || 0) : 0,
+        steps,
+        caloriesBurned: totalCalories,
+        activeCalories,
+        heartRate: { 
+          resting: heartRate, 
+          average: heartRate, 
+          max: heartRate 
+        },
+        distance,
+        floorsClimbed: floors,
+        exerciseMinutes,
+        weight,
         bodyFat: 0 // Pas de données de masse grasse dans les échantillons récents
       };
 
-      console.log('✅ Données HealthKit du jour récupérées:', healthData);
+      console.log('✅ Données HealthKit du jour récupérées:', {
+        steps,
+        activeCalories,
+        totalCalories,
+        distance,
+        floors,
+        exerciseMinutes,
+        heartRate,
+        standHours
+      });
       return healthData;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des données HealthKit:', error);
@@ -256,34 +284,53 @@ class HealthKitService {
 
       console.log('📊 Récupération des données historiques...');
 
-      // Pour l'instant, on simule des données historiques
-      // Dans une vraie implémentation, on utiliserait queryQuantitySamples
       const historicalData: HistoricalHealthData[] = [];
       const currentDate = new Date(startDate);
       
       while (currentDate <= endDate) {
         const dateStr = currentDate.toISOString().split('T')[0];
         
-        // Simuler des données réalistes
-        const steps = Math.floor(Math.random() * 5000) + 2000;
-        const calories = Math.floor(steps * 0.04) + 200;
-        const distance = Math.floor(steps * 0.7);
-        const floors = Math.floor(Math.random() * 10) + 2;
-        const exercise = Math.floor(Math.random() * 60) + 15;
+        try {
+          // Récupérer les données réelles pour chaque jour
+          const [stepsData, activeCaloriesData, distanceData, floorsData, exerciseData] = await Promise.allSettled([
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleExerciseTime'),
+          ]);
 
-        historicalData.push({
-          date: dateStr,
-          steps,
-          caloriesBurned: calories,
-          distance,
-          floorsClimbed: floors,
-          exerciseMinutes: exercise,
-        });
+          const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+          const calories = activeCaloriesData.status === 'fulfilled' ? Math.round(activeCaloriesData.value?.quantity || 0) : 0;
+          const distance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
+          const floors = floorsData.status === 'fulfilled' ? Math.round(floorsData.value?.quantity || 0) : 0;
+          const exercise = exerciseData.status === 'fulfilled' ? Math.round((exerciseData.value?.quantity || 0) / 60) : 0;
+
+          historicalData.push({
+            date: dateStr,
+            steps,
+            caloriesBurned: calories,
+            distance,
+            floorsClimbed: floors,
+            exerciseMinutes: exercise,
+          });
+        } catch (dayError) {
+          console.warn(`Erreur pour la date ${dateStr}:`, dayError);
+          // Ajouter des données vides en cas d'erreur
+          historicalData.push({
+            date: dateStr,
+            steps: 0,
+            caloriesBurned: 0,
+            distance: 0,
+            floorsClimbed: 0,
+            exerciseMinutes: 0,
+          });
+        }
 
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      console.log('✅ Données historiques simulées:', historicalData.length, 'jours');
+      console.log('✅ Données historiques récupérées:', historicalData.length, 'jours');
       return historicalData;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des données historiques:', error);
@@ -303,27 +350,53 @@ class HealthKitService {
       const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
 
       for (let month = 0; month < 12; month++) {
-        // Simuler des données mensuelles réalistes
-        const totalSteps = Math.floor(Math.random() * 200000) + 100000;
-        const totalCalories = Math.floor(totalSteps * 0.04) + 8000;
-        const totalDistance = Math.floor(totalSteps * 0.7);
-        const totalFloors = Math.floor(Math.random() * 200) + 100;
-        const totalExerciseMinutes = Math.floor(Math.random() * 1200) + 600;
-        const averageHeartRate = Math.floor(Math.random() * 20) + 70;
+        try {
+          
+          // Récupérer les données réelles pour chaque mois
+          const [stepsData, activeCaloriesData, distanceData, floorsData, exerciseData, heartRateData] = await Promise.allSettled([
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleExerciseTime'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
+          ]);
 
-        monthlyData.push({
-          month: months[month],
-          year,
-          totalSteps,
-          totalCalories,
-          totalDistance,
-          totalFloors,
-          totalExerciseMinutes,
-          averageHeartRate,
-        });
+          const totalSteps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+          const totalCalories = activeCaloriesData.status === 'fulfilled' ? Math.round(activeCaloriesData.value?.quantity || 0) : 0;
+          const totalDistance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
+          const totalFloors = floorsData.status === 'fulfilled' ? Math.round(floorsData.value?.quantity || 0) : 0;
+          const totalExerciseMinutes = exerciseData.status === 'fulfilled' ? Math.round((exerciseData.value?.quantity || 0) / 60) : 0;
+          
+          const averageHeartRate = heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0;
+
+          monthlyData.push({
+            month: months[month],
+            year,
+            totalSteps,
+            totalCalories,
+            totalDistance,
+            totalFloors,
+            totalExerciseMinutes,
+            averageHeartRate,
+          });
+        } catch (monthError) {
+          console.warn(`Erreur pour le mois ${month + 1}:`, monthError);
+          // Ajouter des données vides en cas d'erreur
+          monthlyData.push({
+            month: months[month],
+            year,
+            totalSteps: 0,
+            totalCalories: 0,
+            totalDistance: 0,
+            totalFloors: 0,
+            totalExerciseMinutes: 0,
+            averageHeartRate: 0,
+          });
+        }
       }
 
-      console.log('✅ Données mensuelles simulées:', monthlyData.length, 'mois');
+      console.log('✅ Données mensuelles récupérées:', monthlyData.length, 'mois');
       return monthlyData;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des données mensuelles:', error);

@@ -1,22 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
-    getMostRecentQuantitySample,
-    isHealthDataAvailable,
-    useHealthkitAuthorization
+  getMostRecentQuantitySample,
+  isHealthDataAvailable,
+  useHealthkitAuthorization
 } from '@kingstinct/react-native-healthkit';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { StorageService } from '../services/storage';
 
@@ -49,7 +49,11 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     'HKQuantityTypeIdentifierStepCount',
     'HKQuantityTypeIdentifierHeartRate',
     'HKQuantityTypeIdentifierActiveEnergyBurned',
+    'HKQuantityTypeIdentifierBasalEnergyBurned',
     'HKQuantityTypeIdentifierDistanceWalkingRunning',
+    'HKQuantityTypeIdentifierFlightsClimbed',
+    'HKQuantityTypeIdentifierAppleExerciseTime',
+    'HKQuantityTypeIdentifierAppleStandTime',
   ] as const;
 
   // Hook pour l'autorisation
@@ -59,7 +63,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     if (!isConnected || Platform.OS !== 'ios') return;
 
     try {
-      // Récupérer les données en parallèle avec la nouvelle API
+      // Récupérer les données en parallèle avec getMostRecentQuantitySample
       const [stepsData, heartRateData, activeEnergyData, distanceData] = await Promise.allSettled([
         getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
@@ -67,15 +71,25 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
         getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
       ]);
 
+      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+      const activeEnergy = activeEnergyData.status === 'fulfilled' ? Math.round(activeEnergyData.value?.quantity || 0) : 0;
+      const distance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
+      const heartRate = heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0;
+
       setHealthData(prev => ({
         ...prev,
-        steps: stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0,
-        heartRate: heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0,
-        activeEnergy: activeEnergyData.status === 'fulfilled' ? Math.round(activeEnergyData.value?.quantity || 0) : 0,
-        distance: distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0,
+        steps,
+        heartRate,
+        activeEnergy,
+        distance,
       }));
 
-      console.log('✅ Données de santé récupérées avec succès');
+      console.log('✅ Données de santé récupérées avec succès:', {
+        steps,
+        heartRate,
+        activeEnergy,
+        distance
+      });
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des données:', error);
     }
@@ -236,12 +250,12 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
         />
         
         <View style={styles.drawer}>
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
           <View
             style={[
               StyleSheet.absoluteFill,
               { 
-                backgroundColor: "rgba(0,0,0,0.4)", 
+                backgroundColor: "rgba(0,0,0,0.98)", 
                 borderColor: BORDER, 
                 borderWidth: 1, 
                 borderRadius: 20 
@@ -394,7 +408,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'flex-end',
   },
   backdrop: {
