@@ -1,9 +1,9 @@
 // app/(tabs)/nutrition.tsx
 import { MealSuggestionCard } from '@/components/nutrition/MealSuggestionCard';
 import { NutritionPlanCard } from '@/components/nutrition/NutritionPlanCard';
-import { ProfileSetupModal } from '@/components/nutrition/ProfileSetupModal';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNutrition } from '@/hooks/useNutrition';
 import { useNutritionPlan } from '@/hooks/useNutritionPlan';
 import { Ionicons } from "@expo/vector-icons";
@@ -25,13 +25,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NutritionScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'plans' | 'suggestions'>('overview');
+
+  // Récupération des données utilisateur depuis l'auth
+  const { user } = useAuth();
 
   // Données nutritionnelles réelles
   const {
     dailyNutrition,
-    nutritionGoal,
     recipes,
     loading,
     error,
@@ -46,46 +47,87 @@ export default function NutritionScreen() {
     activePlan,
     mealSuggestions,
     createPersonalizedPlan,
-    saveUserProfile,
     generateMealSuggestions,
     activatePlan,
   } = useNutritionPlan();
 
-  // Objectifs nutritionnels avec les vraies données
-  const nutritionGoals = [
-    { 
-      name: 'Calories',   
-      current: dailyNutrition?.totalCalories || 0, 
-      target: nutritionGoal?.calories || 2200, 
-      unit: 'kcal', 
-      color: '#FFD700', 
-      icon: 'flame' 
-    },
-    { 
-      name: 'Protéines',  
-      current: dailyNutrition?.totalProtein || 0, 
-      target: nutritionGoal?.protein || 150, 
-      unit: 'g',    
-      color: '#4CAF50', 
-      icon: 'fitness' 
-    },
-    { 
-      name: 'Glucides',   
-      current: dailyNutrition?.totalCarbs || 0, 
-      target: nutritionGoal?.carbs || 250, 
-      unit: 'g',    
-      color: '#FF6B6B', 
-      icon: 'leaf' 
-    },
-    { 
-      name: 'Lipides',    
-      current: dailyNutrition?.totalFats || 0, 
-      target: nutritionGoal?.fats || 80, 
-      unit: 'g',    
-      color: '#9C27B0', 
-      icon: 'water' 
-    },
-  ];
+  // Calcul des objectifs nutritionnels basés sur les données utilisateur
+  const calculateNutritionGoals = () => {
+    if (!userProfile) {
+      return [
+        { name: 'Calories', current: 0, target: 2200, unit: 'kcal', color: '#FFD700', icon: 'flame' },
+        { name: 'Protéines', current: 0, target: 150, unit: 'g', color: '#4CAF50', icon: 'fitness' },
+        { name: 'Glucides', current: 0, target: 250, unit: 'g', color: '#FF6B6B', icon: 'leaf' },
+        { name: 'Lipides', current: 0, target: 80, unit: 'g', color: '#9C27B0', icon: 'water' },
+      ];
+    }
+
+    // Calcul basé sur les données de l'onboarding
+    const age = userProfile.age || 25;
+    const weight = userProfile.weight || 70;
+    const height = userProfile.height || 175;
+    const activityLevel = userProfile.activityLevel || 'moderate';
+    
+    // Calcul des calories de base (Harris-Benedict)
+    const isMale = userProfile.gender === 'male';
+    let bmr = isMale 
+      ? 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+      : 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+    
+    // Facteur d'activité
+    const activityFactors = {
+      'sedentary': 1.2,
+      'light': 1.375,
+      'moderate': 1.55,
+      'active': 1.725,
+      'very-active': 1.9
+    };
+    
+    const tdee = bmr * (activityFactors[activityLevel as keyof typeof activityFactors] || 1.55);
+    const calories = Math.round(tdee);
+    
+    // Calcul des macronutriments
+    const protein = Math.round(weight * 2.2); // 2.2g par kg
+    const carbs = Math.round(calories * 0.45 / 4); // 45% des calories
+    const fats = Math.round(calories * 0.25 / 9); // 25% des calories
+
+    return [
+      { 
+        name: 'Calories',   
+        current: dailyNutrition?.totalCalories || 0, 
+        target: calories, 
+        unit: 'kcal', 
+        color: '#FFD700', 
+        icon: 'flame' 
+      },
+      { 
+        name: 'Protéines',  
+        current: dailyNutrition?.totalProtein || 0, 
+        target: protein, 
+        unit: 'g',    
+        color: '#4CAF50', 
+        icon: 'fitness' 
+      },
+      { 
+        name: 'Glucides',   
+        current: dailyNutrition?.totalCarbs || 0, 
+        target: carbs, 
+        unit: 'g',    
+        color: '#FF6B6B', 
+        icon: 'leaf' 
+      },
+      { 
+        name: 'Lipides',    
+        current: dailyNutrition?.totalFats || 0, 
+        target: fats, 
+        unit: 'g',    
+        color: '#9C27B0', 
+        icon: 'water' 
+      },
+    ];
+  };
+
+  const nutritionGoals = calculateNutritionGoals();
 
   const mealCategories = [
     { name: 'Petit-déjeuner', icon: 'sunny',       color: '#FFD700' },
@@ -106,15 +148,8 @@ export default function NutritionScreen() {
 
   // Gérer la création d'un plan personnalisé
   const handleCreatePlan = async (goal: 'maintain' | 'lose' | 'gain') => {
-    if (!userProfile) {
-      Alert.alert(
-        'Profil requis',
-        'Veuillez d\'abord configurer votre profil nutritionnel pour créer un plan personnalisé.',
-        [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Configurer', onPress: () => setShowProfileModal(true) }
-        ]
-      );
+    if (!user) {
+      Alert.alert('Erreur', 'Vous devez être connecté pour créer un plan nutritionnel');
       return;
     }
 
@@ -232,12 +267,7 @@ export default function NutritionScreen() {
           <View style={styles.header}>
             <View style={styles.headerInner}>
               <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
-              <TouchableOpacity 
-                style={styles.headerAdd}
-                onPress={() => setShowProfileModal(true)}
-              >
-                <Ionicons name="person-add" size={22} color="#fff" />
-              </TouchableOpacity>
+              <View style={styles.headerSpacer} />
             </View>
           </View>
 
@@ -446,13 +476,6 @@ export default function NutritionScreen() {
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <ThemedText style={styles.sectionTitle}>Mes Plans Nutritionnels</ThemedText>
-                  <TouchableOpacity 
-                    style={styles.configButton}
-                    onPress={() => setShowProfileModal(true)}
-                  >
-                    <Ionicons name="settings" size={18} color="#FFD700" />
-                    <ThemedText style={styles.configButtonText}>Configurer</ThemedText>
-                  </TouchableOpacity>
                 </View>
 
                 {nutritionPlans.length === 0 ? (
@@ -578,19 +601,19 @@ export default function NutritionScreen() {
                     </View>
                     <ThemedText style={styles.emptyTitle}>Aucune suggestion</ThemedText>
                     <ThemedText style={styles.emptyDescription}>
-                      Configurez votre profil pour recevoir des suggestions personnalisées basées sur vos objectifs
+                      Vos préférences ont été configurées lors de l&apos;onboarding.{"\n"}Générez des suggestions personnalisées basées sur vos objectifs.
                     </ThemedText>
                     <TouchableOpacity 
                       style={styles.setupProfileButton}
-                      onPress={() => setShowProfileModal(true)}
+                      onPress={generateMealSuggestions}
                     >
                       <LinearGradient
                         colors={['#FFD700', '#F5C500']}
                         style={styles.setupProfileGradient}
                       >
-                        <Ionicons name="person-add" size={20} color="#000" />
+                        <Ionicons name="bulb" size={20} color="#000" />
                         <ThemedText style={[styles.setupProfileText, { color: '#000' }]}>
-                          Configurer le profil
+                          Générer des suggestions
                         </ThemedText>
                       </LinearGradient>
                     </TouchableOpacity>
@@ -688,13 +711,6 @@ export default function NutritionScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {/* Modal de configuration du profil */}
-      <ProfileSetupModal
-        visible={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        onSave={saveUserProfile}
-        existingProfile={userProfile}
-      />
     </View>
   );
 }
@@ -715,10 +731,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14 
   },
   headerTitle: { fontSize: 20, color: '#fff', fontWeight: '900' },
-  headerAdd: {
-    width: 36, height: 36, borderRadius: 100, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
-  },
+  headerSpacer: { width: 36, height: 36 },
 
   // Tabs de navigation modernisés
   tabsContainer: { paddingHorizontal: 20, marginBottom: 20 },
@@ -977,11 +990,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
   },
   refreshButtonText: { color: '#FFD700', fontSize: 12, fontWeight: '600', marginLeft: 6 },
-  configButton: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
-    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
-  },
-  configButtonText: { color: '#FFD700', fontSize: 12, fontWeight: '600', marginLeft: 6 },
 
   // États vides améliorés
   emptyState: {

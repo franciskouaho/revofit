@@ -17,6 +17,9 @@ export default function OnboardingLayout() {
       <Stack.Screen name="height-selection" />
       <Stack.Screen name="weight-selection" />
       <Stack.Screen name="goals-selection" />
+      <Stack.Screen name="activity-level-selection" />
+      <Stack.Screen name="dietary-restrictions-selection" />
+      <Stack.Screen name="culinary-preferences-selection" />
       <Stack.Screen name="email-selection" />
       <Stack.Screen name="password-selection" />
       <Stack.Screen name="rocket-launch" />

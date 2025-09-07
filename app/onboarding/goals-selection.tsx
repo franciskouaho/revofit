@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ColorValue, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../components/onboarding";
@@ -68,7 +68,7 @@ export default function GoalsSelectionScreen() {
     if (selectedGoals.length >= 1) {
       const goalIds = selectedGoals.map(g => g.id);
       nextStep({ goals: goalIds });
-      router.push('/onboarding/email-selection');
+      router.push('/onboarding/activity-level-selection');
     }
   };
 
@@ -103,6 +103,7 @@ export default function GoalsSelectionScreen() {
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "white" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2A2A2A" }} />

@@ -28,6 +28,9 @@ export interface OnboardingData {
   height: number; // en cm
   weight: number; // en kg
   goals: string[];
+  activityLevel: string;
+  dietaryRestrictions: string[];
+  culinaryPreferences: string[];
   targetWeight?: number;
   weeklyWorkouts: number;
 }
@@ -42,6 +45,9 @@ export interface UserProfile {
   height: number;
   weight: number;
   goals: string[];
+  activityLevel: string;
+  dietaryRestrictions: string[];
+  culinaryPreferences: string[];
   targetWeight?: number;
   weeklyWorkouts: number;
   createdAt: any;
