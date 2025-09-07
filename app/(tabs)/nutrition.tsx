@@ -45,8 +45,6 @@ export default function NutritionScreen() {
     nutritionPlans,
     activePlan,
     mealSuggestions,
-    loading: planLoading,
-    error: planError,
     createPersonalizedPlan,
     saveUserProfile,
     generateMealSuggestions,
@@ -123,7 +121,7 @@ export default function NutritionScreen() {
     try {
       await createPersonalizedPlan(goal, 7);
       setActiveTab('plans');
-    } catch (err) {
+    } catch {
       Alert.alert('Erreur', 'Impossible de créer le plan nutritionnel');
     }
   };
@@ -133,7 +131,7 @@ export default function NutritionScreen() {
     try {
       // Ici on pourrait ajouter la recette au plan ou aux repas du jour
       Alert.alert('Succès', 'Repas ajouté à votre plan nutritionnel');
-    } catch (err) {
+    } catch {
       Alert.alert('Erreur', 'Impossible d\'ajouter le repas');
     }
   };
@@ -230,54 +228,34 @@ export default function NutritionScreen() {
 
       <SafeAreaView style={styles.safeArea}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          {/* Header glass */}
+          {/* Header simple comme les autres pages */}
           <View style={styles.header}>
-            <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
-              <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={styles.headerInner}>
-                <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
-                <TouchableOpacity 
-                  style={styles.headerAdd}
-                  onPress={() => setShowProfileModal(true)}
-                >
-                  <Ionicons name="person-add" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
+            <View style={styles.headerInner}>
+              <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
+              <TouchableOpacity 
+                style={styles.headerAdd}
+                onPress={() => setShowProfileModal(true)}
+              >
+                <Ionicons name="person-add" size={22} color="#fff" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Tabs de navigation */}
+          {/* Tabs de navigation modernisés */}
           <View style={styles.tabsContainer}>
-            <View style={styles.tabsGlass}>
-              <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={styles.tabsInner}>
-                {[
-                  { id: 'overview', label: 'Vue d\'ensemble', icon: 'grid' },
-                  { id: 'plans', label: 'Mes plans', icon: 'calendar' },
-                  { id: 'suggestions', label: 'Suggestions', icon: 'bulb' },
-                ].map((tab) => (
-                  <TouchableOpacity
-                    key={tab.id}
-                    style={[
-                      styles.tabButton,
-                      activeTab === tab.id && styles.tabButtonActive
-                    ]}
-                    onPress={() => setActiveTab(tab.id as any)}
-                  >
-                    <Ionicons 
-                      name={tab.icon as any} 
-                      size={16} 
-                      color={activeTab === tab.id ? '#000' : 'rgba(255,255,255,0.7)'} 
-                    />
-                    <Text style={[
-                      styles.tabText,
-                      activeTab === tab.id && styles.tabTextActive
-                    ]}>
-                      {tab.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            <View style={styles.tabsWrapper}>
+              {[
+                { id: 'overview', label: 'Vue d\'ensemble' },
+                { id: 'plans', label: 'Mes plans' },
+                { id: 'suggestions', label: 'Suggestions' },
+              ].map((tab) => (
+                <TouchableOpacity key={tab.id} style={[styles.tabButton, activeTab === tab.id && styles.tabButtonActive]} onPress={() => setActiveTab(tab.id as any)} activeOpacity={0.7}>
+                  <View style={styles.tabContent}>
+                    <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]} numberOfLines={1}>{tab.label}</Text>
+                  </View>
+                  {activeTab === tab.id && <View style={styles.tabIndicator} />}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -312,7 +290,7 @@ export default function NutritionScreen() {
                         <Ionicons name="trending-up" size={24} color="#FFD700" />
                       </View>
                       <View style={styles.summaryTextContainer}>
-                        <ThemedText style={styles.summaryTitle}>Aujourd'hui</ThemedText>
+                        <ThemedText style={styles.summaryTitle}>Aujourd&apos;hui</ThemedText>
                         <ThemedText style={styles.summarySubtitle}>
                           {new Date().toLocaleDateString('fr-FR', { 
                             weekday: 'long', 
@@ -727,34 +705,65 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: RevoColors.background },
   safeArea: { flex: 1 },
 
-  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
+  header: { paddingHorizontal: 20, paddingBottom: 8 },
   
-  headerInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-  headerTitle: { fontSize: 28, color: '#fff', fontWeight: '900' },
+  headerInner: { 
+    height: 52, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 14 
+  },
+  headerTitle: { fontSize: 20, color: '#fff', fontWeight: '900' },
   headerAdd: {
-    width: 40, height: 40, borderRadius: 100, alignItems: 'center', justifyContent: 'center',
+    width: 36, height: 36, borderRadius: 100, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
   },
 
-  // Tabs de navigation
-  tabsContainer: { paddingHorizontal: 20, marginBottom: 16 },
-  tabsGlass: {
-    borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: BORDER,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  // Tabs de navigation modernisés
+  tabsContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  tabsWrapper: { 
+    flexDirection: 'row', 
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    borderRadius: 16, 
+    padding: 4,
+    borderWidth: 1, 
+    borderColor: BORDER,
   },
-  tabsInner: { flexDirection: 'row', padding: 4 },
   tabButton: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, paddingHorizontal: 8, borderRadius: 12, gap: 6,
+    flex: 1, 
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   tabButtonActive: {
     backgroundColor: '#FFD700',
   },
+  tabContent: {
+    alignItems: 'center', 
+    justifyContent: 'center',
+    paddingVertical: 16, 
+    paddingHorizontal: 8, 
+  },
   tabText: {
-    fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600',
+    fontSize: 12, 
+    color: 'rgba(255,255,255,0.8)', 
+    fontWeight: '600',
+    textAlign: 'center',
   },
   tabTextActive: {
     color: '#000',
+    fontWeight: '700',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    left: '50%',
+    marginLeft: -15,
+    width: 30,
+    height: 2,
+    backgroundColor: '#000',
+    borderRadius: 1,
   },
 
   searchContainer: { paddingHorizontal: 20, marginBottom: 16 },
