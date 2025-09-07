@@ -707,56 +707,6 @@ export default function NutritionScreen() {
               ))}
             </ScrollView>
           </View>
-
-          {/* Weekly plan (inchangé) */}
-          {/* … tu peux garder ta section existante ici … */}
-
-          {/* Quick Actions – nouveau layout */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Actions Rapides</ThemedText>
-
-            {/* Rangée 1 : deux demi-cartes */}
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <View style={[styles.qaGlass, { flex: 1 }]}>
-                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                <View style={styles.qaInner}>
-                  <View style={[styles.qaIconCircle, { backgroundColor: 'rgba(76,175,80,0.2)', borderColor: '#4CAF50' }]}>
-                    <Ionicons name="add" size={18} color="#4CAF50" />
-                  </View>
-                  <Text style={styles.qaTitle}>Ajouter un repas</Text>
-                </View>
-              </View>
-
-              <View style={[styles.qaGlass, { flex: 1 }]}>
-                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
-                <View style={styles.qaInner}>
-                  <View style={[styles.qaIconCircle, { backgroundColor: 'rgba(255,215,0,0.2)', borderColor: '#FFD700' }]}>
-                    <Ionicons name="calendar" size={18} color="#FFD700" />
-                  </View>
-                  <Text style={styles.qaTitle}>Planifier</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Rangée 2 : CTA pleine largeur */}
-            <View style={{ height: 12 }} />
-            <View style={[styles.qaGlass, { overflow: 'hidden' }]}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.25)']}
-                style={StyleSheet.absoluteFill}
-              />
-              <BlurView intensity={18} tint="dark" style={StyleSheet.absoluteFill} />
-              <View style={[styles.qaInner, { justifyContent: 'space-between', flexDirection: 'row' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={[styles.qaIconCircle, { backgroundColor: 'rgba(255,107,107,0.18)', borderColor: '#FF6B6B' }]}>
-                    <Ionicons name="analytics" size={18} color="#FF6B6B" />
-                  </View>
-                  <Text style={styles.qaTitle}>Analyser mes apports</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
-              </View>
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
 
