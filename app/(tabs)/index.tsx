@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -30,13 +31,26 @@ export default function HomeScreen() {
   const { status: workoutStatus, loading: statusLoading } = useWorkoutStatus();
   
   // Hook pour les données de santé
-  const { steps: healthSteps, distance: healthDistance, flights: healthFlights, calories: healthCalories } = useHealthDataSimple();
+  const { 
+    steps: healthSteps, 
+    distance: healthDistance, 
+    flights: healthFlights, 
+    calories: healthCalories,
+    requestPermissions,
+    hasPermissions,
+    authorizationStatus
+  } = useHealthDataSimple();
   
+  // État pour le chargement de la demande d'autorisation
+  const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
+
   // Debug logs pour les données de santé
   console.log('🔍 HomeScreen - healthSteps:', healthSteps);
   console.log('🔍 HomeScreen - healthDistance:', healthDistance);
   console.log('🔍 HomeScreen - healthFlights:', healthFlights);
   console.log('🔍 HomeScreen - healthCalories:', healthCalories);
+  console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
+  console.log('🔍 HomeScreen - authorizationStatus:', authorizationStatus);
 
   // Données par défaut en cas de chargement
   const defaultStats = {
@@ -82,7 +96,7 @@ export default function HomeScreen() {
   const combinedStats = {
     ...currentStats,
     steps: healthSteps > 0 ? healthSteps : currentStats.steps,
-    calories: healthCalories > 0 ? healthCalories : currentStats.calories,
+    calories: healthCalories !== undefined ? healthCalories : currentStats.calories,
   };
   
   // Debug logs pour les stats combinées
@@ -172,6 +186,45 @@ export default function HomeScreen() {
               <GlassStat icon="heart" label="Battements" value={`${combinedStats.heartRate} bpm`} />
               <GlassStat icon="barbell" label="Entraînements" value={`${combinedStats.workouts.completed}/${combinedStats.workouts.total}`} />
             </View>
+
+            {/* Message pour les permissions HealthKit */}
+            {!hasPermissions && (
+              <View style={styles.permissionAlert}>
+                <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                <View style={[StyleSheet.absoluteFill, styles.border, { borderRadius: 16 }]} />
+                <View style={styles.permissionContent}>
+                  <Ionicons name="heart" size={24} color="#FF6B6B" />
+                  <View style={styles.permissionText}>
+                    <ThemedText style={styles.permissionTitle}>Autorisation HealthKit requise</ThemedText>
+                    <ThemedText style={styles.permissionSubtitle}>
+                      Activez l&apos;accès à l&apos;app Santé pour voir vos vraies données de calories et de pas
+                    </ThemedText>
+                  </View>
+                  <TouchableOpacity 
+                    style={[styles.permissionButton, isRequestingPermissions && styles.permissionButtonDisabled]}
+                    onPress={async () => {
+                      setIsRequestingPermissions(true);
+                      try {
+                        await requestPermissions();
+                      } catch (error) {
+                        console.log('❌ Erreur lors de la demande d\'autorisation:', error);
+                      } finally {
+                        setTimeout(() => {
+                          setIsRequestingPermissions(false);
+                        }, 2000);
+                      }
+                    }}
+                    disabled={isRequestingPermissions}
+                  >
+                    {isRequestingPermissions ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <ThemedText style={styles.permissionButtonText}>Autoriser</ThemedText>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Données de santé supplémentaires */}
             {healthDistance > 0 && (
@@ -510,5 +563,49 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+
+  /* Permission alert */
+  permissionAlert: {
+    marginTop: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255,107,107,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.3)',
+  },
+  permissionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  permissionText: {
+    flex: 1,
+  },
+  permissionTitle: {
+    color: '#FF6B6B',
+    fontWeight: '800',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  permissionSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  permissionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: '#FF6B6B',
+  },
+  permissionButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  permissionButtonDisabled: {
+    opacity: 0.6,
   },
 });

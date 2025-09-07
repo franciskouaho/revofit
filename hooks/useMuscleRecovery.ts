@@ -159,13 +159,13 @@ export function useMuscleRecovery(): UseMuscleRecoveryReturn {
       // Si aucun groupe musculaire n'a été entraîné, afficher un message par défaut
       if (recoveryDataArray.length === 0) {
         const defaultData: MuscleRecoveryData[] = [{
-          muscleGroup: { id: 'default', name: 'Commencez votre premier entraînement', nameEn: 'Start your first workout', category: 'primary' as const, imageUrl: '', description: '', exercises: [], createdAt: new Date(), updatedAt: new Date() },
+          muscleGroup: { id: 'default', name: 'Premier entraînement', nameEn: 'First workout', category: 'primary' as const, imageUrl: '', description: '', exercises: [], createdAt: new Date(), updatedAt: new Date() },
           recoveryPercentage: 0,
           lastWorkoutDate: null,
           daysSinceLastWorkout: 0,
           status: 'fresh' as const,
           color: '#7C4DFF',
-          subtitle: 'Aucun entraînement enregistré'
+          subtitle: 'Commencez maintenant'
         }];
         setRecoveryData(defaultData);
         console.log('✅ Aucun groupe musculaire entraîné, affichage du message par défaut');

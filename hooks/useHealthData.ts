@@ -6,11 +6,11 @@
  */
 
 import {
-    getMostRecentQuantitySample,
-    isHealthDataAvailable,
-    queryQuantitySamples,
-    requestAuthorization,
-    useHealthkitAuthorization,
+  getMostRecentQuantitySample,
+  isHealthDataAvailable,
+  queryQuantitySamples,
+  requestAuthorization,
+  useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -24,6 +24,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
   const [distance, setDistance] = useState(0);
   const [calories, setCalories] = useState(0);
   const [hasPermissions, setHasPermission] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Permissions pour HealthKit
   const permissions = [
@@ -38,6 +39,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
 
   useEffect(() => {
     if (Platform.OS !== 'ios') {
+      console.log('❌ Pas iOS, HealthKit non disponible');
       return;
     }
 
@@ -46,28 +48,47 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
       try {
         const isAvailable = await isHealthDataAvailable();
         if (!isAvailable) {
-          console.log('HealthKit non disponible');
+          console.log('❌ HealthKit non disponible sur cet appareil');
           return;
         }
 
+        console.log('🔄 Demande d\'autorisation HealthKit...');
         await requestAuth();
-        setHasPermission(true);
+        console.log('✅ Autorisation HealthKit demandée');
       } catch (error) {
-        console.log('Error getting permissions:', error);
+        console.log('❌ Erreur lors de la demande d\'autorisation:', error);
       }
     };
 
     initializePermissions();
   }, [requestAuth]);
 
+  // Vérifier le statut d'autorisation
   useEffect(() => {
+    console.log('🔍 Statut d\'autorisation HealthKit:', authorizationStatus);
+    
+    if (String(authorizationStatus) === 'granted') {
+      console.log('✅ Permissions HealthKit accordées');
+      setHasPermission(true);
+    } else {
+      console.log('❌ Permissions HealthKit non accordées:', authorizationStatus);
+      setHasPermission(false);
+    }
+  }, [authorizationStatus]);
+
+  useEffect(() => {
+    console.log('🔍 useHealthDataSimple - hasPermissions:', hasPermissions);
+    console.log('🔍 useHealthDataSimple - authorizationStatus:', authorizationStatus);
+    
     if (!hasPermissions) {
+      console.log('❌ Pas de permissions HealthKit, données par défaut');
       return;
     }
 
     // Récupérer les données avec la nouvelle API
     const fetchData = async () => {
       try {
+        console.log('🔄 Récupération des données HealthKit...');
         // Pour les pas, récupérer le total de la journée
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -110,8 +131,10 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
         }
 
         if (caloriesData.status === 'fulfilled') {
-          console.log('Calories retrieved (total today):', caloriesData.value?.quantity);
+          console.log('✅ Calories retrieved (total today):', caloriesData.value?.quantity);
           setCalories(Math.round(caloriesData.value?.quantity || 0));
+        } else {
+          console.log('❌ Calories data failed:', caloriesData.status, caloriesData.reason);
         }
       } catch (error) {
         console.error('Error fetching health data:', error);
@@ -119,9 +142,30 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     };
 
     fetchData();
-  }, [hasPermissions, authorizationStatus, date]);
+  }, [hasPermissions, authorizationStatus, date, refreshTrigger]);
 
-  return { steps, flights, distance, calories };
+  // Fonction pour forcer la demande d'autorisation
+  const requestPermissions = async () => {
+    try {
+      console.log('🔄 Demande forcée d\'autorisation HealthKit...');
+      await requestAuth();
+      
+      // Attendre un peu pour que l'autorisation soit traitée
+      setTimeout(() => {
+        console.log('🔄 Vérification des permissions après demande...');
+        console.log('🔍 Nouveau statut d\'autorisation:', authorizationStatus);
+        
+        // Forcer le rafraîchissement des données
+        console.log('🔄 Rafraîchissement forcé des données...');
+        setRefreshTrigger(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.log('❌ Erreur lors de la demande forcée:', error);
+    }
+  };
+
+  console.log('🔍 useHealthDataSimple - returning data:', { steps, flights, distance, calories });
+  return { steps, flights, distance, calories, requestPermissions, hasPermissions, authorizationStatus };
 };
 
 export interface HealthData {
@@ -452,26 +496,36 @@ export function useHealthData(): UseHealthDataReturn {
   const initializeHealthKit = useCallback(async (): Promise<boolean> => {
     try {
       console.log('🏥 Initialisation de HealthKit...');
-      const success = await HealthKitService.initialize();
-      setIsHealthKitInitialized(success);
-      setIsConnectedToAppleHealth(success);
-
-      if (success) {
-        console.log('✅ HealthKit connecté avec succès');
-        // Sauvegarder l'état de connexion
-        await StorageService.saveHealthKitConnection(true);
-      } else {
-        console.log('❌ Échec de connexion à HealthKit');
-        // Supprimer l'état de connexion en cas d'échec
-        await StorageService.clearHealthKitConnection();
+      
+      // Vérifier si HealthKit est disponible
+      const isAvailable = await isHealthDataAvailable();
+      if (!isAvailable) {
+        console.log('❌ HealthKit non disponible sur cet appareil');
+        setIsHealthKitInitialized(false);
+        setIsConnectedToAppleHealth(false);
+        return false;
       }
 
-      return success;
+      // Demander les autorisations
+      const permissions = [
+        'HKQuantityTypeIdentifierStepCount' as const,
+        'HKQuantityTypeIdentifierFlightsClimbed' as const,
+        'HKQuantityTypeIdentifierDistanceWalkingRunning' as const,
+        'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
+      ];
+
+      await requestAuthorization(permissions, []);
+      
+      setIsHealthKitInitialized(true);
+      setIsConnectedToAppleHealth(true);
+      console.log('✅ HealthKit initialisé avec succès');
+
+      return true;
     } catch (err) {
       console.error('❌ Erreur lors de l\'initialisation HealthKit:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
-      // Supprimer l'état de connexion en cas d'erreur
-      await StorageService.clearHealthKitConnection();
+      setIsHealthKitInitialized(false);
+      setIsConnectedToAppleHealth(false);
       return false;
     }
   }, []);
@@ -494,23 +548,62 @@ export function useHealthData(): UseHealthDataReturn {
     setError(null);
 
     try {
-      console.log('🔄 Récupération des données de santé du jour...');
-      const data = await HealthKitService.getTodayHealthData();
+      console.log('🔄 Récupération des données de santé du jour depuis HealthKit...');
+      
+      // Récupérer les données directement depuis HealthKit
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-      if (data) {
-        const fullHealthData: HealthData = {
-          id: `${userId}-${data.date}`,
-          userId,
-          ...data,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } as HealthData;
+      const [stepsData, caloriesData, distanceData, flightsData] = await Promise.allSettled([
+        queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+          from: startOfDay,
+          to: endOfDay,
+        } as any).then(samples => {
+          const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+          return { quantity: totalSteps };
+        }),
+        queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
+          from: startOfDay,
+          to: endOfDay,
+        } as any).then(samples => {
+          const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+          return { quantity: totalCalories };
+        }),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
+      ]);
 
-        setHealthData(fullHealthData);
-        console.log('✅ Données de santé du jour mises à jour');
-      } else {
-        console.log('❌ Aucune donnée de santé récupérée');
-      }
+      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+      const caloriesBurned = caloriesData.status === 'fulfilled' ? Math.round(caloriesData.value?.quantity || 0) : 0;
+      const distance = distanceData.status === 'fulfilled' ? Math.round((distanceData.value?.quantity || 0) * 1000) : 0; // Convertir en mètres
+      const floorsClimbed = flightsData.status === 'fulfilled' ? Math.round(flightsData.value?.quantity || 0) : 0;
+
+      console.log('🔍 Données HealthKit récupérées:', { steps, caloriesBurned, distance, floorsClimbed });
+
+      const fullHealthData: HealthData = {
+        id: `${userId}-${today.toISOString().split('T')[0]}`,
+        userId,
+        date: today.toISOString().split('T')[0],
+        steps,
+        caloriesBurned,
+        activeCalories: caloriesBurned,
+        heartRate: {
+          resting: 0,
+          average: 0,
+          max: 0,
+        },
+        distance,
+        floorsClimbed,
+        exerciseMinutes: 0, // TODO: Récupérer depuis HealthKit
+        weight: 0, // TODO: Récupérer depuis HealthKit
+        bodyFat: 0, // TODO: Récupérer depuis HealthKit
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      setHealthData(fullHealthData);
+      console.log('✅ Données de santé du jour mises à jour depuis HealthKit');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
@@ -538,10 +631,70 @@ export function useHealthData(): UseHealthDataReturn {
     setError(null);
 
     try {
-      console.log('📊 Récupération des données historiques...');
-      const data = await HealthKitService.getHistoricalHealthData(startDate, endDate);
-      setHistoricalData(data);
-      console.log('✅ Données historiques mises à jour:', data.length, 'jours');
+      console.log('📊 Récupération des données historiques depuis HealthKit...');
+      
+      // Générer les dates entre startDate et endDate
+      const dates = [];
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const historicalDataArray: HistoricalHealthData[] = [];
+
+      // Récupérer les données pour chaque jour
+      for (const date of dates) {
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+
+        try {
+          const [stepsData, caloriesData, distanceData] = await Promise.allSettled([
+            queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+              from: dayStart,
+              to: dayEnd,
+            } as any).then(samples => {
+              const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+              return { quantity: totalSteps };
+            }),
+            queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
+              from: dayStart,
+              to: dayEnd,
+            } as any).then(samples => {
+              const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+              return { quantity: totalCalories };
+            }),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+          ]);
+
+          const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
+          const caloriesBurned = caloriesData.status === 'fulfilled' ? Math.round(caloriesData.value?.quantity || 0) : 0;
+          const distance = distanceData.status === 'fulfilled' ? Math.round((distanceData.value?.quantity || 0) * 1000) : 0;
+
+          historicalDataArray.push({
+            date: date.toISOString().split('T')[0],
+            steps,
+            caloriesBurned,
+            distance,
+            floorsClimbed: 0, // TODO: Récupérer depuis HealthKit
+            exerciseMinutes: 0, // TODO: Récupérer depuis HealthKit
+          });
+        } catch (dayError) {
+          console.warn(`Erreur pour la date ${date.toISOString().split('T')[0]}:`, dayError);
+          // Ajouter des données par défaut pour ce jour
+          historicalDataArray.push({
+            date: date.toISOString().split('T')[0],
+            steps: 0,
+            caloriesBurned: 0,
+            distance: 0,
+            floorsClimbed: 0,
+            exerciseMinutes: 0,
+          });
+        }
+      }
+
+      setHistoricalData(historicalDataArray);
+      console.log('✅ Données historiques mises à jour depuis HealthKit:', historicalDataArray.length, 'jours');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);

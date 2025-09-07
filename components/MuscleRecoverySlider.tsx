@@ -214,8 +214,20 @@ function CircularProgress({
         </Svg>
 
       {/* center content */}
-      <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }]}>
-        <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700", marginBottom: 2 }}>{muscle}</Text>
+      <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", paddingHorizontal: 8 }]}>
+        <Text 
+          style={{ 
+            color: "#fff", 
+            fontSize: muscle.length > 20 ? 10 : 14, 
+            fontWeight: "700", 
+            marginBottom: 2,
+            textAlign: "center",
+            lineHeight: muscle.length > 20 ? 12 : 16
+          }}
+          numberOfLines={muscle.length > 20 ? 2 : 1}
+        >
+          {muscle}
+        </Text>
         <Text style={{ color: "#fff", fontSize: 36, fontWeight: "900" }}>{Math.round(percentage)}%</Text>
         <Text style={{ color: color, fontSize: 12, fontWeight: "700", marginTop: 2 }}>{subtitle}</Text>
         <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10, marginTop: 8 }}>Fresh Muscle Group</Text>
