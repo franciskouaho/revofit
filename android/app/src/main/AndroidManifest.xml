@@ -33,6 +33,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="revofit"/>
+        <data android:scheme="exp+revofit"/>
       </intent-filter>
     </activity>
   </application>

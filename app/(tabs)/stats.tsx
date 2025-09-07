@@ -6,8 +6,8 @@ import { useStatsData } from '@/hooks/useStatsData';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -113,7 +113,43 @@ export default function StatsScreen() {
     monthlyData: healthMonthlyData,
     loading: healthLoading,
     error: healthError,
+    initializeHealthKit,
+    isConnectedToAppleHealth,
   } = useHealthData();
+
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Fonction pour connecter à HealthKit
+  const handleConnectToHealthKit = async () => {
+    if (isConnectedToAppleHealth) return;
+    
+    setIsConnecting(true);
+    try {
+      const success = await initializeHealthKit();
+      if (success) {
+        Alert.alert(
+          'Connexion réussie',
+          'Votre application est maintenant connectée à Apple Health !',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Erreur de connexion',
+          'Impossible de se connecter à Apple Health. Vérifiez que l\'application Santé est installée.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (err) {
+      console.error('Erreur lors de la connexion HealthKit:', err);
+      Alert.alert(
+        'Erreur',
+        'Une erreur est survenue lors de la connexion.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   // Données calculées pour les KPIs avec les vraies données de santé
   const kpis = [
@@ -307,15 +343,38 @@ export default function StatsScreen() {
           <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 14 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <ThemedText style={{ fontSize: 24, color: '#fff', fontWeight: '900' }}>Statistiques</ThemedText>
-                <TouchableOpacity
-                  style={{
-                    width: 40, height: 40, borderRadius: 100,
-                    alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
-                  }}
-                >
-                  <Ionicons name="filter" size={20} color="#fff" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {!isConnectedToAppleHealth && (
+                    <TouchableOpacity
+                      onPress={handleConnectToHealthKit}
+                      disabled={isConnecting}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+                        alignItems: 'center', justifyContent: 'center',
+                        backgroundColor: 'rgba(76, 175, 80, 0.2)', borderWidth: 1, borderColor: '#4CAF50',
+                        flexDirection: 'row', gap: 6,
+                      }}
+                    >
+                      {isConnecting ? (
+                        <ActivityIndicator size="small" color="#4CAF50" />
+                      ) : (
+                        <Ionicons name="heart" size={16} color="#4CAF50" />
+                      )}
+                      <Text style={{ color: '#4CAF50', fontSize: 12, fontWeight: '600' }}>
+                        {isConnecting ? 'Connexion...' : 'Health'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={{
+                      width: 40, height: 40, borderRadius: 100,
+                      alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
+                    }}
+                  >
+                    <Ionicons name="filter" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               </View>
           </View>
 

@@ -12,6 +12,7 @@ export interface WorkoutTemplate {
 
 const STORAGE_KEYS = {
   WORKOUT_TEMPLATES: '@workout_templates',
+  HEALTHKIT_CONNECTION: '@healthkit_connection',
 } as const;
 
 export class StorageService {
@@ -76,6 +77,42 @@ export class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(updatedTemplates));
     } catch (error) {
       console.error('Erreur lors de la mise à jour du template:', error);
+      throw error;
+    }
+  }
+
+  // Sauvegarder l'état de connexion HealthKit
+  static async saveHealthKitConnection(isConnected: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.HEALTHKIT_CONNECTION, JSON.stringify({
+        isConnected,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de la connexion HealthKit:', error);
+      throw error;
+    }
+  }
+
+  // Récupérer l'état de connexion HealthKit
+  static async getHealthKitConnection(): Promise<{ isConnected: boolean; timestamp: string } | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.HEALTHKIT_CONNECTION);
+      if (!data) return null;
+      
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Erreur lors de la récupération de la connexion HealthKit:', error);
+      return null;
+    }
+  }
+
+  // Supprimer l'état de connexion HealthKit
+  static async clearHealthKitConnection(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.HEALTHKIT_CONNECTION);
+    } catch (error) {
+      console.error('Erreur lors de la suppression de la connexion HealthKit:', error);
       throw error;
     }
   }

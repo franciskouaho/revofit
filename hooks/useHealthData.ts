@@ -6,14 +6,15 @@
  */
 
 import {
-  getMostRecentQuantitySample,
-  isHealthDataAvailable,
-  requestAuthorization,
-  useHealthkitAuthorization,
+    getMostRecentQuantitySample,
+    isHealthDataAvailable,
+    requestAuthorization,
+    useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { StorageService } from '../services/storage';
 
 // Version simple du tutoriel (exportée séparément)
 export const useHealthDataSimple = (date: Date = new Date()) => {
@@ -155,6 +156,7 @@ export interface UseHealthDataReturn {
 
   // Initialisation HealthKit
   initializeHealthKit: () => Promise<boolean>;
+  disconnectFromHealthKit: () => Promise<void>;
   isHealthKitInitialized: boolean;
 
   // État de connexion
@@ -355,14 +357,20 @@ export function useHealthData(): UseHealthDataReturn {
 
       if (success) {
         console.log('✅ HealthKit connecté avec succès');
+        // Sauvegarder l'état de connexion
+        await StorageService.saveHealthKitConnection(true);
       } else {
         console.log('❌ Échec de connexion à HealthKit');
+        // Supprimer l'état de connexion en cas d'échec
+        await StorageService.clearHealthKitConnection();
       }
 
       return success;
     } catch (err) {
       console.error('❌ Erreur lors de l\'initialisation HealthKit:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      // Supprimer l'état de connexion en cas d'erreur
+      await StorageService.clearHealthKitConnection();
       return false;
     }
   }, []);
@@ -473,12 +481,28 @@ export function useHealthData(): UseHealthDataReturn {
     }
   }, [userId, isHealthKitInitialized]);
 
-  // Initialiser HealthKit au montage
+  // Vérifier l'état de connexion persisté au montage
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      initializeHealthKit();
-    }
-  }, [initializeHealthKit]);
+    const checkPersistedConnection = async () => {
+      if (Platform.OS !== 'ios') return;
+      
+      try {
+        const connectionState = await StorageService.getHealthKitConnection();
+        if (connectionState?.isConnected) {
+          console.log('✅ Connexion HealthKit trouvée dans le stockage local');
+          setIsHealthKitInitialized(true);
+          setIsConnectedToAppleHealth(true);
+        } else {
+          console.log('❌ Aucune connexion HealthKit persistée trouvée');
+          // Ne pas initialiser automatiquement, laisser l'utilisateur choisir
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification de la connexion persistée:', error);
+      }
+    };
+
+    checkPersistedConnection();
+  }, []);
 
   // Rafraîchir les données quand HealthKit est initialisé
   useEffect(() => {
@@ -495,6 +519,26 @@ export function useHealthData(): UseHealthDataReturn {
     }
   }, [isHealthKitInitialized, userId, refreshHealthData, refreshHistoricalData, refreshMonthlyData]);
 
+  /**
+   * Déconnecter de HealthKit
+   */
+  const disconnectFromHealthKit = useCallback(async () => {
+    try {
+      console.log('🔌 Déconnexion de HealthKit...');
+      setIsHealthKitInitialized(false);
+      setIsConnectedToAppleHealth(false);
+      setHealthData(null);
+      setHistoricalData([]);
+      setMonthlyData([]);
+      
+      // Supprimer l'état de connexion du stockage
+      await StorageService.clearHealthKitConnection();
+      console.log('✅ Déconnexion HealthKit réussie');
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion HealthKit:', error);
+    }
+  }, []);
+
   return {
     healthData,
     historicalData,
@@ -505,6 +549,7 @@ export function useHealthData(): UseHealthDataReturn {
     refreshHistoricalData,
     refreshMonthlyData,
     initializeHealthKit,
+    disconnectFromHealthKit,
     isHealthKitInitialized,
     isConnectedToAppleHealth
   };

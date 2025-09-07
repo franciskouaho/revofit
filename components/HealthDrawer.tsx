@@ -1,23 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
-  getMostRecentQuantitySample,
-  isHealthDataAvailable,
-  useHealthkitAuthorization
+    getMostRecentQuantitySample,
+    isHealthDataAvailable,
+    useHealthkitAuthorization
 } from '@kingstinct/react-native-healthkit';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
+import { StorageService } from '../services/storage';
 
 const BORDER = "rgba(255,255,255,0.12)";
 
@@ -118,12 +119,31 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     }
   }, [checkAuthStatus]);
 
-  // Vérifier si HealthKit est disponible
+  // Vérifier l'état de connexion persisté au montage
   useEffect(() => {
-    if (Platform.OS === 'ios') {
-      checkHealthKitAvailability();
-    }
-  }, [checkHealthKitAvailability]);
+    const checkPersistedConnection = async () => {
+      if (Platform.OS !== 'ios') return;
+      
+      try {
+        const connectionState = await StorageService.getHealthKitConnection();
+        if (connectionState?.isConnected) {
+          console.log('✅ Connexion HealthKit trouvée dans le stockage local (HealthDrawer)');
+          setIsConnected(true);
+          await fetchHealthData();
+        } else {
+          console.log('❌ Aucune connexion HealthKit persistée trouvée (HealthDrawer)');
+          // Vérifier la disponibilité de HealthKit
+          await checkHealthKitAvailability();
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification de la connexion persistée:', error);
+        // En cas d'erreur, vérifier la disponibilité de HealthKit
+        await checkHealthKitAvailability();
+      }
+    };
+
+    checkPersistedConnection();
+  }, [checkHealthKitAvailability, fetchHealthData]);
 
   const connectToHealth = async () => {
     if (Platform.OS !== 'ios') {
@@ -148,6 +168,10 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       
       setIsLoading(false);
       setIsConnected(true);
+      
+      // Sauvegarder l'état de connexion
+      await StorageService.saveHealthKitConnection(true);
+      
       await fetchHealthData();
       
       Alert.alert(
@@ -167,19 +191,34 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     }
   };
 
-  const disconnectFromHealth = () => {
-    setIsConnected(false);
-    setHealthData({
-      steps: 0,
-      heartRate: 0,
-      activeEnergy: 0,
-      distance: 0,
-    });
-    Alert.alert(
-      'Déconnexion',
-      'Vous avez été déconnecté d\'Apple Health.',
-      [{ text: 'OK' }]
-    );
+  const disconnectFromHealth = async () => {
+    try {
+      console.log('🔌 Déconnexion de HealthKit (HealthDrawer)...');
+      setIsConnected(false);
+      setHealthData({
+        steps: 0,
+        heartRate: 0,
+        activeEnergy: 0,
+        distance: 0,
+      });
+      
+      // Supprimer l'état de connexion du stockage
+      await StorageService.clearHealthKitConnection();
+      console.log('✅ Déconnexion HealthKit réussie (HealthDrawer)');
+      
+      Alert.alert(
+        'Déconnexion',
+        'Vous avez été déconnecté d\'Apple Health.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('❌ Erreur lors de la déconnexion HealthKit:', error);
+      Alert.alert(
+        'Erreur',
+        'Une erreur est survenue lors de la déconnexion.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
