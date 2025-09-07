@@ -11,6 +11,7 @@ interface AuthContextType {
   signUp: (onboardingData: any) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
 
@@ -106,6 +107,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Fonction de suppression de compte
+  const deleteAccount = async () => {
+    try {
+      setLoading(true);
+      const { deleteUserAccount } = await import('../services/firebase/auth');
+      await deleteUserAccount();
+      // L'utilisateur sera automatiquement déconnecté après la suppression
+      setUser(null);
+      setUserProfile(null);
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     userProfile,
@@ -114,6 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signInWithGoogle,
     signOut,
+    deleteAccount,
     refreshUserProfile
   };
 

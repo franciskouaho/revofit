@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { OnboardingFlowProvider } from '@/components/onboarding';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { DrawerProvider } from '@/contexts/DrawerContext';
+import { HealthKitProvider } from '@/contexts/HealthKitContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { configureGoogleSignIn } from '@/services/firebase/auth';
 
@@ -40,29 +41,31 @@ export default function RootLayout() {
       />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
-          <OnboardingFlowProvider>
-            <DrawerProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  statusBarHidden: false,
-                  navigationBarHidden: true,
-                }}
-              >
-                <Stack.Screen name="splash" />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="welcome" />
-                <Stack.Screen name="height-input" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="profile" />
-                <Stack.Screen name="settings" />
-                <Stack.Screen name="notifications" />
-                <Stack.Screen name="ai-coach-chat" />
-                <Stack.Screen name="workout" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            </DrawerProvider>
-          </OnboardingFlowProvider>
+          <HealthKitProvider>
+            <OnboardingFlowProvider>
+              <DrawerProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    statusBarHidden: false,
+                    navigationBarHidden: true,
+                  }}
+                >
+                  <Stack.Screen name="splash" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen name="welcome" />
+                  <Stack.Screen name="height-input" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="profile" />
+                  <Stack.Screen name="settings" />
+                  <Stack.Screen name="notifications" />
+                  <Stack.Screen name="ai-coach-chat" />
+                  <Stack.Screen name="workout" />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+              </DrawerProvider>
+            </OnboardingFlowProvider>
+          </HealthKitProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

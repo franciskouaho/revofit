@@ -3,6 +3,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithCredential,
@@ -11,7 +12,7 @@ import {
   updateProfile,
   User
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { auth, firestore } from './config';
 
 // Configuration pour WebBrowser
@@ -28,9 +29,6 @@ export interface OnboardingData {
   height: number; // en cm
   weight: number; // en kg
   goals: string[];
-  activityLevel: string;
-  dietaryRestrictions: string[];
-  culinaryPreferences: string[];
   targetWeight?: number;
   weeklyWorkouts: number;
 }
@@ -45,9 +43,6 @@ export interface UserProfile {
   height: number;
   weight: number;
   goals: string[];
-  activityLevel: string;
-  dietaryRestrictions: string[];
-  culinaryPreferences: string[];
   targetWeight?: number;
   weeklyWorkouts: number;
   createdAt: any;
@@ -475,4 +470,58 @@ export const validateOnboardingData = (data: Partial<OnboardingData>) => {
     isValid: Object.keys(errors).length === 0,
     errors
   };
+};
+
+// Suppression du compte utilisateur
+export const deleteUserAccount = async (): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Aucun utilisateur connecté');
+    }
+
+    const uid = user.uid;
+
+    // Supprimer toutes les données utilisateur de Firestore
+    const collections = [
+      'profile',
+      'goals', 
+      'preferences',
+      'workouts',
+      'dailyStats',
+      'measurements',
+      'achievements',
+      'notifications'
+    ];
+
+    const batch = writeBatch(firestore);
+
+    // Supprimer les documents principaux
+    for (const collectionName of collections) {
+      const docRef = doc(firestore, 'users', uid, collectionName, 'main');
+      batch.delete(docRef);
+    }
+
+    // Supprimer les sous-collections (workouts, dailyStats, etc.)
+    for (const collectionName of ['workouts', 'dailyStats', 'measurements', 'achievements', 'notifications']) {
+      const subCollectionRef = collection(firestore, 'users', uid, collectionName);
+      const subCollectionSnapshot = await getDocs(subCollectionRef);
+      
+      subCollectionSnapshot.docs.forEach((docSnapshot) => {
+        batch.delete(docSnapshot.ref);
+      });
+    }
+
+    // Exécuter le batch de suppression
+    await batch.commit();
+
+    // Supprimer le compte Firebase Auth
+    await deleteUser(user);
+
+    console.log('Compte utilisateur supprimé avec succès');
+  } catch (error: any) {
+    console.error('Erreur lors de la suppression du compte:', error);
+    const errorMessage = error.code ? handleAuthError(error) : error.message;
+    throw new Error(errorMessage);
+  }
 };

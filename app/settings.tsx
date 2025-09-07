@@ -1,22 +1,43 @@
+import LogoutButton from '@/components/LogoutButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import LogoutButton from '@/components/LogoutButton';
+import { useState } from 'react';
+import { Alert, Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { userProfile } = useAuth();
+  const { userProfile, deleteAccount } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fonction de suppression de compte
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteAccount();
+      // L'utilisateur sera automatiquement redirigé vers la page de connexion
+      // grâce au contexte d'authentification
+    } catch (error: any) {
+      Alert.alert(
+        'Erreur',
+        error.message || 'Une erreur est survenue lors de la suppression du compte',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   const settingsSections = [
     {
@@ -48,6 +69,7 @@ export default function SettingsPage() {
         { icon: 'lock-closed', label: 'Verrouillage par code', subtitle: 'Protéger l\'accès à l\'app', type: 'navigate', onPress: () => console.log('Navigate to security') },
         { icon: 'shield-checkmark', label: 'Confidentialité', subtitle: 'Gérer vos données personnelles', type: 'navigate', onPress: () => console.log('Navigate to privacy') },
         { icon: 'finger-print', label: 'Authentification biométrique', subtitle: 'Utiliser Face ID ou Touch ID', type: 'navigate', onPress: () => console.log('Navigate to biometrics') },
+        { icon: 'trash', label: 'Supprimer le compte', subtitle: 'Supprimer définitivement votre compte', type: 'navigate', onPress: () => setShowDeleteModal(true), isDestructive: true },
       ],
     },
     {
@@ -63,6 +85,8 @@ export default function SettingsPage() {
   ];
 
   const renderSettingItem = (item: any, index: number) => {
+    const isDestructive = item.isDestructive || false;
+    
     return (
       <TouchableOpacity
         key={index}
@@ -71,12 +95,20 @@ export default function SettingsPage() {
         disabled={item.type === 'switch'}
       >
         <View style={styles.settingItemContent}>
-          <View style={styles.settingIcon}>
-            <Ionicons name={item.icon as any} size={22} color="#FFD700" />
+          <View style={[styles.settingIcon, isDestructive && styles.destructiveIcon]}>
+            <Ionicons 
+              name={item.icon as any} 
+              size={22} 
+              color={isDestructive ? "#FF4444" : "#FFD700"} 
+            />
           </View>
           <View style={styles.settingText}>
-            <Text style={styles.settingLabel}>{item.label}</Text>
-            <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+            <Text style={[styles.settingLabel, isDestructive && styles.destructiveLabel]}>
+              {item.label}
+            </Text>
+            <Text style={[styles.settingSubtitle, isDestructive && styles.destructiveSubtitle]}>
+              {item.subtitle}
+            </Text>
           </View>
           {item.type === 'switch' ? (
             <Switch
@@ -232,6 +264,60 @@ export default function SettingsPage() {
           <View style={styles.bottomSpacing} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Modal de confirmation de suppression de compte */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="warning" size={32} color="#FF4444" />
+              </View>
+              <Text style={styles.modalTitle}>Supprimer le compte</Text>
+              <Text style={styles.modalSubtitle}>
+                Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+              </Text>
+            </View>
+
+            <View style={styles.modalContent}>
+              <Text style={styles.modalWarningText}>
+                ⚠️ Vous allez perdre :
+              </Text>
+              <View style={styles.modalWarningList}>
+                <Text style={styles.modalWarningItem}>• Votre profil et vos informations personnelles</Text>
+                <Text style={styles.modalWarningItem}>• Tous vos entraînements et statistiques</Text>
+                <Text style={styles.modalWarningItem}>• Vos objectifs et préférences</Text>
+                <Text style={styles.modalWarningItem}>• L'accès à votre compte RevoFit</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                <Text style={styles.modalCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalDeleteButton, isDeleting && styles.modalDeleteButtonDisabled]}
+                onPress={handleDeleteAccount}
+                disabled={isDeleting}
+              >
+                <Text style={styles.modalDeleteText}>
+                  {isDeleting ? 'Suppression...' : 'Supprimer définitivement'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -354,4 +440,116 @@ const styles = StyleSheet.create({
   appInfoVersion: { fontSize: 12, color: 'rgba(255, 255, 255, 0.7)', fontWeight: '500', marginBottom: 2 },
   appInfoBuild: { fontSize: 10, color: 'rgba(255, 255, 255, 0.5)', fontWeight: '400' },
   bottomSpacing: { height: 20 },
+  // Styles pour les éléments destructifs
+  destructiveIcon: {
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+  },
+  destructiveLabel: {
+    color: '#FF4444',
+  },
+  destructiveSubtitle: {
+    color: 'rgba(255, 68, 68, 0.7)',
+  },
+  // Styles pour la modal de suppression
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalContent: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  modalWarningText: {
+    fontSize: 16,
+    color: '#FFD700',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  modalWarningList: {
+    marginLeft: 8,
+  },
+  modalWarningItem: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  modalDeleteButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#FF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalDeleteButtonDisabled: {
+    backgroundColor: 'rgba(255, 68, 68, 0.5)',
+  },
+  modalDeleteText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
 });
