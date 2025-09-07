@@ -147,13 +147,17 @@ export default function SettingsPage() {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Profile Hero Section */}
+          {/* Profile Hero Section - Version simplifiée */}
           <View style={styles.profileHero}>
-            <View style={styles.heroGlass}>
+            <TouchableOpacity 
+              style={styles.heroGlass}
+              onPress={() => router.push('/profile')}
+            >
               <View style={styles.profileAvatar}>
                 <LinearGradient colors={['#FFD700', '#FFA000']} style={styles.avatarGradient}>
                   <Ionicons name="person" size={40} color="#0A0A0A" />
                 </LinearGradient>
+                <View style={styles.onlineIndicator} />
               </View>
               <Text style={styles.profileName}>
                 {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : "Utilisateur"}
@@ -166,30 +170,33 @@ export default function SettingsPage() {
                 <Text style={styles.premiumText}>Membre Premium</Text>
               </View>
 
-              {/* Informations utilisateur */}
+              {/* Statistiques rapides */}
               {userProfile && (
-                <View style={styles.userInfo}>
-                  <View style={styles.userInfoRow}>
-                    <Ionicons name="person" size={16} color="#FFD700" />
-                    <Text style={styles.userInfoText}>
-                      {userProfile.gender === 'homme' ? 'Homme' : 'Femme'} • {userProfile.age} ans
-                    </Text>
+                <View style={styles.quickStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{userProfile.age}</Text>
+                    <Text style={styles.statLabel}>ans</Text>
                   </View>
-                  <View style={styles.userInfoRow}>
-                    <Ionicons name="resize" size={16} color="#FFD700" />
-                    <Text style={styles.userInfoText}>
-                      {userProfile.height} cm • {userProfile.weight} kg
-                    </Text>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{userProfile.height}</Text>
+                    <Text style={styles.statLabel}>cm</Text>
                   </View>
-                  <View style={styles.userInfoRow}>
-                    <Ionicons name="fitness" size={16} color="#FFD700" />
-                    <Text style={styles.userInfoText}>
-                      {userProfile.weeklyWorkouts} entraînements/semaine
-                    </Text>
+                  <View style={styles.statDivider} />
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{userProfile.weight}</Text>
+                    <Text style={styles.statLabel}>kg</Text>
                   </View>
                 </View>
               )}
-            </View>
+
+              {/* Bouton pour voir le profil complet */}
+              <View style={styles.viewProfileButton}>
+                <Ionicons name="eye" size={16} color="#FFD700" />
+                <Text style={styles.viewProfileText}>Voir le profil complet</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FFD700" />
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Objectifs utilisateur */}
@@ -379,18 +386,71 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12,
   },
   premiumText: { fontSize: 12, color: '#FFFFFF', fontWeight: '600', marginLeft: 6 },
-  userInfo: { marginTop: 16, width: '100%' },
-  userInfoRow: {
+  // Indicateur en ligne
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#00FF00',
+    borderWidth: 2,
+    borderColor: '#0A0A0A',
+  },
+  // Statistiques rapides
+  quickStats: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
     justifyContent: 'center',
-    gap: 8
+    marginTop: 20,
+    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.1)',
   },
-  userInfoText: {
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    color: '#FFD700',
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    marginHorizontal: 16,
+  },
+  // Bouton pour voir le profil complet
+  viewProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+    gap: 8,
+  },
+  viewProfileText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500'
+    color: '#FFD700',
+    fontWeight: '600',
   },
   goalsSection: { paddingHorizontal: 20, marginBottom: 30 },
   goalsContainer: {
