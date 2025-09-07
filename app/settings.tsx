@@ -199,20 +199,6 @@ export default function SettingsPage() {
             </TouchableOpacity>
           </View>
 
-          {/* Objectifs utilisateur */}
-          {userProfile && userProfile.goals && userProfile.goals.length > 0 && (
-            <View style={styles.goalsSection}>
-              <Text style={styles.sectionTitle}>Mes Objectifs</Text>
-              <View style={styles.goalsContainer}>
-                {userProfile.goals.map((goal, index) => (
-                  <View key={index} style={styles.goalChip}>
-                    <Ionicons name="checkmark-circle" size={16} color="#FFD700" />
-                    <Text style={styles.goalText}>{goal}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
@@ -451,29 +437,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFD700',
     fontWeight: '600',
-  },
-  goalsSection: { paddingHorizontal: 20, marginBottom: 30 },
-  goalsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12
-  },
-  goalChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    gap: 6
-  },
-  goalText: {
-    fontSize: 12,
-    color: '#FFD700',
-    fontWeight: '600'
   },
   quickActions: {
     flexDirection: 'row', justifyContent: 'space-between',

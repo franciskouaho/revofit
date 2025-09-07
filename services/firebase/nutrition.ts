@@ -4,19 +4,19 @@
  */
 
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    Timestamp,
-    Unsubscribe,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  Timestamp,
+  Unsubscribe,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { firestore } from './config';
 
