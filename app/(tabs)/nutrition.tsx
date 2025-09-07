@@ -53,23 +53,23 @@ export default function NutritionScreen() {
 
   // Calcul des objectifs nutritionnels basés sur les données utilisateur
   const calculateNutritionGoals = () => {
-    if (!userProfile) {
-      return [
-        { name: 'Calories', current: 0, target: 2200, unit: 'kcal', color: '#FFD700', icon: 'flame' },
-        { name: 'Protéines', current: 0, target: 150, unit: 'g', color: '#4CAF50', icon: 'fitness' },
-        { name: 'Glucides', current: 0, target: 250, unit: 'g', color: '#FF6B6B', icon: 'leaf' },
-        { name: 'Lipides', current: 0, target: 80, unit: 'g', color: '#9C27B0', icon: 'water' },
-      ];
-    }
+    // Utiliser les données du profil ou des valeurs par défaut
+    const profile = userProfile || {
+      age: 25,
+      gender: 'male' as const,
+      weight: 70,
+      height: 175,
+      activityLevel: 'moderate' as const
+    };
 
-    // Calcul basé sur les données de l'onboarding
-    const age = userProfile.age || 25;
-    const weight = userProfile.weight || 70;
-    const height = userProfile.height || 175;
-    const activityLevel = userProfile.activityLevel || 'moderate';
+    // Calcul basé sur les données du profil
+    const age = profile.age;
+    const weight = profile.weight;
+    const height = profile.height;
+    const activityLevel = profile.activityLevel;
     
     // Calcul des calories de base (Harris-Benedict)
-    const isMale = userProfile.gender === 'male';
+    const isMale = profile.gender === 'male';
     let bmr = isMale 
       ? 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
       : 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
@@ -153,11 +153,18 @@ export default function NutritionScreen() {
       return;
     }
 
+    if (!userProfile) {
+      Alert.alert('Erreur', 'Profil utilisateur non trouvé. Veuillez réessayer.');
+      return;
+    }
+
     try {
       await createPersonalizedPlan(goal, 7);
       setActiveTab('plans');
-    } catch {
-      Alert.alert('Erreur', 'Impossible de créer le plan nutritionnel');
+      Alert.alert('Succès', 'Plan nutritionnel créé avec succès !');
+    } catch (err) {
+      console.error('Erreur création plan:', err);
+      Alert.alert('Erreur', 'Impossible de créer le plan nutritionnel. Veuillez réessayer.');
     }
   };
 
@@ -165,47 +172,16 @@ export default function NutritionScreen() {
   const handleAddMeal = async (suggestion: any) => {
     try {
       // Ici on pourrait ajouter la recette au plan ou aux repas du jour
+      console.log('🍽️ Ajout du repas suggéré:', suggestion);
       Alert.alert('Succès', 'Repas ajouté à votre plan nutritionnel');
-    } catch {
+    } catch (err) {
+      console.error('Erreur ajout repas:', err);
       Alert.alert('Erreur', 'Impossible d\'ajouter le repas');
     }
   };
 
   // Recettes affichées (recherche ou toutes)
-  const displayedRecipes = recipes.length > 0 ? recipes : [
-    {
-      id: '1',
-      name: 'Bowl protéiné quinoa',
-      category: 'lunch',
-      calories: 420, protein: 28, carbs: 45, fats: 12, prepTime: 25, difficulty: 'easy',
-      imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
-      tags: ['Végétarien', 'Riche en protéines', 'Sans gluten']
-    },
-    {
-      id: '2',
-      name: 'Smoothie vert énergisant',
-      category: 'breakfast',
-      calories: 180, protein: 15, carbs: 22, fats: 4, prepTime: 5, difficulty: 'easy',
-      imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop',
-      tags: ['Vegan', 'Rapide', 'Énergisant']
-    },
-    {
-      id: '3',
-      name: 'Saumon grillé légumes',
-      category: 'dinner',
-      calories: 380, protein: 35, carbs: 18, fats: 22, prepTime: 35, difficulty: 'medium',
-      imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop',
-      tags: ['Oméga-3', 'Riche en protéines', 'Anti-inflammatoire']
-    },
-    {
-      id: '4',
-      name: 'Salade de pois chiches',
-      category: 'snack',
-      calories: 220, protein: 12, carbs: 28, fats: 8, prepTime: 15, difficulty: 'easy',
-      imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop',
-      tags: ['Végétarien', 'Fibres', 'Rapide']
-    }
-  ];
+  const displayedRecipes = recipes;
 
   // Supprimé car non utilisé
 

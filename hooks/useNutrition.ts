@@ -244,6 +244,9 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
 
     const loadInitialData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+        
         // Charger l'objectif nutritionnel
         const goal = await nutritionService.getNutritionGoal(userId);
         setNutritionGoalState(goal);
@@ -255,6 +258,9 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
         await loadRecipes();
       } catch (err) {
         console.error('❌ Erreur lors du chargement initial:', err);
+        setError('Impossible de charger les données nutritionnelles');
+      } finally {
+        setLoading(false);
       }
     };
 

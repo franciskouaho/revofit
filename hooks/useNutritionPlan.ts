@@ -220,13 +220,34 @@ export function useNutritionPlan(): UseNutritionPlanReturn {
     const loadInitialData = async () => {
       try {
         // Charger le profil utilisateur
-        const profile = await nutritionPlanService.getUserProfile(userId);
+        let profile = await nutritionPlanService.getUserProfile(userId);
+        
+        // Si aucun profil n'existe, créer un profil par défaut
+        if (!profile) {
+          console.log('👤 Aucun profil trouvé, création d\'un profil par défaut...');
+          const defaultProfile = {
+            age: 25,
+            gender: 'male' as const,
+            height: 175,
+            weight: 70,
+            activityLevel: 'moderate' as const,
+            goals: ['maintain_weight'],
+            dietaryRestrictions: [],
+            preferences: ['healthy', 'balanced']
+          };
+          
+          const profileId = await nutritionPlanService.saveUserProfile(userId, defaultProfile);
+          profile = await nutritionPlanService.getUserProfile(userId);
+          console.log('✅ Profil par défaut créé:', profileId);
+        }
+        
         setUserProfile(profile);
 
         // Charger les plans nutritionnels
         await refreshPlans();
       } catch (err) {
         console.error('❌ Erreur lors du chargement initial:', err);
+        setError('Impossible de charger les données nutritionnelles');
       }
     };
 

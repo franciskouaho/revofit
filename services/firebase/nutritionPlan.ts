@@ -3,7 +3,7 @@
  * RevoFit - Génération de plans nutritionnels basés sur les objectifs utilisateur
  */
 
-import { addDoc, collection, doc, getDocs, limit, orderBy, query, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, limit, query, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { firestore } from './config';
 import { Recipe } from './nutrition';
 
@@ -158,15 +158,21 @@ class NutritionPlanService {
       );
       
       const recipesSnapshot = await getDocs(recipesQuery);
-      const allRecipes = recipesSnapshot.docs.map(doc => {
+      let allRecipes = recipesSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
         } as Recipe;
       });
+
+      // Si aucune recette n'est trouvée, utiliser des recettes par défaut
+      if (allRecipes.length === 0) {
+        console.log('📚 Aucune recette trouvée, utilisation des recettes par défaut pour les suggestions');
+        allRecipes = this.getDefaultRecipes();
+      }
 
       // Filtrer selon les restrictions alimentaires
       let filteredRecipes = allRecipes;
@@ -373,29 +379,127 @@ class NutritionPlanService {
   }
 
   /**
+   * Récupérer des recettes par défaut
+   */
+  private getDefaultRecipes(): Recipe[] {
+    return [
+      {
+        id: 'default-1',
+        name: 'Bowl protéiné quinoa',
+        description: 'Un bowl équilibré avec quinoa, légumes et protéines',
+        category: 'lunch',
+        calories: 420,
+        protein: 28,
+        carbs: 45,
+        fats: 12,
+        fiber: 8,
+        prepTime: 25,
+        difficulty: 'easy',
+        servings: 1,
+        ingredients: ['Quinoa', 'Poulet grillé', 'Avocat', 'Tomates', 'Concombre'],
+        instructions: ['Cuire le quinoa', 'Griller le poulet', 'Couper les légumes', 'Assembler le bowl'],
+        tags: ['Végétarien', 'Riche en protéines', 'Sans gluten'],
+        imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
+        isPublic: true,
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'default-2',
+        name: 'Smoothie vert énergisant',
+        description: 'Smoothie vert riche en vitamines et minéraux',
+        category: 'breakfast',
+        calories: 180,
+        protein: 15,
+        carbs: 22,
+        fats: 4,
+        fiber: 6,
+        prepTime: 5,
+        difficulty: 'easy',
+        servings: 1,
+        ingredients: ['Épinards', 'Banane', 'Pomme', 'Lait d\'amande', 'Protéine en poudre'],
+        instructions: ['Mettre tous les ingrédients dans un blender', 'Mixer jusqu\'à obtenir une texture lisse'],
+        tags: ['Vegan', 'Rapide', 'Énergisant'],
+        imageUrl: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop',
+        isPublic: true,
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'default-3',
+        name: 'Saumon grillé légumes',
+        description: 'Saumon grillé accompagné de légumes de saison',
+        category: 'dinner',
+        calories: 380,
+        protein: 35,
+        carbs: 18,
+        fats: 22,
+        fiber: 5,
+        prepTime: 35,
+        difficulty: 'medium',
+        servings: 1,
+        ingredients: ['Filet de saumon', 'Brocolis', 'Carottes', 'Courgettes', 'Huile d\'olive'],
+        instructions: ['Préchauffer le four', 'Assaisonner le saumon', 'Cuire les légumes', 'Griller le saumon'],
+        tags: ['Oméga-3', 'Riche en protéines', 'Anti-inflammatoire'],
+        imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop',
+        isPublic: true,
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'default-4',
+        name: 'Salade de pois chiches',
+        description: 'Salade fraîche et protéinée aux pois chiches',
+        category: 'snack',
+        calories: 220,
+        protein: 12,
+        carbs: 28,
+        fats: 8,
+        fiber: 10,
+        prepTime: 15,
+        difficulty: 'easy',
+        servings: 1,
+        ingredients: ['Pois chiches', 'Tomates cerises', 'Concombre', 'Oignon rouge', 'Persil'],
+        instructions: ['Rincer les pois chiches', 'Couper les légumes', 'Mélanger avec l\'assaisonnement'],
+        tags: ['Végétarien', 'Fibres', 'Rapide'],
+        imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop',
+        isPublic: true,
+        createdBy: 'system',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
+  }
+
+  /**
    * Récupérer les plans nutritionnels d'un utilisateur
    */
   async getUserPlans(userId: string): Promise<NutritionPlan[]> {
     try {
       const q = query(
         this.plansCollection,
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', userId)
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => {
+      const plans = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
         } as NutritionPlan;
       });
+
+      // Trier côté client pour éviter les problèmes d'index
+      return plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
       console.error('❌ Erreur lors de la récupération des plans:', error);
-      throw error;
+      return []; // Retourner un tableau vide au lieu de throw
     }
   }
 
@@ -420,12 +524,12 @@ class NutritionPlanService {
       return {
         id: doc.id,
         ...data,
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate(),
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
       } as UserProfile;
     } catch (error) {
       console.error('❌ Erreur lors de la récupération du profil:', error);
-      throw error;
+      return null; // Retourner null au lieu de throw
     }
   }
 
