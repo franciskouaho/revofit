@@ -6,6 +6,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { AppNotification, NotificationService } from '@/services/firebase/notifications';
 import { clearNotificationBadge, updateNotificationBadge } from '@/services/notificationManager';
+import { NotificationScheduler } from '@/services/notificationScheduler';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useState } from 'react';
 
@@ -56,6 +57,8 @@ export function useNotifications(): UseNotificationsReturn {
     
     try {
       await NotificationService.registerForPushNotificationsAsync(user.uid);
+      // Programmer les notifications quotidiennes après l'enregistrement
+      await NotificationScheduler.initializeScheduledNotifications(user.uid);
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement des notifications:', err);
       setError('Impossible d\'enregistrer les notifications');

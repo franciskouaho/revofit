@@ -4,28 +4,29 @@
  */
 
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import {
-  ExerciseProgress,
-  ExerciseSet,
-  ExerciseTemplate,
-  SetData,
-  WorkoutSession
+    ExerciseProgress,
+    ExerciseSet,
+    ExerciseTemplate,
+    SetData,
+    WorkoutSession
 } from '../../types/exercise';
 import { firestore } from './config';
+import { NotificationService } from './notifications';
 
 // Collections Firebase
 const COLLECTIONS = {
@@ -427,6 +428,29 @@ export class WorkoutSessionService {
         caloriesBurned,
         updatedAt: serverTimestamp()
       });
+
+      // Récupérer les détails de la session pour envoyer une notification
+      const sessionDoc = await getDoc(docRef);
+      if (sessionDoc.exists()) {
+        const sessionData = sessionDoc.data();
+        const userId = sessionData.userId;
+        const templateId = sessionData.templateId;
+        
+        // Récupérer le nom du template
+        if (templateId) {
+          const templateDoc = await getDoc(doc(firestore, COLLECTIONS.EXERCISE_TEMPLATES, templateId));
+          if (templateDoc.exists()) {
+            const templateData = templateDoc.data();
+            const workoutName = templateData.name || 'Entraînement';
+            const calories = caloriesBurned || 0;
+            
+            // Envoyer notification de fin d'entraînement
+            await NotificationService.createWorkoutNotification(userId, workoutName, calories);
+            console.log('✅ Notification de fin d\'entraînement envoyée');
+          }
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Erreur lors de la fin de la session:', error);

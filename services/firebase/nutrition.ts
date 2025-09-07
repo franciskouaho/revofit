@@ -19,6 +19,7 @@ import {
   where
 } from 'firebase/firestore';
 import { firestore } from './config';
+import { NotificationService } from './notifications';
 
 export interface NutritionGoal {
   id: string;
@@ -165,6 +166,10 @@ class NutritionService {
         updatedAt: Timestamp.now(),
       });
       console.log('✅ Repas ajouté:', docRef.id);
+
+      // Vérifier si l'objectif calorique est atteint
+      await this.checkCalorieGoal(userId, meal.date);
+
       return docRef.id;
     } catch (error) {
       console.error('❌ Erreur lors de l\'ajout du repas:', error);
@@ -642,6 +647,38 @@ class NutritionService {
       });
       callback(meals);
     });
+  }
+
+  /**
+   * Vérifie si l'objectif calorique est atteint et envoie une notification
+   */
+  private async checkCalorieGoal(userId: string, date: string): Promise<void> {
+    try {
+      // Récupérer l'objectif nutritionnel de l'utilisateur
+      const goalQuery = query(
+        this.goalsCollection,
+        where('userId', '==', userId),
+        limit(1)
+      );
+      const goalSnapshot = await getDocs(goalQuery);
+      
+      if (goalSnapshot.empty) return; // Pas d'objectif défini
+      
+      const goal = goalSnapshot.docs[0].data() as NutritionGoal;
+      const calorieGoal = goal.calories;
+
+      // Récupérer les repas du jour
+      const meals = await this.getMealsByDate(userId, date);
+      const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+
+      // Vérifier si l'objectif est atteint (à 95% pour éviter les notifications multiples)
+      if (totalCalories >= calorieGoal * 0.95 && totalCalories <= calorieGoal * 1.05) {
+        await NotificationService.createCalorieGoalNotification(userId, totalCalories, calorieGoal);
+        console.log('✅ Notification d\'objectif calorique envoyée');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification de l\'objectif calorique:', error);
+    }
   }
 }
 

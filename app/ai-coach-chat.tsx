@@ -6,10 +6,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useStatsData } from '@/hooks/useStatsData';
 import { AIChatResponse, AIChatService, CoachProfile, CoachService } from '@/services/ai/chatService';
+import { ChatMessageService } from '@/services/firebase/chatMessages';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -54,6 +55,34 @@ export default function AICoachChatPage() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Écouter les messages de coach en temps réel
+  useEffect(() => {
+    if (activeTab === 'coach' && selectedCoach && user?.uid) {
+      const unsubscribe = ChatMessageService.watchChatMessages(
+        user.uid,
+        selectedCoach.id,
+        (firebaseMessages) => {
+          // Convertir les messages Firebase en format local
+          const localMessages: ChatMessage[] = firebaseMessages.map(msg => ({
+            id: msg.id,
+            type: msg.senderType === 'user' ? 'user' : 'coach',
+            message: msg.message,
+            timestamp: msg.timestamp,
+            senderName: msg.senderName
+          }));
+          
+          // Mettre à jour les messages en gardant les messages IA existants
+          setMessages(prev => {
+            const aiMessages = prev.filter(m => m.type === 'ai');
+            return [...aiMessages, ...localMessages];
+          });
+        }
+      );
+
+      return () => unsubscribe();
+    }
+  }, [activeTab, selectedCoach, user?.uid]);
 
   const loadInitialData = async () => {
     try {
@@ -134,20 +163,14 @@ export default function AICoachChatPage() {
   };
 
   const sendToCoach = async (message: string) => {
-    if (!selectedCoach) return;
+    if (!selectedCoach || !user?.uid) return;
 
     try {
-      const success = await CoachService.sendMessageToCoach(selectedCoach.id, message, user?.uid || '');
+      const success = await CoachService.sendMessageToCoach(selectedCoach.id, message, user.uid);
       
       if (success) {
-        const coachMessage: ChatMessage = {
-          id: Date.now().toString(),
-          type: 'coach',
-          message: `Message envoyé à ${selectedCoach.name}. Elle vous répondra bientôt !`,
-          timestamp: new Date(),
-          senderName: selectedCoach.name
-        };
-        setMessages(prev => [...prev, coachMessage]);
+        // Le message sera ajouté automatiquement via l'écoute en temps réel
+        console.log('Message envoyé au coach');
       }
     } catch (error) {
       throw error;

@@ -5,11 +5,12 @@
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { NotificationScheduler } from './notificationScheduler';
 
 /**
  * Initialise le système de notifications au démarrage de l'app
  */
-export async function initializeNotifications() {
+export async function initializeNotifications(userId?: string) {
   try {
     // Configurer le gestionnaire de notifications
     Notifications.setNotificationHandler({
@@ -35,6 +36,11 @@ export async function initializeNotifications() {
 
     // Effacer le badge au démarrage de l'app
     await Notifications.setBadgeCountAsync(0);
+
+    // Programmer les notifications quotidiennes si un userId est fourni
+    if (userId) {
+      await NotificationScheduler.initializeScheduledNotifications(userId);
+    }
 
     console.log('✅ Notifications initialisées avec succès');
   } catch (error) {

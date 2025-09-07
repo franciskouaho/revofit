@@ -345,13 +345,29 @@ export class CoachService {
     userId: string
   ): Promise<boolean> {
     try {
-      // Simulation d'envoi - à remplacer par une vraie API
-      console.log(`Message envoyé au coach ${coachId}: ${message}`);
+      // Importer le service de messages de chat
+      const { ChatMessageService } = await import('../firebase/chatMessages');
+      
+      // Récupérer le nom du coach
+      const coaches = await this.getAvailableCoaches();
+      const coach = coaches.find(c => c.id === coachId);
+      const coachName = coach?.name || 'Coach';
 
-      // Ici, vous pourriez sauvegarder le message dans Firebase
-      // et envoyer une notification push au coach
+      // Envoyer le message via Firebase
+      const messageId = await ChatMessageService.sendMessageToCoach(
+        userId,
+        coachId,
+        coachName,
+        message
+      );
 
-      return true;
+      if (messageId) {
+        console.log(`✅ Message envoyé au coach ${coachName}: ${message}`);
+        return true;
+      } else {
+        console.error('❌ Échec de l\'envoi du message');
+        return false;
+      }
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message au coach:', error);
       return false;

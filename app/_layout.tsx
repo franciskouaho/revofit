@@ -1,8 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
@@ -12,6 +12,7 @@ import { DrawerProvider } from '@/contexts/DrawerContext';
 import { HealthKitProvider } from '@/contexts/HealthKitContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { configureGoogleSignIn } from '@/services/firebase/auth';
+import { initializeNotifications } from '@/services/notificationManager';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -22,9 +23,10 @@ export default function RootLayout() {
     'Inter-Medium': require('../assets/fonts/Inter-Medium.ttf'),
   });
 
-  // Configuration Google Sign-In
+  // Configuration Google Sign-In et Notifications
   React.useEffect(() => {
     configureGoogleSignIn();
+    initializeNotifications();
   }, []);
 
   if (!loaded) {
@@ -34,11 +36,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="transparent" 
-        translucent={true}
-      />
+      <StatusBar style="light" />
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <AuthProvider>
           <HealthKitProvider>
