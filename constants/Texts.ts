@@ -89,6 +89,13 @@ export const Texts = {
     },
   },
 
+  // Workout Status
+  workoutStatus: {
+    strikes: 'Série',
+    currentStreak: 'Série actuelle',
+    timeToWorkout: 'C\'est l\'heure de s\'entraîner',
+  },
+
   // Common
   common: {
     loading: 'Chargement...',

@@ -1,5 +1,6 @@
 // app/(tabs)/workout.tsx
 import HealthDrawer from "@/components/HealthDrawer";
+import MuscleRecoverySlider from "@/components/MuscleRecoverySlider";
 import TemplateDrawer from "@/components/TemplateDrawer";
 import WorkoutTemplateCard from "@/components/WorkoutTemplateCard";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,19 +9,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
-  FlatList,
-  ImageBackground,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    ImageBackground,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
+import { useMuscleRecovery } from "../../hooks/useMuscleRecovery";
 import { useWorkouts } from "../../hooks/useWorkouts";
 import { ExerciseTemplate } from "../../types/exercise";
 
@@ -208,6 +210,16 @@ export default function WorkoutScreen() {
   // Hook Firebase pour les workouts
   const { templates, loading, error, refetch, deleteTemplate } = useWorkouts();
   
+  // Hook pour la récupération musculaire
+  const { 
+    recoveryData, 
+    currentIndex, 
+    loading: recoveryLoading, 
+    error: recoveryError, 
+    setCurrentIndex, 
+    refreshData: refreshRecoveryData 
+  } = useMuscleRecovery();
+  
   // Debug: Afficher les templates dans la console
   React.useEffect(() => {
     console.log("🔍 Templates chargés:", templates.length);
@@ -218,7 +230,7 @@ export default function WorkoutScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), refreshRecoveryData()]);
     setRefreshing(false);
   };
 
@@ -355,32 +367,17 @@ export default function WorkoutScreen() {
             />
           }
         >
-          {/* grand gauge section */}
+          {/* Muscle recovery slider section */}
           <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
-            <LinearGradient
-              colors={["rgba(255,255,255,0.03)", "rgba(0,0,0,0.25)"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{ borderRadius: 22, padding: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" }}
-            >
-              <Text style={{ color: "#fff", fontSize: 32, fontWeight: "900", marginBottom: 8 }}>Workout</Text>
-              <BigGauge percent={100} color="#2ECC71" />
-              {/* dots (carousel feel) */}
-              <View style={{ flexDirection: "row", alignSelf: "center", marginTop: 10, gap: 6 }}>
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((d, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: i === 0 ? 10 : 6,
-                      height: i === 0 ? 10 : 6,
-                      borderRadius: 6,
-                      backgroundColor: i === 0 ? "#D1D5DB" : "rgba(255,255,255,0.3)",
-                    }}
-                  />
-                ))}
-              </View>
-              {/* boutons */}
-              <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
+            <MuscleRecoverySlider
+              recoveryData={recoveryData}
+              currentIndex={currentIndex}
+              onIndexChange={setCurrentIndex}
+              loading={recoveryLoading}
+            />
+            
+            {/* boutons */}
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 18 }}>
                 <TouchableOpacity 
                   style={{ flex: 1, borderRadius: 18, overflow: "hidden" }}
                   onPress={() => {
@@ -414,7 +411,6 @@ export default function WorkoutScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
           </View>
 
           {/* semaine + cartes infos */}

@@ -190,9 +190,9 @@ export function useStatsData(): StatsData {
 
       // Calculer les records personnels
       const personalRecords = {
-        longestDistance: Math.max(...workoutSessions.map(s => s.totalTime || 0)) / 60, // en km (approximation)
+        longestDistance: workoutSessions.length > 0 ? Math.max(...workoutSessions.map(s => s.distance || 0)) / 1000 : 0, // en km
         bestPace: 5.02, // Placeholder - à calculer selon les données réelles
-        maxCalories: Math.max(...workoutSessions.map(s => s.caloriesBurned || 0)),
+        maxCalories: workoutSessions.length > 0 ? Math.max(...workoutSessions.map(s => s.caloriesBurned || 0)) : 0,
         longestStreak: longestStreak,
       };
 

@@ -180,7 +180,7 @@ export default function StatsScreen() {
     },
     { 
       label: 'Distance', 
-      value: healthData ? `${(healthData.distance / 1000).toFixed(1)} km` : `${Math.round(personalRecords.longestDistance)} km`, 
+      value: healthData ? `${(healthData.distance / 1000).toFixed(1)} km` : `${Math.round(personalRecords.longestDistance || 0)} km`, 
       diff: '+12', 
       icon: 'trail-sign', 
       color: '#9FA8DA', 
@@ -261,7 +261,7 @@ export default function StatsScreen() {
     {
       label: 'Distance (7j)',
       value: historicalData.length > 0 ? 
-        `${(historicalData.slice(-7).reduce((sum, d) => sum + d.distance, 0) / 1000).toFixed(1)} km` : 
+        `${(historicalData.slice(-7).reduce((sum, d) => sum + (d.distance || 0), 0) / 1000).toFixed(1)} km` : 
         '12.5 km',
       icon: 'trail-sign',
       color: '#9FA8DA',
@@ -640,7 +640,7 @@ export default function StatsScreen() {
                 <View style={{ alignItems: 'center', gap: 8 }}>
                   <Ionicons name="trophy" size={28} color="#FFD700" />
                   <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Distance course</Text>
-                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{personalRecords.longestDistance.toFixed(1)} km</Text>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>{personalRecords.longestDistance?.toFixed(1) || '0.0'} km</Text>
                   <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
                     {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </Text>

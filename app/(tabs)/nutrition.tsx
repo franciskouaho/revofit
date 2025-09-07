@@ -9,7 +9,7 @@ import { useNutritionPlan } from '@/hooks/useNutritionPlan';
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -52,16 +52,39 @@ export default function NutritionScreen() {
     activatePlan,
   } = useNutritionPlan();
 
-  // Calcul des objectifs nutritionnels basés sur les données utilisateur
-  const calculateNutritionGoals = () => {
+  // Valeurs par défaut pour éviter les états vides
+  const defaultDailyNutrition = {
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFats: 0,
+    totalFiber: 0,
+    totalSugar: 0,
+    totalSodium: 0,
+    waterIntake: 0,
+    mealCount: 0,
+    date: new Date().toISOString().split('T')[0],
+  };
+
+  const defaultUserProfile = {
+    age: 25,
+    gender: 'male' as const,
+    weight: 70,
+    height: 175,
+    activityLevel: 'moderate' as const,
+    goals: ['maintain_weight'],
+    dietaryRestrictions: [],
+    preferences: ['healthy', 'balanced']
+  };
+
+  // Utiliser les données réelles ou les valeurs par défaut
+  const currentDailyNutrition = dailyNutrition || defaultDailyNutrition;
+  const currentUserProfile = userProfile || defaultUserProfile;
+
+  // Calcul des objectifs nutritionnels basés sur les données utilisateur (mémorisé)
+  const nutritionGoals = useMemo(() => {
     // Utiliser les données du profil ou des valeurs par défaut
-    const profile = userProfile || {
-      age: 25,
-      gender: 'male' as const,
-      weight: 70,
-      height: 175,
-      activityLevel: 'moderate' as const
-    };
+    const profile = currentUserProfile;
 
     // Calcul basé sur les données du profil
     const age = profile.age;
@@ -95,7 +118,7 @@ export default function NutritionScreen() {
     return [
       { 
         name: 'Calories',   
-        current: dailyNutrition?.totalCalories || 0, 
+        current: currentDailyNutrition.totalCalories, 
         target: calories, 
         unit: 'kcal', 
         color: '#FFD700', 
@@ -103,7 +126,7 @@ export default function NutritionScreen() {
       },
       { 
         name: 'Protéines',  
-        current: dailyNutrition?.totalProtein || 0, 
+        current: currentDailyNutrition.totalProtein, 
         target: protein, 
         unit: 'g',    
         color: '#4CAF50', 
@@ -111,7 +134,7 @@ export default function NutritionScreen() {
       },
       { 
         name: 'Glucides',   
-        current: dailyNutrition?.totalCarbs || 0, 
+        current: currentDailyNutrition.totalCarbs, 
         target: carbs, 
         unit: 'g',    
         color: '#FF6B6B', 
@@ -119,16 +142,14 @@ export default function NutritionScreen() {
       },
       { 
         name: 'Lipides',    
-        current: dailyNutrition?.totalFats || 0, 
+        current: currentDailyNutrition.totalFats, 
         target: fats, 
         unit: 'g',    
         color: '#9C27B0', 
         icon: 'water' 
       },
     ];
-  };
-
-  const nutritionGoals = calculateNutritionGoals();
+  }, [currentUserProfile, currentDailyNutrition]);
 
   const mealCategories = [
     { name: 'Petit-déjeuner', icon: 'sunny',       color: '#FFD700' },
@@ -137,24 +158,24 @@ export default function NutritionScreen() {
     { name: 'Dîner',           icon: 'moon',        color: '#9C27B0' },
   ];
 
-  // Gérer la recherche de recettes
-  const handleSearch = async (query: string) => {
+  // Gérer la recherche de recettes (mémorisé)
+  const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
       await searchRecipes(query);
     } else {
       await loadRecipes();
     }
-  };
+  }, [searchRecipes, loadRecipes]);
 
-  // Gérer la création d'un plan personnalisé
-  const handleCreatePlan = async (goal: 'maintain' | 'lose' | 'gain') => {
+  // Gérer la création d'un plan personnalisé (mémorisé)
+  const handleCreatePlan = useCallback(async (goal: 'maintain' | 'lose' | 'gain') => {
     if (!user) {
       Alert.alert('Erreur', 'Vous devez être connecté pour créer un plan nutritionnel');
       return;
     }
 
-    if (!userProfile) {
+    if (!currentUserProfile) {
       Alert.alert('Erreur', 'Profil utilisateur non trouvé. Veuillez réessayer.');
       return;
     }
@@ -167,10 +188,10 @@ export default function NutritionScreen() {
       console.error('Erreur création plan:', err);
       Alert.alert('Erreur', 'Impossible de créer le plan nutritionnel. Veuillez réessayer.');
     }
-  };
+  }, [user, currentUserProfile, createPersonalizedPlan]);
 
-  // Gérer l'ajout d'un repas suggéré
-  const handleAddMeal = async (suggestion: any) => {
+  // Gérer l'ajout d'un repas suggéré (mémorisé)
+  const handleAddMeal = useCallback(async (suggestion: any) => {
     try {
       // Ici on pourrait ajouter la recette au plan ou aux repas du jour
       console.log('🍽️ Ajout du repas suggéré:', suggestion);
@@ -179,35 +200,15 @@ export default function NutritionScreen() {
       console.error('Erreur ajout repas:', err);
       Alert.alert('Erreur', 'Impossible d\'ajouter le repas');
     }
-  };
+  }, []);
 
   // Recettes affichées (recherche ou toutes)
   const displayedRecipes = recipes;
 
   // Supprimé car non utilisé
 
-  // États de chargement et d'erreur
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['#2a2a00', '#000000', '#000000', '#2a2a00']}
-          locations={[0, 0.15, 0.7, 1]}
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          style={StyleSheet.absoluteFill}
-        />
-        <SafeAreaView style={styles.safeArea}>
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#FFD700" />
-            <Text style={{ color: '#fff', marginTop: 16 }}>Chargement des données nutritionnelles...</Text>
-          </View>
-        </SafeAreaView>
-      </View>
-    );
-  }
-
-  if (error) {
+  // Affichage d'erreur uniquement si critique
+  if (error && !currentDailyNutrition && !currentUserProfile) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -246,6 +247,13 @@ export default function NutritionScreen() {
               <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
               <View style={styles.headerSpacer} />
             </View>
+            {/* Indicateur de chargement discret */}
+            {loading && (
+              <View style={styles.loadingIndicator}>
+                <ActivityIndicator size="small" color="#FFD700" />
+                <Text style={styles.loadingText}>Mise à jour...</Text>
+              </View>
+            )}
           </View>
 
           {/* Tabs de navigation modernisés */}
@@ -314,7 +322,7 @@ export default function NutritionScreen() {
                     <View style={styles.summaryStats}>
                       <View style={styles.summaryStatItem}>
                         <ThemedText style={styles.summaryStatValue}>
-                          {dailyNutrition?.totalCalories || 0}
+                          {currentDailyNutrition.totalCalories}
                         </ThemedText>
                         <ThemedText style={styles.summaryStatLabel}>Calories</ThemedText>
                       </View>
@@ -709,6 +717,27 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, color: '#fff', fontWeight: '900' },
   headerSpacer: { width: 36, height: 36 },
+  
+  // Indicateur de chargement discret
+  loadingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+    marginTop: 8,
+    alignSelf: 'center',
+  },
+  loadingText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
 
   // Tabs de navigation modernisés
   tabsContainer: { paddingHorizontal: 20, marginBottom: 20 },

@@ -1,8 +1,8 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Texts } from '@/constants/Texts';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface WorkoutStatusBarProps {
   strikes?: number;
@@ -55,7 +55,7 @@ export default function WorkoutStatusBar({
               </View>
               <View style={{ marginLeft: 10 }}>
                 <Text style={styles.strikeNum}>{strikes}</Text>
-                <Text style={styles.strikesTitle}>Strikes</Text>
+                <Text style={styles.strikesTitle}>{Texts.workoutStatus.strikes}</Text>
               </View>
             </View>
           </View>

@@ -251,13 +251,12 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
     }
   }, []);
 
-  // Charger les données au montage avec cache
+  // Charger les données au montage avec cache (optimisé)
   useEffect(() => {
     if (!userId) return;
 
     const loadInitialData = async () => {
       try {
-        setLoading(true);
         setError(null);
         setIsFromCache(false);
 
@@ -274,14 +273,14 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
           setDailyNutrition(cachedDailyNutrition);
           setRecipes(cachedRecipes);
           setIsFromCache(true);
-          setLoading(false);
 
-          // Mettre à jour en arrière-plan
-          loadFromAPI();
+          // Mettre à jour en arrière-plan sans bloquer l'UI
+          loadFromAPIInBackground();
           return;
         }
 
-        // Charger depuis l'API
+        // Charger depuis l'API seulement si pas de cache
+        setLoading(true);
         await loadFromAPI();
       } catch (err) {
         console.error('❌ Erreur lors du chargement initial:', err);
@@ -307,6 +306,26 @@ export function useNutrition(selectedDate?: string): UseNutritionReturn {
         setError('Impossible de charger les données nutritionnelles');
       } finally {
         setLoading(false);
+      }
+    };
+
+    const loadFromAPIInBackground = async () => {
+      try {
+        // Charger l'objectif nutritionnel
+        const goal = await nutritionService.getNutritionGoal(userId);
+        if (goal) {
+          setNutritionGoalState(goal);
+          await NutritionCacheService.saveNutritionGoal(goal);
+        }
+
+        // Charger la nutrition quotidienne
+        await refreshDailyNutrition();
+
+        // Charger quelques recettes populaires
+        await loadRecipes();
+      } catch (err) {
+        console.error('❌ Erreur API nutrition en arrière-plan:', err);
+        // Ne pas afficher d'erreur pour les mises à jour en arrière-plan
       }
     };
 

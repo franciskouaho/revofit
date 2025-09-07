@@ -6,10 +6,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
-    MealSuggestion,
-    NutritionPlan,
-    nutritionPlanService,
-    UserProfile
+  MealSuggestion,
+  NutritionPlan,
+  nutritionPlanService,
+  UserProfile
 } from '../services/firebase/nutritionPlan';
 
 export interface UseNutritionPlanReturn {
@@ -213,12 +213,14 @@ export function useNutritionPlan(): UseNutritionPlanReturn {
     }
   }, [userId]);
 
-  // Charger les données au montage
+  // Charger les données au montage (optimisé)
   useEffect(() => {
     if (!userId) return;
 
     const loadInitialData = async () => {
       try {
+        setError(null);
+        
         // Charger le profil utilisateur
         let profile = await nutritionPlanService.getUserProfile(userId);
         
@@ -243,8 +245,10 @@ export function useNutritionPlan(): UseNutritionPlanReturn {
         
         setUserProfile(profile);
 
-        // Charger les plans nutritionnels
-        await refreshPlans();
+        // Charger les plans nutritionnels en arrière-plan
+        refreshPlans().catch(err => {
+          console.error('❌ Erreur lors du chargement des plans:', err);
+        });
       } catch (err) {
         console.error('❌ Erreur lors du chargement initial:', err);
         setError('Impossible de charger les données nutritionnelles');
