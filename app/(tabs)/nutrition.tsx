@@ -1,25 +1,32 @@
 // app/(tabs)/nutrition.tsx
+import { MealSuggestionCard } from '@/components/nutrition/MealSuggestionCard';
+import { NutritionPlanCard } from '@/components/nutrition/NutritionPlanCard';
+import { ProfileSetupModal } from '@/components/nutrition/ProfileSetupModal';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
 import { useNutrition } from '@/hooks/useNutrition';
+import { useNutritionPlan } from '@/hooks/useNutritionPlan';
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NutritionScreen() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'plans' | 'suggestions'>('overview');
 
   // Données nutritionnelles réelles
   const {
@@ -31,6 +38,20 @@ export default function NutritionScreen() {
     searchRecipes,
     loadRecipes,
   } = useNutrition();
+
+  // Plans nutritionnels personnalisés
+  const {
+    userProfile,
+    nutritionPlans,
+    activePlan,
+    mealSuggestions,
+    loading: planLoading,
+    error: planError,
+    createPersonalizedPlan,
+    saveUserProfile,
+    generateMealSuggestions,
+    activatePlan,
+  } = useNutritionPlan();
 
   // Objectifs nutritionnels avec les vraies données
   const nutritionGoals = [
@@ -82,6 +103,38 @@ export default function NutritionScreen() {
       await searchRecipes(query);
     } else {
       await loadRecipes();
+    }
+  };
+
+  // Gérer la création d'un plan personnalisé
+  const handleCreatePlan = async (goal: 'maintain' | 'lose' | 'gain') => {
+    if (!userProfile) {
+      Alert.alert(
+        'Profil requis',
+        'Veuillez d\'abord configurer votre profil nutritionnel pour créer un plan personnalisé.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Configurer', onPress: () => setShowProfileModal(true) }
+        ]
+      );
+      return;
+    }
+
+    try {
+      await createPersonalizedPlan(goal, 7);
+      setActiveTab('plans');
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible de créer le plan nutritionnel');
+    }
+  };
+
+  // Gérer l'ajout d'un repas suggéré
+  const handleAddMeal = async (suggestion: any) => {
+    try {
+      // Ici on pourrait ajouter la recette au plan ou aux repas du jour
+      Alert.alert('Succès', 'Repas ajouté à votre plan nutritionnel');
+    } catch (err) {
+      Alert.alert('Erreur', 'Impossible d\'ajouter le repas');
     }
   };
 
@@ -183,9 +236,47 @@ export default function NutritionScreen() {
               <BlurView intensity={22} tint="dark" style={StyleSheet.absoluteFill} />
               <View style={styles.headerInner}>
                 <ThemedText style={styles.headerTitle}>Nutrition</ThemedText>
-                <TouchableOpacity style={styles.headerAdd}>
-                  <Ionicons name="add" size={22} color="#fff" />
+                <TouchableOpacity 
+                  style={styles.headerAdd}
+                  onPress={() => setShowProfileModal(true)}
+                >
+                  <Ionicons name="person-add" size={22} color="#fff" />
                 </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Tabs de navigation */}
+          <View style={styles.tabsContainer}>
+            <View style={styles.tabsGlass}>
+              <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+              <View style={styles.tabsInner}>
+                {[
+                  { id: 'overview', label: 'Vue d\'ensemble', icon: 'grid' },
+                  { id: 'plans', label: 'Mes plans', icon: 'calendar' },
+                  { id: 'suggestions', label: 'Suggestions', icon: 'bulb' },
+                ].map((tab) => (
+                  <TouchableOpacity
+                    key={tab.id}
+                    style={[
+                      styles.tabButton,
+                      activeTab === tab.id && styles.tabButtonActive
+                    ]}
+                    onPress={() => setActiveTab(tab.id as any)}
+                  >
+                    <Ionicons 
+                      name={tab.icon as any} 
+                      size={16} 
+                      color={activeTab === tab.id ? '#000' : 'rgba(255,255,255,0.7)'} 
+                    />
+                    <Text style={[
+                      styles.tabText,
+                      activeTab === tab.id && styles.tabTextActive
+                    ]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </View>
@@ -208,32 +299,358 @@ export default function NutritionScreen() {
             </View>
           </View>
 
-          {/* Goals */}
-          <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Objectifs Nutritionnels</ThemedText>
-            <View style={styles.goalsGrid}>
-              {nutritionGoals.map((goal, index) => {
-                const progress = Math.min((goal.current / goal.target) * 100, 100);
-                return (
-                  <View key={index} style={styles.goalCard}>
-                    <View style={styles.goalHeader}>
-                      <View style={[styles.goalIcon, { backgroundColor: goal.color }]}>
-                        <Ionicons name={goal.icon as any} size={16} color="#000" />
+          {/* Contenu selon l'onglet actif */}
+          {activeTab === 'overview' && (
+            <>
+              {/* Stats Summary Card */}
+              <View style={styles.section}>
+                <View style={styles.summaryCard}>
+                  <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+                  <View style={styles.summaryContent}>
+                    <View style={styles.summaryHeader}>
+                      <View style={styles.summaryIconContainer}>
+                        <Ionicons name="trending-up" size={24} color="#FFD700" />
                       </View>
-                      <ThemedText style={styles.goalName}>{goal.name}</ThemedText>
+                      <View style={styles.summaryTextContainer}>
+                        <ThemedText style={styles.summaryTitle}>Aujourd'hui</ThemedText>
+                        <ThemedText style={styles.summarySubtitle}>
+                          {new Date().toLocaleDateString('fr-FR', { 
+                            weekday: 'long', 
+                            day: 'numeric', 
+                            month: 'long' 
+                          })}
+                        </ThemedText>
+                      </View>
+                      <View style={styles.summaryBadge}>
+                        <ThemedText style={styles.summaryBadgeText}>Actif</ThemedText>
+                      </View>
                     </View>
-                    <ThemedText style={styles.goalValue}>
-                      {goal.current}/{goal.target}
-                    </ThemedText>
-                    <ThemedText style={styles.goalUnit}>{goal.unit}</ThemedText>
-                    <View style={styles.goalProgressBar}>
-                      <View style={[styles.goalProgressFill, { width: `${progress}%`, backgroundColor: goal.color }]} />
+                    
+                    <View style={styles.summaryStats}>
+                      <View style={styles.summaryStatItem}>
+                        <ThemedText style={styles.summaryStatValue}>
+                          {dailyNutrition?.totalCalories || 0}
+                        </ThemedText>
+                        <ThemedText style={styles.summaryStatLabel}>Calories</ThemedText>
+                      </View>
+                      <View style={styles.summaryStatDivider} />
+                      <View style={styles.summaryStatItem}>
+                        <ThemedText style={styles.summaryStatValue}>
+                          {nutritionPlans.length}
+                        </ThemedText>
+                        <ThemedText style={styles.summaryStatLabel}>Plans</ThemedText>
+                      </View>
+                      <View style={styles.summaryStatDivider} />
+                      <View style={styles.summaryStatItem}>
+                        <ThemedText style={styles.summaryStatValue}>
+                          {mealSuggestions.length}
+                        </ThemedText>
+                        <ThemedText style={styles.summaryStatLabel}>Suggestions</ThemedText>
+                      </View>
                     </View>
                   </View>
-                );
-              })}
-            </View>
-          </View>
+                </View>
+              </View>
+
+              {/* Goals avec design amélioré */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionTitle}>Objectifs Nutritionnels</ThemedText>
+                  <TouchableOpacity style={styles.refreshButton}>
+                    <Ionicons name="refresh" size={18} color="#FFD700" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.goalsGrid}>
+                  {nutritionGoals.map((goal, index) => {
+                    const progress = Math.min((goal.current / goal.target) * 100, 100);
+                    const isOverGoal = progress > 100;
+                    return (
+                      <View key={index} style={[styles.goalCard, isOverGoal && styles.goalCardOver]}>
+                        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                        <View style={styles.goalContent}>
+                          <View style={styles.goalHeader}>
+                            <View style={[styles.goalIcon, { backgroundColor: goal.color }]}>
+                              <Ionicons name={goal.icon as any} size={16} color="#000" />
+                            </View>
+                            <View style={styles.goalTextContainer}>
+                              <ThemedText style={styles.goalName}>{goal.name}</ThemedText>
+                              <ThemedText style={styles.goalUnit}>{goal.unit}</ThemedText>
+                            </View>
+                            {isOverGoal && (
+                              <View style={styles.overGoalBadge}>
+                                <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                              </View>
+                            )}
+                          </View>
+                          
+                          <View style={styles.goalValues}>
+                            <ThemedText style={styles.goalCurrent}>{goal.current}</ThemedText>
+                            <ThemedText style={styles.goalSeparator}>/</ThemedText>
+                            <ThemedText style={styles.goalTarget}>{goal.target}</ThemedText>
+                          </View>
+                          
+                          <View style={styles.goalProgressContainer}>
+                            <View style={styles.goalProgressBar}>
+                              <View style={[
+                                styles.goalProgressFill, 
+                                { 
+                                  width: `${Math.min(progress, 100)}%`, 
+                                  backgroundColor: isOverGoal ? '#4CAF50' : goal.color 
+                                }
+                              ]} />
+                            </View>
+                            <ThemedText style={styles.goalProgressText}>
+                              {Math.round(progress)}%
+                            </ThemedText>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Quick Actions améliorées */}
+              <View style={styles.section}>
+                <ThemedText style={styles.sectionTitle}>Actions Rapides</ThemedText>
+                <View style={styles.quickActionsGrid}>
+                  <TouchableOpacity style={styles.quickActionCard}>
+                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.quickActionContent}>
+                      <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(76,175,80,0.2)' }]}>
+                        <Ionicons name="add-circle" size={24} color="#4CAF50" />
+                      </View>
+                      <ThemedText style={styles.quickActionTitle}>Ajouter un repas</ThemedText>
+                      <ThemedText style={styles.quickActionSubtitle}>Enregistrer votre repas</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.quickActionCard}>
+                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.quickActionContent}>
+                      <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,215,0,0.2)' }]}>
+                        <Ionicons name="calendar" size={24} color="#FFD700" />
+                      </View>
+                      <ThemedText style={styles.quickActionTitle}>Planifier</ThemedText>
+                      <ThemedText style={styles.quickActionSubtitle}>Créer un plan</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.quickActionCard}>
+                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.quickActionContent}>
+                      <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(255,107,107,0.2)' }]}>
+                        <Ionicons name="analytics" size={24} color="#FF6B6B" />
+                      </View>
+                      <ThemedText style={styles.quickActionTitle}>Analyser</ThemedText>
+                      <ThemedText style={styles.quickActionSubtitle}>Voir les stats</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity style={styles.quickActionCard}>
+                    <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+                    <View style={styles.quickActionContent}>
+                      <View style={[styles.quickActionIcon, { backgroundColor: 'rgba(156,39,176,0.2)' }]}>
+                        <Ionicons name="bulb" size={24} color="#9C27B0" />
+                      </View>
+                      <ThemedText style={styles.quickActionTitle}>Suggestions</ThemedText>
+                      <ThemedText style={styles.quickActionSubtitle}>Recevoir des idées</ThemedText>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          )}
+
+          {activeTab === 'plans' && (
+            <>
+              {/* Plans nutritionnels */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionTitle}>Mes Plans Nutritionnels</ThemedText>
+                  <TouchableOpacity 
+                    style={styles.configButton}
+                    onPress={() => setShowProfileModal(true)}
+                  >
+                    <Ionicons name="settings" size={18} color="#FFD700" />
+                    <ThemedText style={styles.configButtonText}>Configurer</ThemedText>
+                  </TouchableOpacity>
+                </View>
+
+                {nutritionPlans.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <View style={styles.emptyStateIcon}>
+                      <Ionicons name="calendar-outline" size={64} color="rgba(255,215,0,0.3)" />
+                    </View>
+                    <ThemedText style={styles.emptyTitle}>Aucun plan nutritionnel</ThemedText>
+                    <ThemedText style={styles.emptyDescription}>
+                      Créez votre premier plan personnalisé basé sur vos objectifs et préférences
+                    </ThemedText>
+                    <View style={styles.createPlanButtons}>
+                      <TouchableOpacity 
+                        style={[styles.createPlanButton, styles.createPlanButtonLose]}
+                        onPress={() => handleCreatePlan('lose')}
+                      >
+                        <LinearGradient
+                          colors={['#FF6B6B', '#FF5252']}
+                          style={styles.createPlanGradient}
+                        >
+                          <Ionicons name="trending-down" size={20} color="#fff" />
+                          <ThemedText style={styles.createPlanText}>Perte de poids</ThemedText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.createPlanButton, styles.createPlanButtonGain]}
+                        onPress={() => handleCreatePlan('gain')}
+                      >
+                        <LinearGradient
+                          colors={['#4CAF50', '#45A049']}
+                          style={styles.createPlanGradient}
+                        >
+                          <Ionicons name="trending-up" size={20} color="#fff" />
+                          <ThemedText style={styles.createPlanText}>Prise de muscle</ThemedText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.createPlanButton, styles.createPlanButtonMaintain]}
+                        onPress={() => handleCreatePlan('maintain')}
+                      >
+                        <LinearGradient
+                          colors={['#FFD700', '#F5C500']}
+                          style={styles.createPlanGradient}
+                        >
+                          <Ionicons name="trending-up" size={20} color="#000" />
+                          <ThemedText style={[styles.createPlanText, { color: '#000' }]}>Maintien</ThemedText>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    {/* Active Plan Highlight */}
+                    {activePlan && (
+                      <View style={styles.activePlanHighlight}>
+                        <BlurView intensity={25} tint="dark" style={StyleSheet.absoluteFill} />
+                        <View style={styles.activePlanContent}>
+                          <View style={styles.activePlanHeader}>
+                            <View style={styles.activePlanIcon}>
+                              <Ionicons name="star" size={20} color="#FFD700" />
+                            </View>
+                            <View style={styles.activePlanText}>
+                              <ThemedText style={styles.activePlanTitle}>Plan Actif</ThemedText>
+                              <ThemedText style={styles.activePlanName}>{activePlan.name}</ThemedText>
+                            </View>
+                            <View style={styles.activePlanBadge}>
+                              <ThemedText style={styles.activePlanBadgeText}>En cours</ThemedText>
+                            </View>
+                          </View>
+                          <View style={styles.activePlanStats}>
+                            <View style={styles.activePlanStat}>
+                              <ThemedText style={styles.activePlanStatValue}>{activePlan.duration}</ThemedText>
+                              <ThemedText style={styles.activePlanStatLabel}>jours</ThemedText>
+                            </View>
+                            <View style={styles.activePlanStat}>
+                              <ThemedText style={styles.activePlanStatValue}>{activePlan.dailyCalories}</ThemedText>
+                              <ThemedText style={styles.activePlanStatLabel}>kcal/jour</ThemedText>
+                            </View>
+                            <View style={styles.activePlanStat}>
+                              <ThemedText style={styles.activePlanStatValue}>{activePlan.meals.length}</ThemedText>
+                              <ThemedText style={styles.activePlanStatLabel}>repas</ThemedText>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                    
+                    {/* Plans List */}
+                    {nutritionPlans.map((plan) => (
+                      <NutritionPlanCard
+                        key={plan.id}
+                        plan={plan}
+                        isActive={plan.isActive}
+                        onPress={() => {/* Navigation vers détails du plan */}}
+                        onActivate={() => activatePlan(plan.id)}
+                      />
+                    ))}
+                  </>
+                )}
+              </View>
+            </>
+          )}
+
+          {activeTab === 'suggestions' && (
+            <>
+              {/* Suggestions de repas */}
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <ThemedText style={styles.sectionTitle}>Suggestions Personnalisées</ThemedText>
+                  <TouchableOpacity 
+                    style={styles.refreshButton}
+                    onPress={generateMealSuggestions}
+                  >
+                    <Ionicons name="refresh" size={18} color="#FFD700" />
+                    <ThemedText style={styles.refreshButtonText}>Actualiser</ThemedText>
+                  </TouchableOpacity>
+                </View>
+
+                {mealSuggestions.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <View style={styles.emptyStateIcon}>
+                      <Ionicons name="bulb-outline" size={64} color="rgba(255,215,0,0.3)" />
+                    </View>
+                    <ThemedText style={styles.emptyTitle}>Aucune suggestion</ThemedText>
+                    <ThemedText style={styles.emptyDescription}>
+                      Configurez votre profil pour recevoir des suggestions personnalisées basées sur vos objectifs
+                    </ThemedText>
+                    <TouchableOpacity 
+                      style={styles.setupProfileButton}
+                      onPress={() => setShowProfileModal(true)}
+                    >
+                      <LinearGradient
+                        colors={['#FFD700', '#F5C500']}
+                        style={styles.setupProfileGradient}
+                      >
+                        <Ionicons name="person-add" size={20} color="#000" />
+                        <ThemedText style={[styles.setupProfileText, { color: '#000' }]}>
+                          Configurer le profil
+                        </ThemedText>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    {/* Suggestions Header */}
+                    <View style={styles.suggestionsHeader}>
+                      <View style={styles.suggestionsInfo}>
+                        <Ionicons name="sparkles" size={20} color="#FFD700" />
+                        <ThemedText style={styles.suggestionsInfoText}>
+                          {mealSuggestions.length} suggestions trouvées
+                        </ThemedText>
+                      </View>
+                      <View style={styles.suggestionsFilter}>
+                        <TouchableOpacity style={styles.filterButton}>
+                          <Ionicons name="filter" size={16} color="rgba(255,255,255,0.7)" />
+                          <ThemedText style={styles.filterButtonText}>Filtrer</ThemedText>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Suggestions List */}
+                    <View style={styles.suggestionsList}>
+                      {mealSuggestions.map((suggestion, index) => (
+                        <MealSuggestionCard
+                          key={index}
+                          suggestion={suggestion}
+                          onPress={() => {/* Navigation vers détails de la recette */}}
+                          onAddToPlan={() => handleAddMeal(suggestion)}
+                        />
+                      ))}
+                    </View>
+                  </>
+                )}
+              </View>
+            </>
+          )}
 
           {/* Meal categories – 2 colonnes pour ne plus couper le texte */}
           <View style={styles.section}>
@@ -342,6 +759,14 @@ export default function NutritionScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Modal de configuration du profil */}
+      <ProfileSetupModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSave={saveUserProfile}
+        existingProfile={userProfile}
+      />
     </View>
   );
 }
@@ -361,6 +786,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: BORDER,
   },
 
+  // Tabs de navigation
+  tabsContainer: { paddingHorizontal: 20, marginBottom: 16 },
+  tabsGlass: {
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: BORDER,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  tabsInner: { flexDirection: 'row', padding: 4 },
+  tabButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 12, paddingHorizontal: 8, borderRadius: 12, gap: 6,
+  },
+  tabButtonActive: {
+    backgroundColor: '#FFD700',
+  },
+  tabText: {
+    fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600',
+  },
+  tabTextActive: {
+    color: '#000',
+  },
+
   searchContainer: { paddingHorizontal: 20, marginBottom: 16 },
   searchGlass: {
     borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: BORDER,
@@ -374,22 +820,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, color: '#fff', fontWeight: '700', marginBottom: 14 },
   seeAllText: { color: '#4CAF50', fontSize: 14, fontWeight: '600' },
 
-  goalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  goalCard: {
-    width: '48%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: BORDER,
+  goalsGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    justifyContent: 'space-between',
+    gap: 12 
   },
-  goalHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  goalIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  goalName: { fontSize: 14, color: '#fff', fontWeight: '600' },
-  goalValue: { fontSize: 20, color: '#fff', fontWeight: '800', marginBottom: 2 },
-  goalUnit: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 10 },
-  goalProgressBar: { width: '100%', height: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 3, overflow: 'hidden' },
-  goalProgressFill: { height: '100%', borderRadius: 3 },
 
   // Categories – 2 colonnes pour éviter le texte coupé
   categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
@@ -447,4 +883,221 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   qaTitle: { color: '#fff', fontWeight: '800', fontSize: 14 },
+
+  // Summary Card
+  summaryCard: {
+    borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
+    backgroundColor: 'rgba(255,215,0,0.05)', marginBottom: 20,
+  },
+  summaryContent: { padding: 20 },
+  summaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  summaryIconContainer: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,215,0,0.2)',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  summaryTextContainer: { flex: 1 },
+  summaryTitle: { fontSize: 20, color: '#fff', fontWeight: '800', marginBottom: 4 },
+  summarySubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)' },
+  summaryBadge: {
+    backgroundColor: 'rgba(76,175,80,0.2)', paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 16, borderWidth: 1, borderColor: '#4CAF50',
+  },
+  summaryBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '700' },
+  summaryStats: { flexDirection: 'row', alignItems: 'center' },
+  summaryStatItem: { flex: 1, alignItems: 'center' },
+  summaryStatValue: { fontSize: 24, color: '#fff', fontWeight: '800', marginBottom: 4 },
+  summaryStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  summaryStatDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: 16 },
+
+  // Goals améliorés
+  goalCard: {
+    width: '48%',
+    borderRadius: 16, 
+    overflow: 'hidden', 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.05)', 
+    marginBottom: 12,
+  },
+  goalCardOver: {
+    borderColor: '#4CAF50', 
+    backgroundColor: 'rgba(76,175,80,0.1)',
+  },
+  goalContent: { 
+    padding: 14,
+    height: 120,
+    justifyContent: 'space-between',
+  },
+  goalHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 8 
+  },
+  goalIcon: { 
+    width: 28, 
+    height: 28, 
+    borderRadius: 14, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginRight: 8 
+  },
+  goalTextContainer: { 
+    flex: 1 
+  },
+  goalName: { 
+    fontSize: 14, 
+    color: '#fff', 
+    fontWeight: '700', 
+    marginBottom: 2 
+  },
+  goalUnit: { 
+    fontSize: 10, 
+    color: 'rgba(255,255,255,0.7)' 
+  },
+  overGoalBadge: { 
+    marginLeft: 4 
+  },
+  goalValues: { 
+    flexDirection: 'row', 
+    alignItems: 'baseline', 
+    marginBottom: 8 
+  },
+  goalCurrent: { 
+    fontSize: 20, 
+    color: '#fff', 
+    fontWeight: '800' 
+  },
+  goalSeparator: { 
+    fontSize: 16, 
+    color: 'rgba(255,255,255,0.5)', 
+    marginHorizontal: 2 
+  },
+  goalTarget: { 
+    fontSize: 16, 
+    color: 'rgba(255,255,255,0.7)' 
+  },
+  goalProgressContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  goalProgressBar: { 
+    flex: 1, 
+    height: 6, 
+    backgroundColor: 'rgba(255,255,255,0.15)', 
+    borderRadius: 3, 
+    marginRight: 8 
+  },
+  goalProgressFill: { 
+    height: '100%', 
+    borderRadius: 3 
+  },
+  goalProgressText: { 
+    fontSize: 10, 
+    color: '#fff', 
+    fontWeight: '600', 
+    minWidth: 30, 
+    textAlign: 'right' 
+  },
+
+  // Quick Actions
+  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  quickActionCard: {
+    width: '48%', borderRadius: 16, overflow: 'hidden', borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  quickActionContent: { padding: 16, alignItems: 'center' },
+  quickActionIcon: {
+    width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  },
+  quickActionTitle: { fontSize: 14, color: '#fff', fontWeight: '700', marginBottom: 4, textAlign: 'center' },
+  quickActionSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+
+  // Buttons améliorés
+  refreshButton: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
+  },
+  refreshButtonText: { color: '#FFD700', fontSize: 12, fontWeight: '600', marginLeft: 6 },
+  configButton: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
+  },
+  configButtonText: { color: '#FFD700', fontSize: 12, fontWeight: '600', marginLeft: 6 },
+
+  // États vides améliorés
+  emptyState: {
+    alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20,
+  },
+  emptyStateIcon: {
+    width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,215,0,0.1)',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+  },
+  emptyTitle: {
+    fontSize: 20, color: '#fff', fontWeight: '700', marginBottom: 12, textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20, marginBottom: 32,
+  },
+  createPlanButtons: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center',
+  },
+  createPlanButton: {
+    borderRadius: 16, overflow: 'hidden', minWidth: 140,
+  },
+  createPlanButtonLose: { /* styles spécifiques si nécessaire */ },
+  createPlanButtonGain: { /* styles spécifiques si nécessaire */ },
+  createPlanButtonMaintain: { /* styles spécifiques si nécessaire */ },
+  createPlanGradient: {
+    paddingVertical: 16, paddingHorizontal: 20, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
+  },
+  createPlanText: {
+    color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 8,
+  },
+  setupProfileButton: {
+    borderRadius: 16, overflow: 'hidden', marginTop: 16,
+  },
+  setupProfileGradient: {
+    paddingVertical: 16, paddingHorizontal: 24, alignItems: 'center', flexDirection: 'row', justifyContent: 'center',
+  },
+  setupProfileText: {
+    color: '#000', fontSize: 14, fontWeight: '700', marginLeft: 8,
+  },
+
+  // Active Plan Highlight
+  activePlanHighlight: {
+    borderRadius: 20, overflow: 'hidden', borderWidth: 2, borderColor: '#FFD700',
+    backgroundColor: 'rgba(255,215,0,0.1)', marginBottom: 20,
+  },
+  activePlanContent: { padding: 20 },
+  activePlanHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  activePlanIcon: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,215,0,0.2)',
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  activePlanText: { flex: 1 },
+  activePlanTitle: { fontSize: 14, color: '#FFD700', fontWeight: '600', marginBottom: 4 },
+  activePlanName: { fontSize: 18, color: '#fff', fontWeight: '700' },
+  activePlanBadge: {
+    backgroundColor: 'rgba(76,175,80,0.2)', paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 16, borderWidth: 1, borderColor: '#4CAF50',
+  },
+  activePlanBadgeText: { color: '#4CAF50', fontSize: 12, fontWeight: '700' },
+  activePlanStats: { flexDirection: 'row', justifyContent: 'space-around' },
+  activePlanStat: { alignItems: 'center' },
+  activePlanStatValue: { fontSize: 20, color: '#fff', fontWeight: '800', marginBottom: 4 },
+  activePlanStatLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+
+  // Suggestions améliorées
+  suggestionsHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
+  },
+  suggestionsInfo: { flexDirection: 'row', alignItems: 'center' },
+  suggestionsInfoText: { color: '#FFD700', fontSize: 14, fontWeight: '600', marginLeft: 8 },
+  suggestionsFilter: { /* styles pour le filtre */ },
+  filterButton: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  filterButtonText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginLeft: 6 },
+  suggestionsList: { /* styles pour la liste des suggestions */ },
 });
