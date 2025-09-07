@@ -1,13 +1,13 @@
 // app/(tabs)/stats.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
-import { useHealthData } from '@/hooks/useHealthData';
+import { useHealthDataSimple } from '@/hooks/useHealthData';
 import { useStatsData } from '@/hooks/useStatsData';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -103,81 +103,46 @@ export default function StatsScreen() {
 
   // Données de santé réelles
   const {
-    healthData,
-    historicalData,
-    loading: healthLoading,
-    error: healthError,
-    initializeHealthKit,
-    isConnectedToAppleHealth,
-  } = useHealthData();
+    steps: healthSteps,
+    calories: healthCalories,
+    distance: healthDistance,
+    isLoading: healthLoading,
+  } = useHealthDataSimple();
 
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  // Fonction pour connecter à HealthKit
-  const handleConnectToHealthKit = async () => {
-    if (isConnectedToAppleHealth) return;
-    
-    setIsConnecting(true);
-    try {
-      const success = await initializeHealthKit();
-      if (success) {
-        Alert.alert(
-          'Connexion réussie',
-          'Votre application est maintenant connectée à Apple Health !',
-          [{ text: 'OK' }]
-        );
-      } else {
-        Alert.alert(
-          'Erreur de connexion',
-          'Impossible de se connecter à Apple Health. Vérifiez que l\'application Santé est installée.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (err) {
-      console.error('Erreur lors de la connexion HealthKit:', err);
-      Alert.alert(
-        'Erreur',
-        'Une erreur est survenue lors de la connexion.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsConnecting(false);
-    }
-  };
 
   // Données calculées pour les KPIs avec les vraies données de santé
   const kpis = [
     { 
       label: 'Calories brûlées', 
-      value: healthData ? `${Math.round(healthData.caloriesBurned)}` : '0', 
+      value: healthCalories > 0 ? `${Math.round(healthCalories)}` : '0', 
       diff: '+6%', 
       icon: 'flame', 
       color: '#FFD700', 
-      series: historicalData.slice(-7).map(d => Math.round(d.caloriesBurned / 100)) || [0, 0, 0, 0, 0, 0, 0] 
+      series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
     { 
       label: 'Pas aujourd\'hui', 
-      value: healthData ? healthData.steps.toLocaleString() : '0', 
+      value: healthSteps > 0 ? healthSteps.toLocaleString() : '0', 
       diff: '+2k', 
       icon: 'walk', 
       color: '#4CAF50', 
-      series: historicalData.slice(-7).map(d => Math.round(d.steps / 1000)) || [0, 0, 0, 0, 0, 0, 0] 
+      series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
     { 
       label: 'Temps actif', 
-      value: healthData ? `${Math.round(healthData.exerciseMinutes / 60)}h` : '0h', 
+      value: '0h', // Pas disponible dans useHealthDataSimple
       diff: '+5h', 
       icon: 'time', 
       color: '#4ECDC4', 
-      series: historicalData.slice(-7).map(d => Math.round(d.exerciseMinutes / 60)) || [0, 0, 0, 0, 0, 0, 0] 
+      series: [0, 0, 0, 0, 0, 0, 0]
     },
     { 
       label: 'Distance', 
-      value: healthData ? `${(healthData.distance / 1000).toFixed(1)} km` : '0.0 km', 
+      value: healthDistance > 0 ? `${(healthDistance / 1000).toFixed(1)} km` : '0.0 km', 
       diff: '+12', 
       icon: 'trail-sign', 
       color: '#9FA8DA', 
-      series: historicalData.slice(-7).map(d => Math.round(d.distance / 1000)) || [0, 0, 0, 0, 0, 0, 0] 
+      series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
   ];
 
@@ -185,110 +150,52 @@ export default function StatsScreen() {
   const body = [
     { 
       name: 'Poids', 
-      value: healthData ? `${healthData.weight} kg` : 'N/A', 
+      value: 'N/A', // Pas disponible dans useHealthDataSimple 
       change: '-0.5 kg', 
       up: false, 
       color: '#4CAF50' 
     },
     { 
       name: 'Masse grasse', 
-      value: healthData ? `${healthData.bodyFat}%` : 'N/A', 
+      value: 'N/A', // Pas disponible dans useHealthDataSimple 
       change: '-0.8%', 
       up: false, 
       color: '#FF6B6B' 
     },
     { 
       name: 'Étages montés', 
-      value: healthData ? `${healthData.floorsClimbed}` : '0', 
+      value: '0', // Pas disponible dans useHealthDataSimple
       change: '+3', 
       up: true, 
       color: '#FFD700' 
     },
     { 
       name: 'FC moyenne', 
-      value: healthData ? `${healthData.heartRate.average} bpm` : 'N/A', 
+      value: 'N/A', // Pas disponible dans useHealthDataSimple
       change: '-3 bpm', 
       up: false, 
       color: '#4ECDC4' 
     },
   ];
 
-  // Répartition d'activité basée sur les vraies données HealthKit
-  const calculateActivitySplit = () => {
-    if (!healthData || !historicalData.length) {
-      return [
-        { type: 'Cardio', pct: 0, color: '#4CAF50', icon: 'heart' },
-        { type: 'Force', pct: 0, color: '#FFD700', icon: 'barbell' },
-        { type: 'HIIT', pct: 0, color: '#FF6B6B', icon: 'flash' },
-        { type: 'Yoga', pct: 0, color: '#9C27B0', icon: 'leaf' },
-      ];
-    }
+  // Répartition d'activité simplifiée
+  const split = [
+    { type: 'Cardio', pct: 0, color: '#4CAF50', icon: 'heart' },
+    { type: 'Force', pct: 0, color: '#FFD700', icon: 'barbell' },
+    { type: 'HIIT', pct: 0, color: '#FF6B6B', icon: 'flash' },
+    { type: 'Yoga', pct: 0, color: '#9C27B0', icon: 'leaf' },
+  ];
 
-    // Calculer les minutes d'exercice par type basé sur les données réelles
-    const totalExerciseMinutes = healthData.exerciseMinutes || 0;
-    const cardioMinutes = Math.round(totalExerciseMinutes * 0.4); // 40% cardio
-    const strengthMinutes = Math.round(totalExerciseMinutes * 0.35); // 35% force
-    const hiitMinutes = Math.round(totalExerciseMinutes * 0.15); // 15% HIIT
-    const yogaMinutes = Math.round(totalExerciseMinutes * 0.1); // 10% yoga
-
-    const total = cardioMinutes + strengthMinutes + hiitMinutes + yogaMinutes;
-    
-    if (total === 0) {
-      return [
-        { type: 'Cardio', pct: 0, color: '#4CAF50', icon: 'heart' },
-        { type: 'Force', pct: 0, color: '#FFD700', icon: 'barbell' },
-        { type: 'HIIT', pct: 0, color: '#FF6B6B', icon: 'flash' },
-        { type: 'Yoga', pct: 0, color: '#9C27B0', icon: 'leaf' },
-      ];
-    }
-
-    return [
-      { type: 'Cardio', pct: Math.round((cardioMinutes / total) * 100), color: '#4CAF50', icon: 'heart' },
-      { type: 'Force', pct: Math.round((strengthMinutes / total) * 100), color: '#FFD700', icon: 'barbell' },
-      { type: 'HIIT', pct: Math.round((hiitMinutes / total) * 100), color: '#FF6B6B', icon: 'flash' },
-      { type: 'Yoga', pct: Math.round((yogaMinutes / total) * 100), color: '#9C27B0', icon: 'leaf' },
-    ];
-  };
-
-  const split = calculateActivitySplit();
-
-  // Heatmap hebdomadaire basé sur les vraies données HealthKit
-  const calculateWeekHeatmap = () => {
-    if (!historicalData.length) {
-      return [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-      ];
-    }
-
-    // Grouper les données par jour de la semaine (0 = dimanche, 1 = lundi, etc.)
-    const weekData = Array(7).fill(null).map(() => [0, 0, 0, 0]); // 4 créneaux par jour
-    
-    historicalData.slice(-7).forEach((dayData, index) => {
-      const dayOfWeek = new Date(dayData.date).getDay();
-      const exerciseMinutes = dayData.exerciseMinutes || 0;
-      
-      // Convertir les minutes d'exercice en niveau d'activité (0-3)
-      let activityLevel = 0;
-      if (exerciseMinutes > 0) activityLevel = 1;
-      if (exerciseMinutes > 30) activityLevel = 2;
-      if (exerciseMinutes > 60) activityLevel = 3;
-      
-      // Répartir sur les 4 créneaux de la journée
-      for (let i = 0; i < 4; i++) {
-        weekData[dayOfWeek][i] = activityLevel;
-      }
-    });
-
-    return weekData;
-  };
-
-  const weekHeat = calculateWeekHeatmap();
+  // Heatmap hebdomadaire simplifié
+  const weekHeat = [
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ];
 
   // Macros nutritionnels (placeholder)
   const macros = [
@@ -298,43 +205,35 @@ export default function StatsScreen() {
     { name: 'Fibres', g: 28, color: '#4ECDC4' },
   ];
 
-  // Données pour les mini-cards de santé avec les vraies données
+  // Données pour les mini-cards de santé simplifiées
   const healthMetrics = [
     {
       label: 'Pas (7j)',
-      value: historicalData.length > 0 ? 
-        historicalData.slice(-7).reduce((sum, d) => sum + d.steps, 0).toLocaleString() : 
-        '0',
+      value: '0', // Pas de données historiques disponibles
       icon: 'walk',
       color: '#FFD700',
-      series: historicalData.slice(-7).map(d => Math.round(d.steps / 1000)) || [0, 0, 0, 0, 0, 0, 0]
+      series: [0, 0, 0, 0, 0, 0, 0]
     },
     {
       label: 'Distance (7j)',
-      value: historicalData.length > 0 ? 
-        `${(historicalData.slice(-7).reduce((sum, d) => sum + (d.distance || 0), 0) / 1000).toFixed(1)} km` : 
-        '0.0 km',
+      value: '0.0 km', // Pas de données historiques disponibles
       icon: 'trail-sign',
       color: '#9FA8DA',
-      series: historicalData.slice(-7).map(d => Math.round(d.distance / 1000)) || [0, 0, 0, 0, 0, 0, 0]
+      series: [0, 0, 0, 0, 0, 0, 0]
     },
     {
       label: 'Calories (7j)',
-      value: historicalData.length > 0 ? 
-        `${Math.round(historicalData.slice(-7).reduce((sum, d) => sum + d.caloriesBurned, 0) / 1000)}k` : 
-        '0k',
+      value: '0k', // Pas de données historiques disponibles
       icon: 'flame',
       color: '#4ECDC4',
-      series: historicalData.slice(-7).map(d => Math.round(d.caloriesBurned / 100)) || [0, 0, 0, 0, 0, 0, 0]
+      series: [0, 0, 0, 0, 0, 0, 0]
     },
     {
       label: 'Exercice (7j)',
-      value: historicalData.length > 0 ? 
-        `${Math.round(historicalData.slice(-7).reduce((sum, d) => sum + d.exerciseMinutes, 0) / 60)}h` : 
-        '0h',
+      value: '0h', // Pas de données historiques disponibles
       icon: 'fitness',
       color: '#FF6B6B',
-      series: historicalData.slice(-7).map(d => Math.round(d.exerciseMinutes / 60)) || [0, 0, 0, 0, 0, 0, 0]
+      series: [0, 0, 0, 0, 0, 0, 0]
     },
   ];
 
@@ -358,7 +257,7 @@ export default function StatsScreen() {
     );
   }
 
-  if (error || healthError) {
+  if (error) {
     return (
       <View style={styles.container}>
         <LinearGradient
@@ -371,7 +270,7 @@ export default function StatsScreen() {
         <SafeAreaView style={styles.safeArea}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Ionicons name="alert-circle" size={48} color="#FF6B6B" />
-            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error || healthError}</Text>
+            <Text style={{ color: '#fff', marginTop: 16, textAlign: 'center' }}>{error}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -396,27 +295,6 @@ export default function StatsScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <ThemedText style={{ fontSize: 24, color: '#fff', fontWeight: '900' }}>Statistiques</ThemedText>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {!isConnectedToAppleHealth && (
-                    <TouchableOpacity
-                      onPress={handleConnectToHealthKit}
-                      disabled={isConnecting}
-                      style={{
-                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
-                        alignItems: 'center', justifyContent: 'center',
-                        backgroundColor: 'rgba(76, 175, 80, 0.2)', borderWidth: 1, borderColor: '#4CAF50',
-                        flexDirection: 'row', gap: 6,
-                      }}
-                    >
-                      {isConnecting ? (
-                        <ActivityIndicator size="small" color="#4CAF50" />
-                      ) : (
-                        <Ionicons name="heart" size={16} color="#4CAF50" />
-                      )}
-                      <Text style={{ color: '#4CAF50', fontSize: 12, fontWeight: '600' }}>
-                        {isConnecting ? 'Connexion...' : 'Health'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
                   <TouchableOpacity
                     style={{
                       width: 40, height: 40, borderRadius: 100,
@@ -522,13 +400,13 @@ export default function StatsScreen() {
                 {[
                   { 
                     label: 'Calories brûlées', 
-                    val: healthData ? Math.round(healthData.caloriesBurned) : 0, 
+                    val: healthCalories > 0 ? Math.round(healthCalories) : 0, 
                     goal: 80000, 
                     color: '#FFD700' 
                   },
                   { 
                     label: 'Heures actives', 
-                    val: healthData ? Math.round(healthData.exerciseMinutes / 60) : 0, 
+                    val: 0, // Pas disponible dans useHealthDataSimple
                     goal: 60, 
                     color: '#4ECDC4' 
                   },
@@ -692,16 +570,10 @@ export default function StatsScreen() {
                   <Ionicons name="trophy" size={28} color="#FFD700" />
                   <Text style={{ color: 'rgba(255,255,255,0.8)' }}>Distance max</Text>
                   <Text style={{ color: '#fff', fontWeight: '900', fontSize: 18 }}>
-                    {historicalData.length > 0 ? 
-                      Math.max(...historicalData.map(d => (d.distance || 0) / 1000)).toFixed(1) : 
-                      '0.0'
-                    } km
+                    {healthDistance > 0 ? (healthDistance / 1000).toFixed(1) : '0.0'} km
                   </Text>
                   <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-                    {historicalData.length > 0 ? 
-                      new Date(Math.max(...historicalData.map(d => new Date(d.date).getTime()))).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) :
-                      'Aucune donnée'
-                    }
+                    Aujourd&apos;hui
                   </Text>
                 </View>
               </Glass>
@@ -712,55 +584,25 @@ export default function StatsScreen() {
                   <View style={{ alignItems: 'center', flex: 1 }}>
                     <Text style={{ color: '#fff', fontWeight: '800' }}>Semaine précédente</Text>
                     <Text style={{ color: '#FFD700' }}>
-                      {historicalData.length >= 14 ? 
-                        Math.round(historicalData.slice(-14, -7).reduce((sum, d) => sum + d.caloriesBurned, 0) / 1000) : 
-                        0
-                      }k Kcal
+                      0k Kcal
                     </Text>
                   </View>
                   <View style={{ width: 1, height: 30, backgroundColor: BORDER }} />
                   <View style={{ alignItems: 'center', flex: 1 }}>
                     <Text style={{ color: '#fff', fontWeight: '800' }}>Cette semaine</Text>
                     <Text style={{ color: '#4CAF50' }}>
-                      {historicalData.length >= 7 ? 
-                        Math.round(historicalData.slice(-7).reduce((sum, d) => sum + d.caloriesBurned, 0) / 1000) : 
-                        0
-                      }k Kcal
+                      {healthCalories > 0 ? Math.round(healthCalories / 1000) : 0}k Kcal
                     </Text>
                   </View>
                 </View>
                 <View style={{ height: 10 }} />
-                {(() => {
-                  const lastWeek = historicalData.length >= 14 ? 
-                    historicalData.slice(-14, -7).reduce((sum, d) => sum + d.caloriesBurned, 0) : 0;
-                  const thisWeek = historicalData.length >= 7 ? 
-                    historicalData.slice(-7).reduce((sum, d) => sum + d.caloriesBurned, 0) : 0;
-                  const percentage = lastWeek > 0 ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : 0;
-                  
-                  return (
-                    <>
-                      <Text style={{ 
-                        color: percentage >= 0 ? '#4CAF50' : '#FF6B6B', 
-                        fontWeight: '800', 
-                        textAlign: 'center' 
-                      }}>
-                        {percentage >= 0 ? '+' : ''}{percentage}% vs semaine précédente
-                      </Text>
-                      <View
-                        style={{
-                          height: 8, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)',
-                          overflow: 'hidden', borderWidth: 1, borderColor: BORDER, marginTop: 8,
-                        }}
-                      >
-                        <View style={{ 
-                          width: `${Math.min(100, Math.max(0, 50 + percentage))}%`, 
-                          height: '100%', 
-                          backgroundColor: percentage >= 0 ? '#4CAF50' : '#FF6B6B' 
-                        }} />
-                      </View>
-                    </>
-                  );
-                })()}
+                <Text style={{ 
+                  color: '#4CAF50', 
+                  fontWeight: '800', 
+                  textAlign: 'center' 
+                }}>
+                  Données d&apos;aujourd&apos;hui
+                </Text>
               </Glass>
             </View>
           </View>

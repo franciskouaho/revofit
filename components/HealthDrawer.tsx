@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
-  getMostRecentQuantitySample,
   isHealthDataAvailable,
   useHealthkitAuthorization
 } from '@kingstinct/react-native-healthkit';
@@ -27,22 +26,10 @@ interface HealthDrawerProps {
   onClose: () => void;
 }
 
-interface HealthData {
-  steps: number;
-  heartRate: number;
-  activeEnergy: number;
-  distance: number;
-}
 
 export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [healthData, setHealthData] = useState<HealthData>({
-    steps: 0,
-    heartRate: 0,
-    activeEnergy: 0,
-    distance: 0,
-  });
 
   // Permissions pour HealthKit avec la nouvelle API
   const permissions = [
@@ -59,41 +46,6 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
   // Hook pour l'autorisation
   const [authorizationStatus, requestAuth] = useHealthkitAuthorization(permissions);
 
-  const fetchHealthData = useCallback(async () => {
-    if (!isConnected || Platform.OS !== 'ios') return;
-
-    try {
-      // Récupérer les données en parallèle avec getMostRecentQuantitySample
-      const [stepsData, heartRateData, activeEnergyData, distanceData] = await Promise.allSettled([
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
-      ]);
-
-      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
-      const activeEnergy = activeEnergyData.status === 'fulfilled' ? Math.round(activeEnergyData.value?.quantity || 0) : 0;
-      const distance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
-      const heartRate = heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0;
-
-      setHealthData(prev => ({
-        ...prev,
-        steps,
-        heartRate,
-        activeEnergy,
-        distance,
-      }));
-
-      console.log('✅ Données de santé récupérées avec succès:', {
-        steps,
-        heartRate,
-        activeEnergy,
-        distance
-      });
-    } catch (error) {
-      console.error('❌ Erreur lors de la récupération des données:', error);
-    }
-  }, [isConnected]);
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -109,13 +61,13 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       setIsConnected(hasPermissions);
       
       if (hasPermissions) {
-        await fetchHealthData();
+        console.log('✅ Permissions HealthKit accordées');
       }
     } catch (error) {
       console.error('Erreur lors de la vérification du statut:', error);
       setIsConnected(false);
     }
-  }, [authorizationStatus, fetchHealthData]);
+  }, [authorizationStatus]);
 
   const checkHealthKitAvailability = useCallback(async () => {
     try {
@@ -143,7 +95,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
         if (connectionState?.isConnected) {
           console.log('✅ Connexion HealthKit trouvée dans le stockage local (HealthDrawer)');
           setIsConnected(true);
-          await fetchHealthData();
+          console.log('✅ Connexion HealthKit restaurée');
         } else {
           console.log('❌ Aucune connexion HealthKit persistée trouvée (HealthDrawer)');
           // Vérifier la disponibilité de HealthKit
@@ -157,7 +109,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     };
 
     checkPersistedConnection();
-  }, [checkHealthKitAvailability, fetchHealthData]);
+  }, [checkHealthKitAvailability]);
 
   const connectToHealth = async () => {
     if (Platform.OS !== 'ios') {
@@ -186,7 +138,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       // Sauvegarder l'état de connexion
       await StorageService.saveHealthKitConnection(true);
       
-      await fetchHealthData();
+      console.log('✅ Connexion HealthKit établie avec succès');
       
       Alert.alert(
         'Connexion réussie',
@@ -209,12 +161,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     try {
       console.log('🔌 Déconnexion de HealthKit (HealthDrawer)...');
       setIsConnected(false);
-      setHealthData({
-        steps: 0,
-        heartRate: 0,
-        activeEnergy: 0,
-        distance: 0,
-      });
+      console.log('✅ Données de santé réinitialisées');
       
       // Supprimer l'état de connexion du stockage
       await StorageService.clearHealthKitConnection();
@@ -297,38 +244,6 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                 </View>
               </View>
 
-              {/* Health Data Section */}
-              {isConnected && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Données d&apos;aujourd&apos;hui</Text>
-                  
-                  <View style={styles.dataGrid}>
-                    <View style={styles.dataCard}>
-                      <Ionicons name="walk" size={20} color="#FFD700" />
-                      <Text style={styles.dataValue}>{healthData.steps.toLocaleString()}</Text>
-                      <Text style={styles.dataLabel}>Pas</Text>
-                    </View>
-                    
-                    <View style={styles.dataCard}>
-                      <Ionicons name="heart" size={20} color="#FF6B6B" />
-                      <Text style={styles.dataValue}>{healthData.heartRate}</Text>
-                      <Text style={styles.dataLabel}>BPM</Text>
-                    </View>
-                    
-                    <View style={styles.dataCard}>
-                      <Ionicons name="flash" size={20} color="#4CAF50" />
-                      <Text style={styles.dataValue}>{Math.round(healthData.activeEnergy)}</Text>
-                      <Text style={styles.dataLabel}>Calories</Text>
-                    </View>
-                    
-                    <View style={styles.dataCard}>
-                      <Ionicons name="location" size={20} color="#2196F3" />
-                      <Text style={styles.dataValue}>{(healthData.distance / 1000).toFixed(1)}</Text>
-                      <Text style={styles.dataLabel}>km</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
 
               {/* Action Buttons */}
               <View style={styles.section}>
@@ -359,7 +274,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                   <View style={styles.connectedActions}>
                     <TouchableOpacity
                       style={styles.refreshButton}
-                      onPress={fetchHealthData}
+                      onPress={() => console.log('Actualisation des données...')}
                       activeOpacity={0.8}
                     >
                       <LinearGradient
@@ -491,32 +406,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     marginBottom: 16,
-  },
-  dataGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  dataCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  dataValue: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '900',
-    marginTop: 8,
-  },
-  dataLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 12,
-    marginTop: 4,
   },
   connectButton: {
     borderRadius: 16,

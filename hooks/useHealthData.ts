@@ -5,17 +5,16 @@
  * Version complète avec Firebase + Version simple du tutoriel
  */
 
+import { useAuth } from '@/contexts/AuthContext';
+import { StorageService } from '@/services/storage';
 import {
   getMostRecentQuantitySample,
   isHealthDataAvailable,
-  queryQuantitySamples,
   requestAuthorization,
   useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { useAuth } from '../contexts/AuthContext';
-import { StorageService } from '../services/storage';
 
 // Version simple du tutoriel (exportée séparément)
 export const useHealthDataSimple = (date: Date = new Date()) => {
@@ -25,6 +24,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
   const [calories, setCalories] = useState(0);
   const [hasPermissions, setHasPermission] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Permissions pour HealthKit
   const permissions = [
@@ -46,13 +46,14 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     // Initialiser les autorisations
     const initializePermissions = async () => {
       try {
+        console.log('🔄 Vérification de la disponibilité HealthKit...');
         const isAvailable = await isHealthDataAvailable();
         if (!isAvailable) {
           console.log('❌ HealthKit non disponible sur cet appareil');
           return;
         }
 
-        console.log('🔄 Demande d\'autorisation HealthKit...');
+        console.log('✅ HealthKit disponible, demande d\'autorisation...');
         await requestAuth();
         console.log('✅ Autorisation HealthKit demandée');
       } catch (error) {
@@ -88,56 +89,67 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     // Récupérer les données avec la nouvelle API
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         console.log('🔄 Récupération des données HealthKit...');
+        
         // Pour les pas, récupérer le total de la journée
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
+        console.log('📅 Période de récupération:', { startOfDay, endOfDay });
+
         const [stepsData, flightsData, distanceData, caloriesData] = await Promise.allSettled([
-          // Récupérer le total des pas de la journée
-          queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
-            from: startOfDay,
-            to: endOfDay,
-          } as any).then(samples => {
-            const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-            return { quantity: totalSteps };
-          }),
+          // Récupérer les pas (échantillon le plus récent pour l'instant)
+          getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
           getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
           getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
-          // Récupérer le total des calories brûlées de la journée
-          queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
-            from: startOfDay,
-            to: endOfDay,
-          } as any).then(samples => {
-            const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-            return { quantity: totalCalories };
-          }),
+          // Récupérer les calories (échantillon le plus récent pour l'instant)
+          getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
         ]);
 
+        console.log('📊 Résultats des requêtes:', {
+          stepsData: stepsData.status,
+          flightsData: flightsData.status,
+          distanceData: distanceData.status,
+          caloriesData: caloriesData.status
+        });
+
         if (stepsData.status === 'fulfilled') {
-          console.log('Steps retrieved (total today):', stepsData.value?.quantity);
-          setSteps(Math.round(stepsData.value?.quantity || 0));
+          const stepsValue = Math.round(stepsData.value?.quantity || 0);
+          console.log('✅ Steps retrieved (total today):', stepsValue);
+          setSteps(stepsValue);
+        } else {
+          console.log('❌ Erreur récupération pas:', stepsData.reason);
         }
 
         if (flightsData.status === 'fulfilled') {
-          console.log('Flights retrieved:', flightsData.value?.quantity);
-          setFlights(Math.round(flightsData.value?.quantity || 0));
+          const flightsValue = Math.round(flightsData.value?.quantity || 0);
+          console.log('✅ Flights retrieved:', flightsValue);
+          setFlights(flightsValue);
+        } else {
+          console.log('❌ Erreur récupération étages:', flightsData.reason);
         }
 
         if (distanceData.status === 'fulfilled') {
-          console.log('Distance retrieved:', distanceData.value?.quantity);
-          setDistance(Math.round(distanceData.value?.quantity || 0));
+          const distanceValue = Math.round(distanceData.value?.quantity || 0);
+          console.log('✅ Distance retrieved:', distanceValue);
+          setDistance(distanceValue);
+        } else {
+          console.log('❌ Erreur récupération distance:', distanceData.reason);
         }
 
         if (caloriesData.status === 'fulfilled') {
-          console.log('✅ Calories retrieved (total today):', caloriesData.value?.quantity);
-          setCalories(Math.round(caloriesData.value?.quantity || 0));
+          const caloriesValue = Math.round(caloriesData.value?.quantity || 0);
+          console.log('✅ Calories retrieved (total today):', caloriesValue);
+          setCalories(caloriesValue);
         } else {
-          console.log('❌ Calories data failed:', caloriesData.status, caloriesData.reason);
+          console.log('❌ Erreur récupération calories:', caloriesData.reason);
         }
       } catch (error) {
-        console.error('Error fetching health data:', error);
+        console.error('❌ Erreur lors de la récupération des données HealthKit:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -164,8 +176,50 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     }
   };
 
-  console.log('🔍 useHealthDataSimple - returning data:', { steps, flights, distance, calories });
-  return { steps, flights, distance, calories, requestPermissions, hasPermissions, authorizationStatus };
+  // Fonction de test pour vérifier si HealthKit fonctionne
+  const testHealthKit = async () => {
+    try {
+      console.log('🧪 Test de HealthKit...');
+      
+      // Test 1: Vérifier la disponibilité
+      const isAvailable = await isHealthDataAvailable();
+      console.log('✅ HealthKit disponible:', isAvailable);
+      
+      if (!isAvailable) {
+        console.log('❌ HealthKit non disponible sur cet appareil');
+        return false;
+      }
+      
+      // Test 2: Vérifier les permissions
+      console.log('🔍 Statut des permissions:', authorizationStatus);
+      
+      // Test 3: Essayer de récupérer un échantillon simple
+      try {
+        const testSample = await getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount');
+        console.log('✅ Test récupération échantillon:', testSample);
+        return true;
+      } catch (error) {
+        console.log('❌ Erreur lors du test de récupération:', error);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors du test HealthKit:', error);
+      return false;
+    }
+  };
+
+  console.log('🔍 useHealthDataSimple - returning data:', { steps, flights, distance, calories, hasPermissions, isLoading });
+  return { 
+    steps, 
+    flights, 
+    distance, 
+    calories, 
+    requestPermissions, 
+    hasPermissions, 
+    authorizationStatus,
+    isLoading,
+    testHealthKit
+  };
 };
 
 export interface HealthData {
@@ -552,24 +606,10 @@ export function useHealthData(): UseHealthDataReturn {
       
       // Récupérer les données directement depuis HealthKit
       const today = new Date();
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
       const [stepsData, caloriesData, distanceData, flightsData] = await Promise.allSettled([
-        queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
-          from: startOfDay,
-          to: endOfDay,
-        } as any).then(samples => {
-          const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-          return { quantity: totalSteps };
-        }),
-        queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
-          from: startOfDay,
-          to: endOfDay,
-        } as any).then(samples => {
-          const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-          return { quantity: totalCalories };
-        }),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
         getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
       ]);
@@ -645,25 +685,10 @@ export function useHealthData(): UseHealthDataReturn {
 
       // Récupérer les données pour chaque jour
       for (const date of dates) {
-        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const dayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
-
         try {
           const [stepsData, caloriesData, distanceData] = await Promise.allSettled([
-            queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
-              from: dayStart,
-              to: dayEnd,
-            } as any).then(samples => {
-              const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-              return { quantity: totalSteps };
-            }),
-            queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
-              from: dayStart,
-              to: dayEnd,
-            } as any).then(samples => {
-              const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
-              return { quantity: totalCalories };
-            }),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+            getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
             getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
           ]);
 
