@@ -53,6 +53,13 @@ export default function WorkoutDetailsScreen() {
   // Récupérer les données de l'exercice depuis les paramètres
   const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
   
+  // Debug logs
+  console.log('🔍 WorkoutDetailsScreen - params:', params);
+  console.log('🔍 WorkoutDetailsScreen - exercise:', exercise);
+  console.log('🔍 WorkoutDetailsScreen - exercise name:', exercise?.name);
+  console.log('🔍 WorkoutDetailsScreen - exercise muscleGroups:', exercise?.muscleGroups);
+  console.log('🔍 WorkoutDetailsScreen - exercise equipment:', exercise?.equipment);
+  
   // Utiliser le hook Firebase pour les séries
   const { completedSets, loading: setsLoading } = useExerciseSets({
     exerciseId: exercise?.id || 'default-exercise',

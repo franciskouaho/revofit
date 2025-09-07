@@ -5,7 +5,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkoutTemplateService } from '@/services/firebase/workouts';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface RecommendedWorkout {
   id: string;
@@ -17,6 +17,9 @@ export interface RecommendedWorkout {
   muscleGroups: string[];
   duration: number;
   calories: number;
+  // Données du premier exercice pour la navigation
+  firstExercise?: any;
+  templateId: string;
 }
 
 export interface UseRecommendedWorkoutsReturn {
@@ -32,7 +35,7 @@ export function useRecommendedWorkouts(): UseRecommendedWorkoutsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecommendedWorkouts = async () => {
+  const fetchRecommendedWorkouts = useCallback(async () => {
     if (!user?.uid) {
       setWorkouts([]);
       setLoading(false);
@@ -92,7 +95,10 @@ export function useRecommendedWorkouts(): UseRecommendedWorkoutsReturn {
           difficulty: template.difficulty,
           muscleGroups: template.muscleGroups,
           duration: estimatedDuration,
-          calories: estimatedCalories
+          calories: estimatedCalories,
+          // Inclure le premier exercice du template
+          firstExercise: template.exercises.length > 0 ? template.exercises[0] : null,
+          templateId: template.id
         };
       });
 
@@ -103,11 +109,11 @@ export function useRecommendedWorkouts(): UseRecommendedWorkoutsReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.uid]);
 
   useEffect(() => {
     fetchRecommendedWorkouts();
-  }, [user?.uid]);
+  }, [fetchRecommendedWorkouts]);
 
   return {
     workouts,

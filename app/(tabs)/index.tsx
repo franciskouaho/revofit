@@ -52,7 +52,7 @@ export default function HomeScreen() {
   };
 
   const defaultRecommended = [
-    { id: 'rec1', name: 'Chargement...', tag: '...', img: require('@/assets/images/onboarding-athlete.png'), color: ['#11160a', 'transparent'] as [string, string] },
+    { id: 'rec1', name: 'Chargement...', tag: '...', img: require('@/assets/images/onboarding-athlete.png'), color: ['#11160a', 'transparent'] as [string, string], firstExercise: null, templateId: 'rec1' },
   ];
 
   const defaultStatus = {
@@ -275,7 +275,42 @@ export default function HomeScreen() {
                 <TouchableOpacity 
                   key={w.id} 
                   activeOpacity={0.9} 
-                  onPress={() => router.push('/workout')}
+                  onPress={() => {
+                    console.log('🔍 Clic sur carte recommandée:', w.name);
+                    console.log('🔍 Données firstExercise:', w.firstExercise);
+                    
+                    if (w.firstExercise) {
+                      // S'assurer que l'exercice a toutes les données nécessaires
+                      const exerciseData = {
+                        ...w.firstExercise,
+                        id: w.firstExercise.id || `exercise-${Date.now()}`,
+                        name: w.firstExercise.name || 'Exercice',
+                        muscleGroups: w.firstExercise.muscleGroups || ['Groupe musculaire'],
+                        equipment: w.firstExercise.equipment || ['Aucun'],
+                        difficulty: w.firstExercise.difficulty || 'intermediate',
+                        imageUrl: w.firstExercise.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&h=1200&fit=crop',
+                        description: w.firstExercise.description || 'Description de l\'exercice'
+                      };
+                      
+                      console.log('🔍 Données exercice complètes:', exerciseData);
+                      
+                      router.push({
+                        pathname: '/workout/details',
+                        params: {
+                          exercise: JSON.stringify(exerciseData),
+                          exerciseName: exerciseData.name,
+                          templateId: w.templateId,
+                          templateName: w.name
+                        }
+                      });
+                    } else {
+                      // Fallback vers la liste des exercices si pas d'exercice
+                      router.push({
+                        pathname: '/template-exercises',
+                        params: { templateId: w.templateId }
+                      });
+                    }
+                  }}
                   disabled={recommendedLoading}
                 >
                   <View style={styles.recCard}>

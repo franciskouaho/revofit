@@ -124,55 +124,58 @@ export function useMuscleRecovery(): UseMuscleRecoveryReturn {
             { limit: 10, muscleGroups: [muscleGroup.id] }
           );
 
-          let lastWorkoutDate: string | null = null;
-          let daysSinceLastWorkout = 999; // Valeur par défaut pour les groupes jamais entraînés
-
+          // Seulement ajouter le groupe s'il a été entraîné au moins une fois
           if (sessionsResponse.success && sessionsResponse.data && sessionsResponse.data.length > 0) {
             // Trier par date décroissante et prendre la plus récente
             const sortedSessions = sessionsResponse.data.sort((a, b) => 
               new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
             );
             
-            lastWorkoutDate = sortedSessions[0].completedAt;
+            const lastWorkoutDate = sortedSessions[0].completedAt;
             const lastWorkout = new Date(lastWorkoutDate);
             const today = new Date();
-            daysSinceLastWorkout = Math.floor((today.getTime() - lastWorkout.getTime()) / (1000 * 60 * 60 * 24));
+            const daysSinceLastWorkout = Math.floor((today.getTime() - lastWorkout.getTime()) / (1000 * 60 * 60 * 24));
+
+            const recoveryPercentage = calculateRecoveryPercentage(daysSinceLastWorkout);
+            const { status, color, subtitle } = getRecoveryStatus(daysSinceLastWorkout, recoveryPercentage);
+
+            recoveryDataArray.push({
+              muscleGroup,
+              recoveryPercentage,
+              lastWorkoutDate,
+              daysSinceLastWorkout,
+              status,
+              color,
+              subtitle
+            });
           }
-
-          const recoveryPercentage = calculateRecoveryPercentage(daysSinceLastWorkout);
-          const { status, color, subtitle } = getRecoveryStatus(daysSinceLastWorkout, recoveryPercentage);
-
-          recoveryDataArray.push({
-            muscleGroup,
-            recoveryPercentage,
-            lastWorkoutDate,
-            daysSinceLastWorkout,
-            status,
-            color,
-            subtitle
-          });
+          // Si le groupe n'a jamais été entraîné, on ne l'ajoute pas au tableau
         } catch (muscleError) {
           console.warn(`Erreur pour le groupe musculaire ${muscleGroup.name}:`, muscleError);
-          
-          // Ajouter le groupe avec des données par défaut
-          recoveryDataArray.push({
-            muscleGroup,
-            recoveryPercentage: 100,
-            lastWorkoutDate: null,
-            daysSinceLastWorkout: 999,
-            status: 'ready',
-            color: '#4CAF50',
-            subtitle: 'Prêt à s\'entraîner'
-          });
+          // On n'ajoute pas le groupe en cas d'erreur non plus
         }
       }
 
-      // Trier par pourcentage de récupération (du plus bas au plus haut)
-      recoveryDataArray.sort((a, b) => a.recoveryPercentage - b.recoveryPercentage);
-
-      setRecoveryData(recoveryDataArray);
-      console.log('✅ Données de récupération récupérées:', recoveryDataArray.length, 'groupes musculaires');
-      console.log('🔍 Détails des données:', recoveryDataArray);
+      // Si aucun groupe musculaire n'a été entraîné, afficher un message par défaut
+      if (recoveryDataArray.length === 0) {
+        const defaultData: MuscleRecoveryData[] = [{
+          muscleGroup: { id: 'default', name: 'Commencez votre premier entraînement', nameEn: 'Start your first workout', category: 'primary' as const, imageUrl: '', description: '', exercises: [], createdAt: new Date(), updatedAt: new Date() },
+          recoveryPercentage: 0,
+          lastWorkoutDate: null,
+          daysSinceLastWorkout: 0,
+          status: 'fresh' as const,
+          color: '#7C4DFF',
+          subtitle: 'Aucun entraînement enregistré'
+        }];
+        setRecoveryData(defaultData);
+        console.log('✅ Aucun groupe musculaire entraîné, affichage du message par défaut');
+      } else {
+        // Trier par pourcentage de récupération (du plus bas au plus haut)
+        recoveryDataArray.sort((a, b) => a.recoveryPercentage - b.recoveryPercentage);
+        setRecoveryData(recoveryDataArray);
+        console.log('✅ Données de récupération récupérées:', recoveryDataArray.length, 'groupes musculaires');
+        console.log('🔍 Détails des données:', recoveryDataArray);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
