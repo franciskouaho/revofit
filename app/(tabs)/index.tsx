@@ -30,7 +30,13 @@ export default function HomeScreen() {
   const { status: workoutStatus, loading: statusLoading } = useWorkoutStatus();
   
   // Hook pour les données de santé
-  const { steps: healthSteps, distance: healthDistance, flights: healthFlights } = useHealthDataSimple();
+  const { steps: healthSteps, distance: healthDistance, flights: healthFlights, calories: healthCalories } = useHealthDataSimple();
+  
+  // Debug logs pour les données de santé
+  console.log('🔍 HomeScreen - healthSteps:', healthSteps);
+  console.log('🔍 HomeScreen - healthDistance:', healthDistance);
+  console.log('🔍 HomeScreen - healthFlights:', healthFlights);
+  console.log('🔍 HomeScreen - healthCalories:', healthCalories);
 
   // Données par défaut en cas de chargement
   const defaultStats = {
@@ -76,7 +82,14 @@ export default function HomeScreen() {
   const combinedStats = {
     ...currentStats,
     steps: healthSteps > 0 ? healthSteps : currentStats.steps,
+    calories: healthCalories > 0 ? healthCalories : currentStats.calories,
   };
+  
+  // Debug logs pour les stats combinées
+  console.log('🔍 HomeScreen - currentStats.steps:', currentStats.steps);
+  console.log('🔍 HomeScreen - combinedStats.steps:', combinedStats.steps);
+  console.log('🔍 HomeScreen - currentStats.calories:', currentStats.calories);
+  console.log('🔍 HomeScreen - combinedStats.calories:', combinedStats.calories);
 
   const handleNotificationPress = () => router.push('/notifications');
   const handleProfilePress = () => router.push('/settings');
@@ -161,22 +174,13 @@ export default function HomeScreen() {
             </View>
 
             {/* Données de santé supplémentaires */}
-            {(healthDistance > 0 || healthFlights > 0) && (
+            {healthDistance > 0 && (
               <View style={styles.healthDataGrid}>
-                {healthDistance > 0 && (
-                  <GlassStat 
-                    icon="location" 
-                    label="Distance" 
-                    value={`${(healthDistance / 1000).toFixed(1)} km`} 
-                  />
-                )}
-                {healthFlights > 0 && (
-                  <GlassStat 
-                    icon="trending-up" 
-                    label="Étages" 
-                    value={`${healthFlights}`} 
-                  />
-                )}
+                <GlassStat 
+                  icon="location" 
+                  label="Distance" 
+                  value={`${(healthDistance / 1000).toFixed(1)} km`} 
+                />
               </View>
             )}
           </View>

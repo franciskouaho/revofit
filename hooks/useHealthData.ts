@@ -8,6 +8,7 @@
 import {
     getMostRecentQuantitySample,
     isHealthDataAvailable,
+    queryQuantitySamples,
     requestAuthorization,
     useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
@@ -21,6 +22,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
   const [steps, setSteps] = useState(0);
   const [flights, setFlights] = useState(0);
   const [distance, setDistance] = useState(0);
+  const [calories, setCalories] = useState(0);
   const [hasPermissions, setHasPermission] = useState(false);
 
   // Permissions pour HealthKit
@@ -28,6 +30,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     'HKQuantityTypeIdentifierStepCount' as const,
     'HKQuantityTypeIdentifierFlightsClimbed' as const,
     'HKQuantityTypeIdentifierDistanceWalkingRunning' as const,
+    'HKQuantityTypeIdentifierActiveEnergyBurned' as const,
   ];
 
   // Hook pour l'autorisation
@@ -65,14 +68,34 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     // Récupérer les données avec la nouvelle API
     const fetchData = async () => {
       try {
-        const [stepsData, flightsData, distanceData] = await Promise.allSettled([
-          getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
+        // Pour les pas, récupérer le total de la journée
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+        const [stepsData, flightsData, distanceData, caloriesData] = await Promise.allSettled([
+          // Récupérer le total des pas de la journée
+          queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+            from: startOfDay,
+            to: endOfDay,
+          } as any).then(samples => {
+            const totalSteps = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+            return { quantity: totalSteps };
+          }),
           getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
           getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
+          // Récupérer le total des calories brûlées de la journée
+          queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
+            from: startOfDay,
+            to: endOfDay,
+          } as any).then(samples => {
+            const totalCalories = samples.reduce((sum, sample) => sum + sample.quantity, 0);
+            return { quantity: totalCalories };
+          }),
         ]);
 
         if (stepsData.status === 'fulfilled') {
-          console.log('Steps retrieved:', stepsData.value?.quantity);
+          console.log('Steps retrieved (total today):', stepsData.value?.quantity);
           setSteps(Math.round(stepsData.value?.quantity || 0));
         }
 
@@ -85,6 +108,11 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
           console.log('Distance retrieved:', distanceData.value?.quantity);
           setDistance(Math.round(distanceData.value?.quantity || 0));
         }
+
+        if (caloriesData.status === 'fulfilled') {
+          console.log('Calories retrieved (total today):', caloriesData.value?.quantity);
+          setCalories(Math.round(caloriesData.value?.quantity || 0));
+        }
       } catch (error) {
         console.error('Error fetching health data:', error);
       }
@@ -93,7 +121,7 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     fetchData();
   }, [hasPermissions, authorizationStatus, date]);
 
-  return { steps, flights, distance };
+  return { steps, flights, distance, calories };
 };
 
 export interface HealthData {
