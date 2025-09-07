@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useOnboarding } from "../../components/onboarding";
 
@@ -173,7 +173,11 @@ export default function CulinaryPreferencesSelectionScreen() {
         </View>
 
         {/* Liste des préférences */}
-        <View style={{ gap: 12 }}>
+        <ScrollView 
+          style={{ flex: 1 }} 
+          contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {preferences.map((preference) => {
             const selected = preference.selected;
             return (
@@ -263,7 +267,7 @@ export default function CulinaryPreferencesSelectionScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
 
       {/* Bouton */}
