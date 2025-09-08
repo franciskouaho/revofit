@@ -4,16 +4,16 @@
  */
 
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    onSnapshot,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { firestore } from './config';
 
@@ -22,6 +22,23 @@ const COLLECTIONS = {
   EXERCISE_SETS: 'exerciseSets',
   WORKOUT_SESSIONS: 'workoutSessions'
 } as const;
+
+/**
+ * Nettoie un objet en supprimant les valeurs undefined et null
+ * Firebase ne supporte pas les valeurs undefined
+ */
+function cleanFirebaseData(data: any): any {
+  const cleaned: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null) {
+      cleaned[key] = value;
+    } else {
+      console.log(`🔍 Suppression de ${key}: ${value} (${typeof value})`);
+    }
+  }
+  console.log('🔍 Données nettoyées:', cleaned);
+  return cleaned;
+}
 
 // Types pour les séries d'exercices
 export interface ExerciseSet {
@@ -115,12 +132,12 @@ export class ExerciseSetService {
 
       console.log('🔍 Création de la nouvelle série complétée...');
       
-      // Créer la série complétée
-      const docRef = await addDoc(collection(firestore, COLLECTIONS.EXERCISE_SETS), {
+      // Créer la série complétée - nettoyer les données pour Firebase
+      const exerciseSetData = cleanFirebaseData({
         userId,
         exerciseId,
         exerciseName,
-        templateId,
+        templateId, // Sera automatiquement supprimé si undefined
         setNumber,
         totalSets,
         reps,
@@ -132,6 +149,11 @@ export class ExerciseSetService {
         updatedAt: serverTimestamp()
       });
 
+      console.log('🔍 Données à sauvegarder:', exerciseSetData);
+      console.log('🔍 templateId value:', templateId, 'type:', typeof templateId);
+
+      const docRef = await addDoc(collection(firestore, COLLECTIONS.EXERCISE_SETS), exerciseSetData);
+
       console.log('✅ Série créée avec ID:', docRef.id);
 
       // Mettre à jour la session d'entraînement
@@ -142,6 +164,13 @@ export class ExerciseSetService {
       return true;
     } catch (error) {
       console.error('💥 Erreur lors de la validation de la série:', error);
+      console.error('💥 Détails de l\'erreur:', {
+        message: error instanceof Error ? error.message : 'Erreur inconnue',
+        code: (error as any)?.code,
+        templateId,
+        exerciseId,
+        userId
+      });
       return false;
     }
   }
@@ -156,31 +185,34 @@ export class ExerciseSetService {
   ): Promise<number[]> {
     try {
       const today = new Date().toISOString().split('T')[0];
+      
+      // Requête simplifiée pour éviter l'erreur d'index
       const q = query(
         collection(firestore, COLLECTIONS.EXERCISE_SETS),
         where('userId', '==', userId),
-        where('exerciseId', '==', exerciseId),
-        where('completedAt', '>=', new Date(today + 'T00:00:00.000Z')),
-        where('completedAt', '<=', new Date(today + 'T23:59:59.999Z'))
+        where('exerciseId', '==', exerciseId)
       );
 
-      if (templateId) {
-        // Si on a un templateId, on peut l'ajouter au filtre
-        const qWithTemplate = query(
-          collection(firestore, COLLECTIONS.EXERCISE_SETS),
-          where('userId', '==', userId),
-          where('exerciseId', '==', exerciseId),
-          where('templateId', '==', templateId),
-          where('completedAt', '>=', new Date(today + 'T00:00:00.000Z')),
-          where('completedAt', '<=', new Date(today + 'T23:59:59.999Z'))
-        );
-        
-        const snapshot = await getDocs(qWithTemplate);
-        return snapshot.docs.map(doc => doc.data().setNumber).sort((a, b) => a - b);
-      }
-
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data().setNumber).sort((a, b) => a - b);
+      
+      // Filtrer côté client pour les séries d'aujourd'hui
+      const todaySets = snapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          const completedDate = data.completedAt?.toDate?.() || new Date(data.completedAt);
+          const isToday = completedDate.toISOString().split('T')[0] === today;
+          
+          // Si templateId est fourni, vérifier qu'il correspond
+          if (templateId) {
+            return isToday && data.templateId === templateId;
+          }
+          
+          return isToday;
+        })
+        .map(doc => doc.data().setNumber)
+        .sort((a, b) => a - b);
+        
+      return todaySets;
     } catch (error) {
       console.error('Erreur lors de la récupération des séries complétées:', error);
       return [];
@@ -197,19 +229,33 @@ export class ExerciseSetService {
     templateId?: string
   ): () => void {
     const today = new Date().toISOString().split('T')[0];
+    
+    // Requête simplifiée pour éviter l'erreur d'index
     const q = query(
       collection(firestore, COLLECTIONS.EXERCISE_SETS),
       where('userId', '==', userId),
-      where('exerciseId', '==', exerciseId),
-      where('completedAt', '>=', new Date(today + 'T00:00:00.000Z')),
-      where('completedAt', '<=', new Date(today + 'T23:59:59.999Z'))
+      where('exerciseId', '==', exerciseId)
     );
 
     return onSnapshot(q, (snapshot) => {
-      const completedSets = snapshot.docs
+      // Filtrer côté client pour les séries d'aujourd'hui
+      const todaySets = snapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          const completedDate = data.completedAt?.toDate?.() || new Date(data.completedAt);
+          const isToday = completedDate.toISOString().split('T')[0] === today;
+          
+          // Si templateId est fourni, vérifier qu'il correspond
+          if (templateId) {
+            return isToday && data.templateId === templateId;
+          }
+          
+          return isToday;
+        })
         .map(doc => doc.data().setNumber)
         .sort((a, b) => a - b);
-      callback(completedSets);
+        
+      callback(todaySets);
     });
   }
 
@@ -266,11 +312,11 @@ export class ExerciseSetService {
       const snapshot = await getDocs(q);
       
       if (snapshot.empty) {
-        // Créer une nouvelle session
-        await addDoc(collection(firestore, COLLECTIONS.WORKOUT_SESSIONS), {
+        // Créer une nouvelle session - nettoyer les données pour Firebase
+        const sessionData = cleanFirebaseData({
           userId,
           exerciseId,
-          templateId,
+          templateId, // Sera automatiquement supprimé si undefined
           totalSets: 4, // Valeur par défaut, sera mise à jour
           completedSets: [setNumber],
           startTime: serverTimestamp(),
@@ -278,6 +324,8 @@ export class ExerciseSetService {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+
+        await addDoc(collection(firestore, COLLECTIONS.WORKOUT_SESSIONS), sessionData);
       } else {
         // Mettre à jour la session existante
         const sessionDoc = snapshot.docs[0];
