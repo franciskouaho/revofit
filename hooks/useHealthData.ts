@@ -8,15 +8,15 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { StorageService } from '@/services/storage';
 import {
-    getMostRecentQuantitySample,
-    isHealthDataAvailable,
-    queryQuantitySamples,
-    queryQuantitySamplesWithAnchor,
-    requestAuthorization,
-    useHealthkitAuthorization,
+  getMostRecentQuantitySample,
+  isHealthDataAvailable,
+  queryQuantitySamples,
+  queryQuantitySamplesWithAnchor,
+  requestAuthorization,
+  useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 // Fonction utilitaire pour calculer le total des échantillons
 const calculateTotalFromSamples = (samples: readonly any[]): number => {
@@ -176,9 +176,17 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
         if (stepsData.status === 'fulfilled') {
           const stepsValue = Math.round(calculateTotalFromSamples(stepsData.value?.samples || []));
           console.log('✅ Steps retrieved (total today):', stepsValue);
+          
+          // Debug avec Alert pour téléphone physique
+          Alert.alert(
+            'Debug Steps', 
+            `Samples: ${stepsData.value?.samples?.length || 0}\nValue: ${stepsValue}\nFirst: ${JSON.stringify(stepsData.value?.samples?.[0] || 'none')}`
+          );
+          
           setSteps(stepsValue);
         } else {
           console.log('❌ Erreur récupération pas:', stepsData.reason);
+          Alert.alert('Erreur Steps', `Erreur: ${stepsData.reason}`);
         }
 
         if (flightsData.status === 'fulfilled') {
@@ -200,9 +208,17 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
         if (caloriesData.status === 'fulfilled') {
           const caloriesValue = Math.round(calculateTotalFromSamples(caloriesData.value?.samples || []));
           console.log('✅ Calories retrieved (total today):', caloriesValue);
+          
+          // Debug avec Alert pour téléphone physique
+          Alert.alert(
+            'Debug Calories', 
+            `Samples: ${caloriesData.value?.samples?.length || 0}\nValue: ${caloriesValue}\nFirst: ${JSON.stringify(caloriesData.value?.samples?.[0] || 'none')}`
+          );
+          
           setCalories(caloriesValue);
         } else {
           console.log('❌ Erreur récupération calories:', caloriesData.reason);
+          Alert.alert('Erreur Calories', `Erreur: ${caloriesData.reason}`);
         }
       } catch (error) {
         console.error('❌ Erreur lors de la récupération des données HealthKit:', error);

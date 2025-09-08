@@ -28,6 +28,9 @@ import {
 import { firestore } from './config';
 import { NotificationService } from './notifications';
 
+// Ré-exporter les types pour les autres modules
+export type { ExerciseProgress, ExerciseSet, ExerciseTemplate, SetData, WorkoutSession };
+
 // Collections Firebase
 const COLLECTIONS = {
   EXERCISE_TEMPLATES: 'exerciseTemplates',

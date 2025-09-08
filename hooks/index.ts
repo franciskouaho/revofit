@@ -5,8 +5,6 @@
 
 export { useColorScheme } from './useColorScheme';
 export { useExercises } from './useExercises';
-export { useHealthKitData } from './useHealthKitData';
-export { useHealthKitDataWrapper } from './useHealthKitDataWrapper';
 export { useMuscleGroups } from './useMuscleGroups';
 export { useNotificationPermissions } from './useNotificationPermissions';
 export { useNotifications } from './useNotifications';

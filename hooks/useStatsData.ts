@@ -116,9 +116,13 @@ export function useStatsData(): StatsData {
   };
 
   const fetchFromAPI = async () => {
-    try {
+    if (!user?.uid) {
+      setData(prev => ({ ...prev, loading: false }));
+      return;
+    }
 
-      // Récupérer toutes les données en parallèle
+    try {
+      // OPTIMISATION: Récupérer seulement les données essentielles d'abord
       const [
         userStats,
         workoutSessions,
@@ -126,11 +130,70 @@ export function useStatsData(): StatsData {
         userStreak,
       ] = await Promise.all([
         UserStatsService.getUserStats(user.uid),
-        WorkoutSessionService.getUserWorkoutSessions(user.uid, 30),
+        WorkoutSessionService.getUserWorkoutSessions(user.uid, 7), // Réduit de 30 à 7 jours
         WorkoutStatusService.getWorkoutStatus(user.uid),
         WorkoutStatusService.getUserStreak(user.uid),
       ]);
 
+      // Calculer les métriques essentielles immédiatement
+      const totalCalories = userStats?.calories || 0;
+      const totalSteps = userStats?.steps || 0;
+      const totalWorkouts = workoutSessions.filter(session => session.status === 'completed').length;
+      const averageHeartRate = userStats?.heartRate || 0;
+      const currentStreak = userStreak?.currentStreak || 0;
+      const longestStreak = userStreak?.longestStreak || 0;
+      const completionRate = userStats?.workouts?.total && userStats.workouts.total > 0 
+        ? Math.round((userStats.workouts.completed / userStats.workouts.total) * 100)
+        : 0;
+
+      // Données essentielles pour l'affichage immédiat
+      const essentialData = {
+        userStats,
+        dailyActivity: [], // Sera chargé en arrière-plan
+        workoutSessions,
+        workoutStatus,
+        userStreak,
+        totalCalories,
+        totalSteps,
+        totalWorkouts,
+        averageHeartRate,
+        currentStreak,
+        longestStreak,
+        completionRate,
+        weeklyData: [], // Sera chargé en arrière-plan
+        monthlyData: [], // Sera chargé en arrière-plan
+        personalRecords: {
+          longestDistance: 0,
+          bestPace: 0,
+          maxCalories: 0,
+          longestStreak: longestStreak,
+        },
+        loading: false,
+        isFromCache: false,
+        error: null,
+      };
+
+      // Afficher les données essentielles immédiatement
+      setData(essentialData);
+      
+      // Charger les données supplémentaires en arrière-plan
+      loadAdditionalData(userStats, workoutSessions, longestStreak);
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des données de statistiques:', error);
+      setData(prev => ({
+        ...prev,
+        loading: false,
+        error: 'Impossible de charger les statistiques',
+      }));
+    }
+  };
+
+  // Fonction pour charger les données supplémentaires en arrière-plan
+  const loadAdditionalData = async (userStats: any, workoutSessions: any[], longestStreak: number) => {
+    if (!user?.uid) return;
+    
+    try {
       // Récupérer l'activité quotidienne des 7 derniers jours
       const dailyActivityPromises = [];
       for (let i = 0; i < 7; i++) {
@@ -144,17 +207,6 @@ export function useStatsData(): StatsData {
       const dailyActivityResults = await Promise.all(dailyActivityPromises);
       const dailyActivity = dailyActivityResults.filter(Boolean) as DailyActivity[];
 
-      // Calculer les métriques
-      const totalCalories = userStats?.calories || 0;
-      const totalSteps = userStats?.steps || 0;
-      const totalWorkouts = workoutSessions.filter(session => session.status === 'completed').length;
-      const averageHeartRate = userStats?.heartRate || 0;
-      const currentStreak = userStreak?.currentStreak || 0;
-      const longestStreak = userStreak?.longestStreak || 0;
-      const completionRate = userStats?.workouts.total > 0 
-        ? Math.round((userStats.workouts.completed / userStats.workouts.total) * 100)
-        : 0;
-
       // Générer les données hebdomadaires
       const weeklyData = dailyActivity.map(activity => ({
         date: activity.date,
@@ -163,9 +215,9 @@ export function useStatsData(): StatsData {
         workouts: activity.workoutsCompleted,
       }));
 
-      // Générer les données mensuelles (6 derniers mois)
-      const monthlyData = [];
-      for (let i = 5; i >= 0; i--) {
+      // Générer les données mensuelles simplifiées (3 derniers mois seulement)
+      const monthlyData: { month: string; calories: number; workouts: number }[] = [];
+      for (let i = 2; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const monthStr = date.toLocaleDateString('fr-FR', { month: 'short' });
@@ -190,45 +242,39 @@ export function useStatsData(): StatsData {
 
       // Calculer les records personnels
       const personalRecords = {
-        longestDistance: workoutSessions.length > 0 ? Math.max(...workoutSessions.map(s => s.distance || 0)) / 1000 : 0, // en km
-        bestPace: 5.02, // Placeholder - à calculer selon les données réelles
+        longestDistance: workoutSessions.length > 0 ? Math.max(...workoutSessions.map(s => s.distance || 0)) / 1000 : 0,
+        bestPace: 5.02, // Placeholder
         maxCalories: workoutSessions.length > 0 ? Math.max(...workoutSessions.map(s => s.caloriesBurned || 0)) : 0,
         longestStreak: longestStreak,
       };
 
-      const newData = {
-        userStats,
+      // Mettre à jour avec les données complètes
+      setData(prev => ({
+        ...prev,
         dailyActivity,
-        workoutSessions,
-        workoutStatus,
-        userStreak,
-        totalCalories,
-        totalSteps,
-        totalWorkouts,
-        averageHeartRate,
-        currentStreak,
-        longestStreak,
-        completionRate,
         weeklyData,
         monthlyData,
         personalRecords,
-        loading: false,
-        isFromCache: false,
-        error: null,
-      };
+      }));
 
-      setData(newData);
-      
       // Sauvegarder dans le cache
-      await StatsCacheService.saveAllStatsData(newData);
+      setData(prev => {
+        const completeData = {
+          ...prev,
+          dailyActivity,
+          weeklyData,
+          monthlyData,
+          personalRecords,
+        };
+        
+        // Sauvegarder en arrière-plan
+        StatsCacheService.saveAllStatsData(completeData);
+        
+        return completeData;
+      });
 
     } catch (error) {
-      console.error('Erreur lors de la récupération des données de statistiques:', error);
-      setData(prev => ({
-        ...prev,
-        loading: false,
-        error: 'Impossible de charger les statistiques',
-      }));
+      console.error('Erreur lors du chargement des données supplémentaires:', error);
     }
   };
 

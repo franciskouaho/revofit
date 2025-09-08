@@ -10,7 +10,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { useHealthKitDataWrapper } from '@/hooks/useHealthKitDataWrapper';
+import { useHealthDataSimple } from '@/hooks/useHealthData';
 
 const BORDER = 'rgba(255,255,255,0.12)';
 
@@ -109,7 +109,7 @@ export default function StatsScreen() {
     distance: healthDistance,
     hasPermissions,
     isLoading: healthLoading,
-  } = useHealthKitDataWrapper();
+  } = useHealthDataSimple();
 
 
   // Données calculées pour les KPIs avec les données HealthKit uniquement

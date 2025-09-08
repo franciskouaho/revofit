@@ -16,7 +16,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Animated, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useHealthKitDataWrapper } from '@/hooks/useHealthKitDataWrapper';
+import { useHealthDataSimple } from '@/hooks/useHealthData';
 
 const { width } = Dimensions.get('window');
 const GLASS_BORDER = 'rgba(255,255,255,0.12)';
@@ -37,6 +37,9 @@ export default function HomeScreen() {
   // État pour le modal de permission de notifications
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   
+  // État pour le refresh des données de santé
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   // Animation pour l'indicateur de chargement
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -49,9 +52,8 @@ export default function HomeScreen() {
     calories: healthCalories,
     hasPermissions,
     isLoading: healthDataLoading,
-    error: healthError,
-    refreshData: refreshHealthData
-  } = useHealthKitDataWrapper();
+    setRefreshTrigger
+  } = useHealthDataSimple();
   
 
   // Debug logs pour les données de santé
@@ -60,7 +62,6 @@ export default function HomeScreen() {
   console.log('🔍 HomeScreen - healthFlights:', healthFlights);
   console.log('🔍 HomeScreen - healthCalories:', healthCalories);
   console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
-  console.log('🔍 HomeScreen - healthError:', healthError);
 
   // Données par défaut mémorisées (sans les données de santé qui viennent de HealthKit)
   const defaultStats = useMemo(() => ({
@@ -114,7 +115,6 @@ export default function HomeScreen() {
   console.log('🔍 HomeScreen - healthCalories (HealthKit):', healthCalories);
   console.log('🔍 HomeScreen - combinedStats.calories (final):', combinedStats.calories);
   console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
-  console.log('🔍 HomeScreen - healthError:', healthError);
 
   // Vérifier les permissions de notifications au chargement
   useEffect(() => {
@@ -185,6 +185,27 @@ export default function HomeScreen() {
 
   const handleNotificationPress = useCallback(() => router.push('/notifications'), [router]);
   const handleProfilePress = useCallback(() => router.push('/settings'), [router]);
+  
+  // Fonction de refresh avec feedback visuel
+  const handleRefreshHealthData = useCallback(async () => {
+    if (isRefreshing) return; // Éviter les clics multiples
+    
+    try {
+      setIsRefreshing(true);
+      console.log('🔄 Refresh des données HealthKit...');
+      
+      // Déclencher le refresh
+      setRefreshTrigger(prev => prev + 1);
+      
+      // Attendre un peu pour que l'utilisateur voie le feedback
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.error('Erreur lors du refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, setRefreshTrigger]);
 
   const progress = useMemo(() => 
     Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target)), 
@@ -229,15 +250,22 @@ export default function HomeScreen() {
             <View style={styles.sectionHeader}>
               <ThemedText style={styles.sectionTitle}>Statistiques</ThemedText>
               <TouchableOpacity 
-                onPress={refreshHealthData}
-                disabled={healthDataLoading}
-                style={styles.refreshButton}
+                onPress={handleRefreshHealthData}
+                disabled={isRefreshing || healthDataLoading}
+                style={[
+                  styles.refreshButton,
+                  isRefreshing && styles.refreshButtonActive
+                ]}
               >
-                <Ionicons 
-                  name="refresh" 
-                  size={20} 
-                  color={healthDataLoading ? "#666" : "#FFD700"} 
-                />
+                {isRefreshing ? (
+                  <ActivityIndicator size="small" color="#FFD700" />
+                ) : (
+                  <Ionicons 
+                    name="refresh" 
+                    size={20} 
+                    color={healthDataLoading ? "#666" : "#FFD700"} 
+                  />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -558,6 +586,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,215,0,0.3)',
+  },
+  refreshButtonActive: {
+    backgroundColor: 'rgba(255,215,0,0.2)',
+    borderColor: 'rgba(255,215,0,0.5)',
+    transform: [{ scale: 1.1 }],
   },
 
   border: { borderWidth: 1, borderColor: GLASS_BORDER },
