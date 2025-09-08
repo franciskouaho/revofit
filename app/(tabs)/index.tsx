@@ -128,11 +128,31 @@ export default function HomeScreen() {
     }
   }, [permissionsLoading, hasPermission, canAskAgain]);
 
-  // Indicateur de chargement global (sans statsLoading)
-  const isLoading = useMemo(() => 
-    workoutLoading || recommendedLoading || statusLoading || healthDataLoading, 
-    [workoutLoading, recommendedLoading, statusLoading, healthDataLoading]
-  );
+  // Indicateur de chargement global avec timeout de sécurité
+  const [forceLoading, setForceLoading] = useState(true);
+  
+  // Timeout de sécurité pour éviter un chargement infini
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.log('⏰ Timeout de sécurité - arrêt du chargement forcé');
+      setForceLoading(false);
+    }, 8000); // 8 secondes maximum
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Arrêter le chargement forcé dès qu'une des données est chargée
+  useEffect(() => {
+    if (!workoutLoading || !recommendedLoading || !statusLoading) {
+      console.log('✅ Au moins une donnée chargée - arrêt du chargement forcé');
+      setForceLoading(false);
+    }
+  }, [workoutLoading, recommendedLoading, statusLoading]);
+
+  const isLoading = useMemo(() => {
+    const hooksLoading = workoutLoading || recommendedLoading || statusLoading || healthDataLoading;
+    return hooksLoading && forceLoading;
+  }, [workoutLoading, recommendedLoading, statusLoading, healthDataLoading, forceLoading]);
 
   // Animation de l'indicateur de chargement
   useEffect(() => {
@@ -531,6 +551,17 @@ export default function HomeScreen() {
                 />
               </View>
             </View>
+            
+            {/* Bouton pour forcer l'arrêt du chargement */}
+            <TouchableOpacity 
+              style={styles.skipLoadingButton}
+              onPress={() => {
+                console.log('⏭️ Utilisateur a forcé l\'arrêt du chargement');
+                setForceLoading(false);
+              }}
+            >
+              <ThemedText style={styles.skipLoadingText}>Passer le chargement</ThemedText>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -771,6 +802,21 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#FFD700',
     borderRadius: 2,
+  },
+  skipLoadingButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  skipLoadingText: {
+    color: '#FFD700',
+    fontWeight: '600',
+    fontSize: 14,
+    textAlign: 'center',
   },
 
 
