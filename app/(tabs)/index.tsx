@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useHealthKitDataWrapper } from '@/hooks/useHealthKitDataWrapper';
@@ -37,6 +37,10 @@ export default function HomeScreen() {
   // État pour le modal de permission de notifications
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   
+  // Animation pour l'indicateur de chargement
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  
   // Hook pour les données de santé HealthKit (conditionnel)
   const { 
     steps: healthSteps, 
@@ -58,28 +62,28 @@ export default function HomeScreen() {
   console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
   console.log('🔍 HomeScreen - healthError:', healthError);
 
-  // Données par défaut (sans les données de santé qui viennent de HealthKit)
-  const defaultStats = {
+  // Données par défaut mémorisées (sans les données de santé qui viennent de HealthKit)
+  const defaultStats = useMemo(() => ({
     heartRate: 0,
     workouts: { completed: 0, total: 0 },
     streak: 0,
     points: 0,
     weeklyGoal: { done: 0, target: 5 },
-  };
+  }), []);
 
-  const defaultWorkout = {
+  const defaultWorkout = useMemo(() => ({
     name: 'Chargement...',
     difficulty: 'beginner' as const,
     calories: 0,
     duration: 0,
     image: require('@/assets/images/onboarding-athlete.png'),
-  };
+  }), []);
 
-  const defaultRecommended = [
+  const defaultRecommended = useMemo(() => [
     { id: 'rec1', name: 'Chargement...', tag: '...', img: require('@/assets/images/onboarding-athlete.png'), color: ['#11160a', 'transparent'] as [string, string], firstExercise: null, templateId: 'rec1' },
-  ];
+  ], []);
 
-  const defaultStatus = {
+  const defaultStatus = useMemo(() => ({
     strikes: 0,
     currentDay: 'Mer',
     workoutMessage: "C'est l'heure de s'entraîner",
@@ -88,21 +92,21 @@ export default function HomeScreen() {
       { day: 19, label: 'Ven' },
       { day: 20, label: 'Sam' },
     ],
-  };
+  }), []);
 
   // Utiliser les données Firebase ou les valeurs par défaut (sans les données de santé)
   const currentStats = defaultStats; // Plus de userStats Firebase pour les données de santé
-  const currentWorkout = todayWorkout || defaultWorkout;
-  const currentRecommended = recommended.length > 0 ? recommended : defaultRecommended;
-  const currentStatus = workoutStatus || defaultStatus;
+  const currentWorkout = useMemo(() => todayWorkout || defaultWorkout, [todayWorkout, defaultWorkout]);
+  const currentRecommended = useMemo(() => recommended.length > 0 ? recommended : defaultRecommended, [recommended, defaultRecommended]);
+  const currentStatus = useMemo(() => workoutStatus || defaultStatus, [workoutStatus, defaultStatus]);
   
   // Utiliser uniquement les données HealthKit pour les données de santé
-  const combinedStats = {
+  const combinedStats = useMemo(() => ({
     ...currentStats,
     // Utiliser uniquement HealthKit pour les données de santé
     steps: hasPermissions ? healthSteps : 0,
     calories: hasPermissions ? healthCalories : 0,
-  };
+  }), [currentStats, hasPermissions, healthSteps, healthCalories]);
   
   // Debug logs pour les stats combinées
   console.log('🔍 HomeScreen - healthSteps (HealthKit):', healthSteps);
@@ -124,13 +128,68 @@ export default function HomeScreen() {
     }
   }, [permissionsLoading, hasPermission, canAskAgain]);
 
-  const handleNotificationPress = () => router.push('/notifications');
-  const handleProfilePress = () => router.push('/settings');
-
-  const progress = Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target));
-
   // Indicateur de chargement global (sans statsLoading)
-  const isLoading = workoutLoading || recommendedLoading || statusLoading || healthDataLoading;
+  const isLoading = useMemo(() => 
+    workoutLoading || recommendedLoading || statusLoading || healthDataLoading, 
+    [workoutLoading, recommendedLoading, statusLoading, healthDataLoading]
+  );
+
+  // Animation de l'indicateur de chargement
+  useEffect(() => {
+    if (isLoading) {
+      // Animation de pulsation
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+      // Animation de la barre de progression
+      const progressAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(progressAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: false,
+          }),
+          Animated.timing(progressAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+
+      pulseAnimation.start();
+      progressAnimation.start();
+
+      return () => {
+        pulseAnimation.stop();
+        progressAnimation.stop();
+      };
+    } else {
+      // Reset des animations quand le chargement se termine
+      pulseAnim.setValue(1);
+      progressAnim.setValue(0);
+    }
+  }, [isLoading, pulseAnim, progressAnim]);
+
+  const handleNotificationPress = useCallback(() => router.push('/notifications'), [router]);
+  const handleProfilePress = useCallback(() => router.push('/settings'), [router]);
+
+  const progress = useMemo(() => 
+    Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target)), 
+    [combinedStats.weeklyGoal.done, combinedStats.weeklyGoal.target]
+  );
 
   return (
     <View style={styles.container}>
@@ -151,7 +210,12 @@ export default function HomeScreen() {
           onProfilePress={handleProfilePress}
         />
 
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView} contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false} 
+          style={styles.scrollView} 
+          contentContainerStyle={{ paddingBottom: 120 }}
+          removeClippedSubviews={true}
+        >
           {/* Status bar */}
           <WorkoutStatusBar
             strikes={statusLoading ? 0 : currentStatus.strikes}
@@ -164,19 +228,17 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ThemedText style={styles.sectionTitle}>Statistiques</ThemedText>
-              {hasPermissions && (
-                <TouchableOpacity 
-                  onPress={refreshHealthData}
-                  disabled={healthDataLoading}
-                  style={styles.refreshButton}
-                >
-                  <Ionicons 
-                    name="refresh" 
-                    size={20} 
-                    color={healthDataLoading ? "#666" : "#FFD700"} 
-                  />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity 
+                onPress={refreshHealthData}
+                disabled={healthDataLoading}
+                style={styles.refreshButton}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={20} 
+                  color={healthDataLoading ? "#666" : "#FFD700"} 
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Streak & Points */}
@@ -402,10 +464,45 @@ export default function HomeScreen() {
       {/* Indicateur de chargement global */}
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FFD700" />
+            <View style={styles.loadingIconContainer}>
+              <ActivityIndicator size="large" color="#FFD700" />
+              <Animated.View 
+                style={[
+                  styles.loadingPulse,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    opacity: pulseAnim.interpolate({
+                      inputRange: [1, 1.2],
+                      outputRange: [0.3, 0.6],
+                    }),
+                  }
+                ]} 
+              />
+            </View>
             <ThemedText style={styles.loadingText}>Chargement des données...</ThemedText>
+            <ThemedText style={styles.loadingSubtext}>
+              {workoutLoading && "Récupération de l'entraînement du jour..."}
+              {recommendedLoading && "Chargement des recommandations..."}
+              {statusLoading && "Mise à jour du statut..."}
+              {healthDataLoading && "Synchronisation des données de santé..."}
+            </ThemedText>
+            <View style={styles.loadingProgressContainer}>
+              <View style={styles.loadingProgressBar}>
+                <Animated.View 
+                  style={[
+                    styles.loadingProgressFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                      }),
+                    }
+                  ]} 
+                />
+              </View>
+            </View>
           </View>
         </View>
       )}
@@ -420,7 +517,7 @@ export default function HomeScreen() {
 }
 
 /* ===== Sous-vues ===== */
-function GlassStat({ icon, label, value, subtitle }: { icon: any; label: string; value: string; subtitle?: string }) {
+const GlassStat = React.memo(({ icon, label, value, subtitle }: { icon: any; label: string; value: string; subtitle?: string }) => {
   return (
     <BlurView intensity={28} tint="dark" style={styles.statCardGlass}>
       <View style={styles.statHeader}>
@@ -434,7 +531,9 @@ function GlassStat({ icon, label, value, subtitle }: { icon: any; label: string;
       <View style={styles.cardHighlight} pointerEvents="none" />
     </BlurView>
   );
-}
+});
+
+GlassStat.displayName = 'GlassStat';
 
 /* ===== Styles ===== */
 const styles = StyleSheet.create({
@@ -585,17 +684,60 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     alignItems: 'center',
-    gap: 16,
-    padding: 24,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    gap: 20,
+    padding: 32,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     borderWidth: 1,
     borderColor: GLASS_BORDER,
+    minWidth: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  loadingIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingPulse: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
   },
   loadingText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+    fontSize: 14,
+    textAlign: 'center',
+    minHeight: 20,
+  },
+  loadingProgressContainer: {
+    width: '100%',
+    marginTop: 8,
+  },
+  loadingProgressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  loadingProgressFill: {
+    height: '100%',
+    backgroundColor: '#FFD700',
+    borderRadius: 2,
   },
 
 

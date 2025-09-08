@@ -44,12 +44,18 @@ export function useWorkoutStatus(): UseWorkoutStatusReturn {
     fetchStatus();
   }, [user?.uid]);
 
-  // Écouter les changements en temps réel
+  // Écouter les changements en temps réel (optimisé pour éviter les re-renders)
   useEffect(() => {
     if (!user?.uid) return;
 
     const unsubscribe = WorkoutStatusService.watchWorkoutStatus(user.uid, (newStatus) => {
-      setStatus(newStatus);
+      // Vérifier si le statut a vraiment changé avant de mettre à jour
+      setStatus(prevStatus => {
+        if (prevStatus && JSON.stringify(prevStatus) === JSON.stringify(newStatus)) {
+          return prevStatus; // Pas de changement, éviter le re-render
+        }
+        return newStatus;
+      });
       setLoading(false);
     });
 
