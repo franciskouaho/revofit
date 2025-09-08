@@ -89,18 +89,23 @@ export default function HomeScreen() {
   const currentRecommended = recommended.length > 0 ? recommended : defaultRecommended;
   const currentStatus = workoutStatus || defaultStatus;
   
-  // Combiner les données de santé avec les stats existantes
+  // Prioriser les données HealthKit sur Firebase
   const combinedStats = {
     ...currentStats,
-    steps: healthSteps > 0 ? healthSteps : currentStats.steps,
+    // Utiliser HealthKit même si 0 (pour forcer l'utilisation des vraies données)
+    steps: healthSteps !== undefined ? healthSteps : currentStats.steps,
     calories: healthCalories !== undefined ? healthCalories : currentStats.calories,
   };
   
   // Debug logs pour les stats combinées
-  console.log('🔍 HomeScreen - currentStats.steps:', currentStats.steps);
-  console.log('🔍 HomeScreen - combinedStats.steps:', combinedStats.steps);
-  console.log('🔍 HomeScreen - currentStats.calories:', currentStats.calories);
-  console.log('🔍 HomeScreen - combinedStats.calories:', combinedStats.calories);
+  console.log('🔍 HomeScreen - currentStats.steps (Firebase):', currentStats.steps);
+  console.log('🔍 HomeScreen - healthSteps (HealthKit):', healthSteps);
+  console.log('🔍 HomeScreen - combinedStats.steps (final):', combinedStats.steps);
+  console.log('🔍 HomeScreen - currentStats.calories (Firebase):', currentStats.calories);
+  console.log('🔍 HomeScreen - healthCalories (HealthKit):', healthCalories);
+  console.log('🔍 HomeScreen - combinedStats.calories (final):', combinedStats.calories);
+  console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
+  console.log('🔍 HomeScreen - authorizationStatus:', authorizationStatus);
 
   const handleNotificationPress = () => router.push('/notifications');
   const handleProfilePress = () => router.push('/settings');
@@ -178,8 +183,18 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.statsGrid}>
-              <GlassStat icon="flame" label="Calories" value={`${combinedStats.calories} Kcal`} />
-              <GlassStat icon="footsteps" label="Pas" value={`${combinedStats.steps.toLocaleString()}`} />
+              <GlassStat 
+                icon="flame" 
+                label="Calories" 
+                value={`${combinedStats.calories} Kcal`} 
+                subtitle={healthCalories !== undefined ? "Apple Health" : "Firebase"}
+              />
+              <GlassStat 
+                icon="footsteps" 
+                label="Pas" 
+                value={`${combinedStats.steps.toLocaleString()}`} 
+                subtitle={healthSteps !== undefined ? "Apple Health" : "Firebase"}
+              />
               <GlassStat icon="heart" label="Battements" value={`${combinedStats.heartRate} bpm`} />
               <GlassStat icon="barbell" label="Entraînements" value={`${combinedStats.workouts.completed}/${combinedStats.workouts.total}`} />
             </View>
@@ -367,7 +382,7 @@ export default function HomeScreen() {
 }
 
 /* ===== Sous-vues ===== */
-function GlassStat({ icon, label, value }: { icon: any; label: string; value: string }) {
+function GlassStat({ icon, label, value, subtitle }: { icon: any; label: string; value: string; subtitle?: string }) {
   return (
     <BlurView intensity={28} tint="dark" style={styles.statCardGlass}>
       <View style={styles.statHeader}>
@@ -375,6 +390,9 @@ function GlassStat({ icon, label, value }: { icon: any; label: string; value: st
         <Ionicons name={icon} size={16} color="#FFD700" />
       </View>
       <ThemedText style={styles.statValue}>{value}</ThemedText>
+      {subtitle && (
+        <ThemedText style={styles.statSubtitle}>{subtitle}</ThemedText>
+      )}
       <View style={styles.cardHighlight} pointerEvents="none" />
     </BlurView>
   );
@@ -433,6 +451,7 @@ const styles = StyleSheet.create({
   statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   statLabel: { fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
   statValue: { fontSize: 24, color: '#FFD700', fontWeight: '800' },
+  statSubtitle: { fontSize: 10, color: '#888', fontWeight: '500', marginTop: 2 },
 
   /* Challenge */
   challengeCard: { borderRadius: 20, padding: 14, backgroundColor: GLASS_BG, borderWidth: 1, borderColor: GLASS_BORDER },

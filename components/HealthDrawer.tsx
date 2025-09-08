@@ -346,7 +346,6 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                         </Text>
                       </LinearGradient>
                     </TouchableOpacity>
-
                     
                     <TouchableOpacity
                       style={styles.disconnectButton}
