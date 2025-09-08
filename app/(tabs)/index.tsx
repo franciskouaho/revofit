@@ -1,19 +1,22 @@
 import Header from '@/components/Header';
+import NotificationPermissionModal from '@/components/NotificationPermissionModal';
 import WorkoutStatusBar from '@/components/StatusBar';
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { useHealthDataSimple } from '@/hooks/useHealthData';
+import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
 import { useRecommendedWorkouts } from '@/hooks/useRecommendedWorkouts';
 import { useTodayWorkout } from '@/hooks/useTodayWorkout';
-import { useUserStats } from '@/hooks/useUserStats';
 import { useWorkoutStatus } from '@/hooks/useWorkoutStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useHealthKitDataWrapper } from '@/hooks/useHealthKitDataWrapper';
 
 const { width } = Dimensions.get('window');
 const GLASS_BORDER = 'rgba(255,255,255,0.12)';
@@ -23,22 +26,28 @@ export default function HomeScreen() {
   const router = useRouter();
   const { userProfile } = useAuth();
   
-  // Hooks Firebase
-  const { stats: userStats, loading: statsLoading } = useUserStats();
+  // Hooks Firebase (sans les données de santé)
   const { workout: todayWorkout, loading: workoutLoading } = useTodayWorkout();
   const { workouts: recommended, loading: recommendedLoading } = useRecommendedWorkouts();
   const { status: workoutStatus, loading: statusLoading } = useWorkoutStatus();
   
-  // Hook pour les données de santé
+  // Hook pour les permissions de notifications
+  const { hasPermission, canAskAgain, isLoading: permissionsLoading } = useNotificationPermissions();
+  
+  // État pour le modal de permission de notifications
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  
+  // Hook pour les données de santé HealthKit (conditionnel)
   const { 
     steps: healthSteps, 
     distance: healthDistance, 
     flights: healthFlights, 
     calories: healthCalories,
     hasPermissions,
-    authorizationStatus,
-    isLoading: healthDataLoading
-  } = useHealthDataSimple();
+    isLoading: healthDataLoading,
+    error: healthError,
+    refreshData: refreshHealthData
+  } = useHealthKitDataWrapper();
   
 
   // Debug logs pour les données de santé
@@ -47,12 +56,10 @@ export default function HomeScreen() {
   console.log('🔍 HomeScreen - healthFlights:', healthFlights);
   console.log('🔍 HomeScreen - healthCalories:', healthCalories);
   console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
-  console.log('🔍 HomeScreen - authorizationStatus:', authorizationStatus);
+  console.log('🔍 HomeScreen - healthError:', healthError);
 
-  // Données par défaut en cas de chargement
+  // Données par défaut (sans les données de santé qui viennent de HealthKit)
   const defaultStats = {
-    calories: 0,
-    steps: 0,
     heartRate: 0,
     workouts: { completed: 0, total: 0 },
     streak: 0,
@@ -83,37 +90,47 @@ export default function HomeScreen() {
     ],
   };
 
-  // Utiliser les données Firebase ou les valeurs par défaut
-  const currentStats = userStats || defaultStats;
+  // Utiliser les données Firebase ou les valeurs par défaut (sans les données de santé)
+  const currentStats = defaultStats; // Plus de userStats Firebase pour les données de santé
   const currentWorkout = todayWorkout || defaultWorkout;
   const currentRecommended = recommended.length > 0 ? recommended : defaultRecommended;
   const currentStatus = workoutStatus || defaultStatus;
   
-  // Prioriser les données HealthKit sur Firebase
+  // Utiliser uniquement les données HealthKit pour les données de santé
   const combinedStats = {
     ...currentStats,
-    // Utiliser HealthKit même si 0 (pour forcer l'utilisation des vraies données)
-    steps: healthSteps !== undefined ? healthSteps : currentStats.steps,
-    calories: healthCalories !== undefined ? healthCalories : currentStats.calories,
+    // Utiliser uniquement HealthKit pour les données de santé
+    steps: hasPermissions ? healthSteps : 0,
+    calories: hasPermissions ? healthCalories : 0,
   };
   
   // Debug logs pour les stats combinées
-  console.log('🔍 HomeScreen - currentStats.steps (Firebase):', currentStats.steps);
   console.log('🔍 HomeScreen - healthSteps (HealthKit):', healthSteps);
   console.log('🔍 HomeScreen - combinedStats.steps (final):', combinedStats.steps);
-  console.log('🔍 HomeScreen - currentStats.calories (Firebase):', currentStats.calories);
   console.log('🔍 HomeScreen - healthCalories (HealthKit):', healthCalories);
   console.log('🔍 HomeScreen - combinedStats.calories (final):', combinedStats.calories);
   console.log('🔍 HomeScreen - hasPermissions:', hasPermissions);
-  console.log('🔍 HomeScreen - authorizationStatus:', authorizationStatus);
+  console.log('🔍 HomeScreen - healthError:', healthError);
+
+  // Vérifier les permissions de notifications au chargement
+  useEffect(() => {
+    if (!permissionsLoading && !hasPermission && canAskAgain) {
+      // Attendre un peu avant d'afficher le modal pour laisser le temps à l'écran de se charger
+      const timer = setTimeout(() => {
+        setShowNotificationModal(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [permissionsLoading, hasPermission, canAskAgain]);
 
   const handleNotificationPress = () => router.push('/notifications');
   const handleProfilePress = () => router.push('/settings');
 
   const progress = Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target));
 
-  // Indicateur de chargement global
-  const isLoading = statsLoading || workoutLoading || recommendedLoading || statusLoading || healthDataLoading;
+  // Indicateur de chargement global (sans statsLoading)
+  const isLoading = workoutLoading || recommendedLoading || statusLoading || healthDataLoading;
 
   return (
     <View style={styles.container}>
@@ -145,7 +162,22 @@ export default function HomeScreen() {
 
           {/* Statistiques */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Statistiques</ThemedText>
+            <View style={styles.sectionHeader}>
+              <ThemedText style={styles.sectionTitle}>Statistiques</ThemedText>
+              {hasPermissions && (
+                <TouchableOpacity 
+                  onPress={refreshHealthData}
+                  disabled={healthDataLoading}
+                  style={styles.refreshButton}
+                >
+                  <Ionicons 
+                    name="refresh" 
+                    size={20} 
+                    color={healthDataLoading ? "#666" : "#FFD700"} 
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* Streak & Points */}
             <View style={styles.streakCard}>
@@ -187,13 +219,13 @@ export default function HomeScreen() {
                 icon="flame" 
                 label="Calories" 
                 value={`${combinedStats.calories} Kcal`} 
-                subtitle={healthCalories !== undefined ? "Apple Health" : "Firebase"}
+                subtitle={hasPermissions ? "Apple Health" : "Non disponible"}
               />
               <GlassStat 
                 icon="footsteps" 
                 label="Pas" 
                 value={`${combinedStats.steps.toLocaleString()}`} 
-                subtitle={healthSteps !== undefined ? "Apple Health" : "Firebase"}
+                subtitle={hasPermissions ? "Apple Health" : "Non disponible"}
               />
               <GlassStat icon="heart" label="Battements" value={`${combinedStats.heartRate} bpm`} />
               <GlassStat icon="barbell" label="Entraînements" value={`${combinedStats.workouts.completed}/${combinedStats.workouts.total}`} />
@@ -377,6 +409,12 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+
+      {/* Modal de permission de notifications */}
+      <NotificationPermissionModal
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </View>
   );
 }
@@ -405,7 +443,23 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
 
   section: { paddingHorizontal: 20, marginBottom: 28 },
-  sectionTitle: { fontSize: 20, color: '#FFFFFF', fontWeight: '700', marginBottom: 16 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 16 
+  },
+  sectionTitle: { fontSize: 20, color: '#FFFFFF', fontWeight: '700' },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,215,0,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
 
   border: { borderWidth: 1, borderColor: GLASS_BORDER },
 

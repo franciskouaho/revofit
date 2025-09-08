@@ -1,7 +1,6 @@
 // app/(tabs)/stats.tsx
 import { ThemedText } from '@/components/ThemedText';
 import { RevoColors } from '@/constants/Colors';
-import { useHealthDataSimple } from '@/hooks/useHealthData';
 import { useStatsData } from '@/hooks/useStatsData';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -10,6 +9,8 @@ import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
+
+import { useHealthKitDataWrapper } from '@/hooks/useHealthKitDataWrapper';
 
 const BORDER = 'rgba(255,255,255,0.12)';
 
@@ -101,47 +102,48 @@ export default function StatsScreen() {
     error,
   } = useStatsData();
 
-  // Données de santé réelles
+  // Données de santé réelles depuis HealthKit uniquement (conditionnel)
   const {
     steps: healthSteps,
     calories: healthCalories,
     distance: healthDistance,
+    hasPermissions,
     isLoading: healthLoading,
-  } = useHealthDataSimple();
+  } = useHealthKitDataWrapper();
 
 
-  // Données calculées pour les KPIs avec les vraies données de santé
+  // Données calculées pour les KPIs avec les données HealthKit uniquement
   const kpis = [
     { 
       label: 'Calories brûlées', 
-      value: healthCalories > 0 ? `${Math.round(healthCalories)}` : '0', 
-      diff: '+6%', 
+      value: hasPermissions && healthCalories > 0 ? `${Math.round(healthCalories)}` : '0', 
+      diff: hasPermissions ? '+6%' : 'Non disponible', 
       icon: 'flame', 
-      color: '#FFD700', 
+      color: hasPermissions ? '#FFD700' : '#666', 
       series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
     { 
       label: 'Pas aujourd\'hui', 
-      value: healthSteps > 0 ? healthSteps.toLocaleString() : '0', 
-      diff: '+2k', 
+      value: hasPermissions && healthSteps > 0 ? healthSteps.toLocaleString() : '0', 
+      diff: hasPermissions ? '+2k' : 'Non disponible', 
       icon: 'walk', 
-      color: '#4CAF50', 
+      color: hasPermissions ? '#4CAF50' : '#666', 
       series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
     { 
       label: 'Temps actif', 
-      value: '0h', // Pas disponible dans useHealthDataSimple
-      diff: '+5h', 
+      value: '0h', // Pas disponible dans HealthKit pour l'instant
+      diff: hasPermissions ? '+5h' : 'Non disponible', 
       icon: 'time', 
-      color: '#4ECDC4', 
+      color: hasPermissions ? '#4ECDC4' : '#666', 
       series: [0, 0, 0, 0, 0, 0, 0]
     },
     { 
       label: 'Distance', 
-      value: healthDistance > 0 ? `${(healthDistance / 1000).toFixed(1)} km` : '0.0 km', 
-      diff: '+12', 
+      value: hasPermissions && healthDistance > 0 ? `${(healthDistance / 1000).toFixed(1)} km` : '0.0 km', 
+      diff: hasPermissions ? '+12' : 'Non disponible', 
       icon: 'trail-sign', 
-      color: '#9FA8DA', 
+      color: hasPermissions ? '#9FA8DA' : '#666', 
       series: [0, 0, 0, 0, 0, 0, 0] // TODO: Ajouter les données historiques
     },
   ];

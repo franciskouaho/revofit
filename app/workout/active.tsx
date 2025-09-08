@@ -4,17 +4,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Animated,
-    Easing,
-    Image,
-    ImageBackground,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Easing,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
+import { useAuth } from "../../contexts/AuthContext";
 import { useExerciseSets } from "../../hooks/useExerciseSets";
 
 const BORDER = "rgba(255,255,255,0.12)";
@@ -25,12 +26,13 @@ const LIME_DARK = "#C3F02F";
 export default function WorkoutActiveScreen() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
 
   // Récupérer les données de l'exercice depuis les paramètres
   const exercise = params.exercise ? JSON.parse(params.exercise as string) : null;
   
   // Hook pour gérer les séries
-  const { completeSet } = useExerciseSets({
+  const { completeSet, error } = useExerciseSets({
     exerciseId: exercise?.id || 'default-exercise',
     exerciseName: exercise?.name || (params.exerciseName as string) || 'Exercice',
     templateId: params.templateId as string
@@ -43,11 +45,16 @@ export default function WorkoutActiveScreen() {
     restTime: (params.restTime as string) || "2 min"
   });
   
+  // Récupérer le numéro de série actuel
+  const currentSetNumber = parseInt(params.currentSetNumber as string) || 1;
+  
   const TOTAL = 45;
   const [time, setTime] = useState(TOTAL);
   const [isPlaying, setIsPlaying] = useState(false);
   const [weight, setWeight] = useState(40);
   const [reps, setReps] = useState(exerciseConfig.reps);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const progress = 1 - time / TOTAL;
   const progAnim = useRef(new Animated.Value(progress)).current;
@@ -137,7 +144,7 @@ export default function WorkoutActiveScreen() {
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>{exerciseConfig.name}</Text>
-            <Text style={styles.headerSubtitle}>Série 1 de {exerciseConfig.sets}</Text>
+            <Text style={styles.headerSubtitle}>Série {currentSetNumber} de {exerciseConfig.sets}</Text>
           </View>
         </View>
 
@@ -192,7 +199,7 @@ export default function WorkoutActiveScreen() {
 
           {/* Round / segments / temps */}
           <View style={styles.roundRow}>
-            <Text style={styles.roundTxt}>Série 1</Text>
+            <Text style={styles.roundTxt}>Série {currentSetNumber}</Text>
             <View style={styles.segmentsWrap}>
               {new Array(10).fill(0).map((_, i) => {
                 const pct = (i + 1) / 10;
@@ -248,44 +255,99 @@ export default function WorkoutActiveScreen() {
             </View>
           </View>
 
+          {/* Debug info */}
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugText}>Debug: User {user ? user.uid : 'non connecté'}</Text>
+            <Text style={styles.debugText}>Exercise ID: {exercise?.id || 'default-exercise'}</Text>
+            <Text style={styles.debugText}>Set: {currentSetNumber}</Text>
+          </View>
+
+          {/* Affichage des erreurs */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Erreur: {error}</Text>
+            </View>
+          )}
+
           {/* Terminer */}
           <View style={styles.navRow}>
             <TouchableOpacity 
               style={[styles.pillBtn, styles.pillPrimary]} 
               activeOpacity={0.9}
               onPress={async () => {
-                // Marquer la série comme complétée dans Firebase
-                const setNumber = parseInt(params.currentSetNumber as string) || 1;
-                const success = await completeSet(
-                  setNumber,
-                  exerciseConfig.sets,
-                  exerciseConfig.reps,
-                  weight, // Utiliser le poids saisi
-                  undefined, // duration
-                  exerciseConfig.restTime
-                );
+                if (isCompleting) return; // Éviter les clics multiples
+                
+                console.log('🔍 Début de validation de série');
+                console.log('🔍 currentSetNumber:', currentSetNumber);
+                console.log('🔍 exerciseConfig:', exerciseConfig);
+                console.log('🔍 weight:', weight);
+                console.log('🔍 exercise:', exercise);
+                
+                setIsCompleting(true);
+                
+                try {
+                  // Marquer la série comme complétée dans Firebase
+                  const success = await completeSet(
+                    currentSetNumber,
+                    exerciseConfig.sets,
+                    exerciseConfig.reps,
+                    weight, // Utiliser le poids saisi
+                    undefined, // duration
+                    exerciseConfig.restTime
+                  );
 
-                if (success) {
-                  console.log(`✅ Série ${setNumber} marquée comme complétée dans Firebase`);
-                }
+                  console.log('🔍 Résultat completeSet:', success);
 
-                // Revenir à details
-                router.replace({
-                  pathname: "/workout/details",
-                  params: { 
-                    exercise: params.exercise, // Passer les données de l'exercice
-                    exerciseName: exerciseConfig.name,
-                    templateId: params.templateId
+                  if (success) {
+                    console.log(`✅ Série ${currentSetNumber} marquée comme complétée dans Firebase`);
+                    setShowSuccess(true);
+                    
+                    // Attendre un peu pour montrer la confirmation
+                    setTimeout(() => {
+                      // Revenir à details
+                      router.replace({
+                        pathname: "/workout/details",
+                        params: { 
+                          exercise: params.exercise, // Passer les données de l'exercice
+                          exerciseName: exerciseConfig.name,
+                          templateId: params.templateId
+                        }
+                      });
+                    }, 1000);
+                  } else {
+                    console.log('❌ Échec de la validation de la série');
+                    setIsCompleting(false);
                   }
-                });
+                } catch (error) {
+                  console.error('💥 Erreur lors de la validation de la série:', error);
+                  setIsCompleting(false);
+                }
               }}
             >
               <LinearGradient colors={[LIME, LIME_DARK]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              <Text style={styles.pillPrimaryTxt}>Terminer</Text>
+              <Text style={styles.pillPrimaryTxt}>
+                {isCompleting ? "Validation..." : showSuccess ? "✅ Validé!" : "Terminer"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>
+
+      {/* Overlay de confirmation */}
+      {showSuccess && (
+        <View style={styles.successOverlay}>
+          <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+          <View style={styles.successContent}>
+            <View style={styles.successIcon}>
+              <Ionicons name="checkmark-circle" size={60} color={LIME} />
+            </View>
+            <Text style={styles.successTitle}>Série validée !</Text>
+            <Text style={styles.successSubtitle}>
+              Série {currentSetNumber} de {exerciseConfig.name} terminée
+            </Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -445,4 +507,63 @@ const styles = StyleSheet.create({
   pillGhostTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
   pillPrimary: { flex: 1 },
   pillPrimaryTxt: { color: "#071100", fontWeight: "900", fontSize: 16 },
+
+  // Overlay de confirmation
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  successContent: {
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  successIcon: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "900",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  successSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 16,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+
+  // Debug info
+  debugContainer: {
+    backgroundColor: "rgba(0, 255, 0, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 255, 0, 0.3)",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  debugText: {
+    color: "#00ff00",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+
+  // Affichage d'erreur
+  errorContainer: {
+    backgroundColor: "rgba(255, 0, 0, 0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 0, 0, 0.3)",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: "#ff6b6b",
+    fontSize: 14,
+    textAlign: "center",
+  },
 });

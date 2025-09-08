@@ -1,8 +1,8 @@
+import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
 import { useNotifications } from '@/hooks/useNotifications';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function NotificationsPage() {
@@ -17,11 +17,11 @@ export default function NotificationsPage() {
     clearAllNotifications,
     refreshNotifications,
   } = useNotifications();
+  
+  const { hasPermission, requestPermission } = useNotificationPermissions();
 
-  // Enregistrer pour les notifications push au montage
-  useEffect(() => {
-    registerForPushNotifications();
-  }, [registerForPushNotifications]);
+  // Ne pas enregistrer automatiquement les notifications push
+  // L'enregistrement se fait via les modals de permission dans l'onboarding et la page d'accueil
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -224,8 +224,27 @@ export default function NotificationsPage() {
               <Ionicons name="notifications-off" size={64} color="rgba(255, 255, 255, 0.3)" />
               <Text style={styles.emptyStateTitle}>Aucune notification</Text>
               <Text style={styles.emptyStateMessage}>
-                Vous n&apos;avez pas encore de notifications. Elles apparaîtront ici quand vous en recevrez.
+                {hasPermission 
+                  ? "Vous n'avez pas encore de notifications. Elles apparaîtront ici quand vous en recevrez."
+                  : "Activez les notifications pour recevoir des rappels d'entraînement et des encouragements."
+                }
               </Text>
+              {!hasPermission && (
+                <TouchableOpacity 
+                  style={styles.enableButton}
+                  onPress={requestPermission}
+                >
+                  <LinearGradient
+                    colors={['#FFD700', '#E6C200']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.enableButtonGradient}
+                  >
+                    <Ionicons name="notifications" size={20} color="#000" />
+                    <Text style={styles.enableButtonText}>Activer les notifications</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
@@ -309,5 +328,23 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 24,
+  },
+  enableButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  enableButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  enableButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000000',
   },
 });

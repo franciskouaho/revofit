@@ -96,7 +96,18 @@ export function useExerciseSets({
     duration?: number,
     restTime?: string
   ): Promise<boolean> => {
+    console.log('🔍 useExerciseSets.completeSet appelé avec:');
+    console.log('🔍 user?.uid:', user?.uid);
+    console.log('🔍 exerciseId:', exerciseId);
+    console.log('🔍 exerciseName:', exerciseName);
+    console.log('🔍 setNumber:', setNumber);
+    console.log('🔍 totalSets:', totalSets);
+    console.log('🔍 reps:', reps);
+    console.log('🔍 weight:', weight);
+    console.log('🔍 templateId:', templateId);
+
     if (!user?.uid) {
+      console.log('❌ Utilisateur non connecté');
       setError('Utilisateur non connecté');
       return false;
     }
@@ -117,6 +128,8 @@ export function useExerciseSets({
         templateId
       );
 
+      console.log('🔍 ExerciseSetService.completeSet résultat:', success);
+
       if (success) {
         // La mise à jour se fera automatiquement via l'écoute en temps réel
         console.log(`✅ Série ${setNumber} marquée comme complétée`);
@@ -124,7 +137,7 @@ export function useExerciseSets({
 
       return success;
     } catch (err) {
-      console.error('Erreur lors de la validation de la série:', err);
+      console.error('💥 Erreur lors de la validation de la série:', err);
       setError('Erreur lors de la validation de la série');
       return false;
     }

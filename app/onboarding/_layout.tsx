@@ -22,6 +22,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="culinary-preferences-selection" />
       <Stack.Screen name="email-selection" />
       <Stack.Screen name="password-selection" />
+      <Stack.Screen name="notifications-permission" />
       <Stack.Screen name="rocket-launch" />
     </Stack>
   );

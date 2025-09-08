@@ -75,9 +75,21 @@ export class ExerciseSetService {
     restTime?: string,
     templateId?: string
   ): Promise<boolean> {
+    console.log('🔍 ExerciseSetService.completeSet appelé avec:');
+    console.log('🔍 userId:', userId);
+    console.log('🔍 exerciseId:', exerciseId);
+    console.log('🔍 exerciseName:', exerciseName);
+    console.log('🔍 setNumber:', setNumber);
+    console.log('🔍 totalSets:', totalSets);
+    console.log('🔍 reps:', reps);
+    console.log('🔍 weight:', weight);
+    console.log('🔍 templateId:', templateId);
+
     try {
       // Vérifier si cette série a déjà été complétée aujourd'hui
       const today = new Date().toISOString().split('T')[0];
+      console.log('🔍 Vérification série déjà complétée pour la date:', today);
+      
       const q = query(
         collection(firestore, COLLECTIONS.EXERCISE_SETS),
         where('userId', '==', userId),
@@ -88,14 +100,17 @@ export class ExerciseSetService {
       );
 
       const snapshot = await getDocs(q);
+      console.log('🔍 Nombre de séries déjà complétées trouvées:', snapshot.size);
       
       if (!snapshot.empty) {
-        console.log('Série déjà complétée aujourd\'hui');
+        console.log('✅ Série déjà complétée aujourd\'hui');
         return true; // Déjà complétée
       }
 
+      console.log('🔍 Création de la nouvelle série complétée...');
+      
       // Créer la série complétée
-      await addDoc(collection(firestore, COLLECTIONS.EXERCISE_SETS), {
+      const docRef = await addDoc(collection(firestore, COLLECTIONS.EXERCISE_SETS), {
         userId,
         exerciseId,
         exerciseName,
@@ -111,12 +126,16 @@ export class ExerciseSetService {
         updatedAt: serverTimestamp()
       });
 
+      console.log('✅ Série créée avec ID:', docRef.id);
+
       // Mettre à jour la session d'entraînement
+      console.log('🔍 Mise à jour de la session d\'entraînement...');
       await this.updateWorkoutSession(userId, exerciseId, setNumber, templateId);
 
+      console.log('✅ Série complétée avec succès');
       return true;
     } catch (error) {
-      console.error('Erreur lors de la validation de la série:', error);
+      console.error('💥 Erreur lors de la validation de la série:', error);
       return false;
     }
   }

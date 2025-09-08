@@ -4,6 +4,7 @@ export { default as GoogleSignInButton } from './GoogleSignInButton';
 export { default as LogoutButton } from './LogoutButton';
 export { NotificationIcon } from './NotificationIcon';
 export { NotificationInitializer } from './NotificationInitializer';
+export { default as NotificationPermissionModal } from './NotificationPermissionModal';
 export { NotificationTest } from './NotificationTest';
 export { default as UserProfile } from './UserProfile';
 
