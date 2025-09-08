@@ -1,19 +1,23 @@
 /**
- * Wrapper pour useHealthKitData qui gère la disponibilité dans Expo Go
+ * Wrapper simple pour useHealthDataSimple
  * RevoFit - Hook conditionnel pour HealthKit
  */
 
+import { useHealthDataSimple } from './useHealthData';
+
 export function useHealthKitDataWrapper() {
-  // Toujours retourner des valeurs par défaut pour Expo Go
-  // Le hook HealthKit sera utilisé seulement dans un build natif
+  const healthData = useHealthDataSimple();
+  
   return {
-    steps: 0,
-    distance: 0,
-    flights: 0,
-    calories: 0,
-    hasPermissions: false,
-    isLoading: false,
-    error: 'HealthKit non disponible dans Expo Go',
-    refreshData: async () => {}
+    steps: healthData.steps,
+    distance: healthData.distance,
+    flights: healthData.flights,
+    calories: healthData.calories,
+    hasPermissions: healthData.hasPermissions,
+    isLoading: healthData.isLoading,
+    error: null,
+    refreshData: async () => {
+      healthData.setRefreshTrigger(prev => prev + 1);
+    }
   };
 }
