@@ -3,7 +3,7 @@ import {
   queryQuantitySamplesWithAnchor,
   useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
 // Utilitaire pour additionner les samples
@@ -134,7 +134,10 @@ export const useHealthDataSimple = () => {
   }, [hasPermissions, refreshTrigger]);
 
   // Fonction pour rafraîchir manuellement
-  const refresh = () => setRefreshTrigger((prev) => prev + 1);
+  const refresh = useCallback(() => {
+    console.log('🔄 Refresh HealthKit data triggered');
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
 
   return {
     steps,

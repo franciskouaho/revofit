@@ -40,7 +40,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     distance, 
     flights, 
     isLoading: healthDataLoading,
-    setRefreshTrigger
+    refresh: refreshFromHook
   } = useHealthDataSimple();
 
   // Permissions pour HealthKit avec la nouvelle API
@@ -185,7 +185,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
     
     try {
       // Déclencher le refresh des données de santé
-      setRefreshTrigger((prev: number) => prev + 1);
+      refreshFromHook();
       
       // Attendre un peu pour que les données se chargent
       await new Promise(resolve => setTimeout(resolve, 2000));

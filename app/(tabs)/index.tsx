@@ -52,7 +52,7 @@ export default function HomeScreen() {
     calories: healthCalories,
     hasPermissions,
     isLoading: healthDataLoading,
-    setRefreshTrigger
+    refresh: refreshHealthData
   } = useHealthDataSimple();
   
 
@@ -215,7 +215,7 @@ export default function HomeScreen() {
       console.log('🔄 Refresh des données HealthKit...');
       
       // Déclencher le refresh
-      setRefreshTrigger(prev => prev + 1);
+      refreshHealthData();
       
       // Attendre un peu pour que l'utilisateur voie le feedback
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -225,7 +225,7 @@ export default function HomeScreen() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing, setRefreshTrigger]);
+  }, [isRefreshing, refreshHealthData]);
 
   const progress = useMemo(() => 
     Math.min(1, combinedStats.weeklyGoal.done / Math.max(1, combinedStats.weeklyGoal.target)), 
