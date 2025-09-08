@@ -102,7 +102,6 @@ export class ExerciseSetService {
       console.log('🔍 Nombre de séries déjà complétées trouvées:', snapshot.size);
       
       // Vérifier côté client si la série a été complétée aujourd'hui
-      const today = new Date().toISOString().split('T')[0];
       const isCompletedToday = snapshot.docs.some(doc => {
         const data = doc.data();
         const completedDate = data.completedAt?.toDate?.() || new Date(data.completedAt);
