@@ -8,13 +8,20 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { StorageService } from '@/services/storage';
 import {
-  getMostRecentQuantitySample,
-  isHealthDataAvailable,
-  requestAuthorization,
-  useHealthkitAuthorization,
+    getMostRecentQuantitySample,
+    isHealthDataAvailable,
+    queryQuantitySamples,
+    queryQuantitySamplesWithAnchor,
+    requestAuthorization,
+    useHealthkitAuthorization,
 } from '@kingstinct/react-native-healthkit';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
+
+// Fonction utilitaire pour calculer le total des échantillons
+const calculateTotalFromSamples = (samples: readonly any[]): number => {
+  return samples.reduce((total, sample) => total + (sample.quantity || 0), 0);
+};
 
 // Version simple du tutoriel (exportée séparément)
 export const useHealthDataSimple = (date: Date = new Date()) => {
@@ -67,12 +74,20 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
   // Vérifier le statut d'autorisation
   useEffect(() => {
     console.log('🔍 Statut d\'autorisation HealthKit:', authorizationStatus);
+    console.log('🔍 Type d\'autorisation:', typeof authorizationStatus);
+    console.log('🔍 String authorizationStatus:', String(authorizationStatus));
     
     if (String(authorizationStatus) === 'granted') {
       console.log('✅ Permissions HealthKit accordées');
       setHasPermission(true);
     } else {
       console.log('❌ Permissions HealthKit non accordées:', authorizationStatus);
+      console.log('❌ Statut détaillé:', {
+        status: authorizationStatus,
+        isNull: authorizationStatus === null,
+        isUndefined: authorizationStatus === undefined,
+        stringValue: String(authorizationStatus)
+      });
       setHasPermission(false);
     }
   }, [authorizationStatus]);
@@ -100,12 +115,34 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
         console.log('📅 Période de récupération:', { startOfDay, endOfDay });
 
         const [stepsData, flightsData, distanceData, caloriesData] = await Promise.allSettled([
-          // Récupérer les pas (échantillon le plus récent pour l'instant)
-          getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
-          getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
-          getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
-          // Récupérer les calories (échantillon le plus récent pour l'instant)
-          getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
+          // Récupérer tous les échantillons de pas de la journée
+          queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierStepCount', {
+            filter: {
+              startDate: startOfDay,
+              endDate: endOfDay,
+            },
+          }),
+          // Récupérer tous les échantillons d'étages montés de la journée
+          queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierFlightsClimbed', {
+            filter: {
+              startDate: startOfDay,
+              endDate: endOfDay,
+            },
+          }),
+          // Récupérer tous les échantillons de distance de la journée
+          queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierDistanceWalkingRunning', {
+            filter: {
+              startDate: startOfDay,
+              endDate: endOfDay,
+            },
+          }),
+          // Récupérer tous les échantillons de calories actives de la journée
+          queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierActiveEnergyBurned', {
+            filter: {
+              startDate: startOfDay,
+              endDate: endOfDay,
+            },
+          }),
         ]);
 
         console.log('📊 Résultats des requêtes:', {
@@ -115,8 +152,29 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
           caloriesData: caloriesData.status
         });
 
+        // Log détaillé des données récupérées
         if (stepsData.status === 'fulfilled') {
-          const stepsValue = Math.round(stepsData.value?.quantity || 0);
+          console.log('🔍 Steps data details:', {
+            samples: stepsData.value?.samples?.length || 0,
+            firstSample: stepsData.value?.samples?.[0],
+            lastSample: stepsData.value?.samples?.[stepsData.value?.samples?.length - 1]
+          });
+        } else {
+          console.log('❌ Steps data error:', stepsData.reason);
+        }
+
+        if (caloriesData.status === 'fulfilled') {
+          console.log('🔍 Calories data details:', {
+            samples: caloriesData.value?.samples?.length || 0,
+            firstSample: caloriesData.value?.samples?.[0],
+            lastSample: caloriesData.value?.samples?.[caloriesData.value?.samples?.length - 1]
+          });
+        } else {
+          console.log('❌ Calories data error:', caloriesData.reason);
+        }
+
+        if (stepsData.status === 'fulfilled') {
+          const stepsValue = Math.round(calculateTotalFromSamples(stepsData.value?.samples || []));
           console.log('✅ Steps retrieved (total today):', stepsValue);
           setSteps(stepsValue);
         } else {
@@ -124,23 +182,23 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
         }
 
         if (flightsData.status === 'fulfilled') {
-          const flightsValue = Math.round(flightsData.value?.quantity || 0);
-          console.log('✅ Flights retrieved:', flightsValue);
+          const flightsValue = Math.round(calculateTotalFromSamples(flightsData.value?.samples || []));
+          console.log('✅ Flights retrieved (total today):', flightsValue);
           setFlights(flightsValue);
         } else {
           console.log('❌ Erreur récupération étages:', flightsData.reason);
         }
 
         if (distanceData.status === 'fulfilled') {
-          const distanceValue = Math.round(distanceData.value?.quantity || 0);
-          console.log('✅ Distance retrieved:', distanceValue);
+          const distanceValue = Math.round(calculateTotalFromSamples(distanceData.value?.samples || []));
+          console.log('✅ Distance retrieved (total today):', distanceValue);
           setDistance(distanceValue);
         } else {
           console.log('❌ Erreur récupération distance:', distanceData.reason);
         }
 
         if (caloriesData.status === 'fulfilled') {
-          const caloriesValue = Math.round(caloriesData.value?.quantity || 0);
+          const caloriesValue = Math.round(calculateTotalFromSamples(caloriesData.value?.samples || []));
           console.log('✅ Calories retrieved (total today):', caloriesValue);
           setCalories(caloriesValue);
         } else {
@@ -192,11 +250,25 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
       
       // Test 2: Vérifier les permissions
       console.log('🔍 Statut des permissions:', authorizationStatus);
+      console.log('🔍 hasPermissions:', hasPermissions);
       
       // Test 3: Essayer de récupérer un échantillon simple
       try {
         const testSample = await getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount');
         console.log('✅ Test récupération échantillon:', testSample);
+        
+        // Test 4: Essayer queryQuantitySamples
+        try {
+          const samples = await queryQuantitySamples('HKQuantityTypeIdentifierStepCount');
+          console.log('✅ Test queryQuantitySamples - nombre d\'échantillons:', samples?.length || 0);
+          if (samples && samples.length > 0) {
+            console.log('✅ Premier échantillon:', samples[0]);
+            console.log('✅ Dernier échantillon:', samples[samples.length - 1]);
+          }
+        } catch (queryError) {
+          console.log('❌ Erreur queryQuantitySamples:', queryError);
+        }
+        
         return true;
       } catch (error) {
         console.log('❌ Erreur lors du test de récupération:', error);
@@ -218,7 +290,9 @@ export const useHealthDataSimple = (date: Date = new Date()) => {
     hasPermissions, 
     authorizationStatus,
     isLoading,
-    testHealthKit
+    testHealthKit,
+    refreshTrigger,
+    setRefreshTrigger
   };
 };
 
@@ -341,29 +415,67 @@ class HealthKitService {
 
       const today = new Date();
 
-      // Récupérer les données du jour avec getMostRecentQuantitySample
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+      // Récupérer les données du jour avec queryQuantitySamplesWithAnchor pour les totaux
       const [stepsData, activeCaloriesData, basalCaloriesData, heartRateData, distanceData, floorsData, exerciseData, weightData, standData] = await Promise.allSettled([
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierBasalEnergyBurned'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleExerciseTime'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierBodyMass'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierAppleStandTime'),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierStepCount', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierActiveEnergyBurned', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierBasalEnergyBurned', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierHeartRate'), // Fréquence cardiaque = dernière valeur
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierDistanceWalkingRunning', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierFlightsClimbed', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierAppleExerciseTime', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        getMostRecentQuantitySample('HKQuantityTypeIdentifierBodyMass'), // Poids = dernière valeur
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierAppleStandTime', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
       ]);
 
       // Récupérer les valeurs individuelles
-      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
-      const activeCalories = activeCaloriesData.status === 'fulfilled' ? Math.round(activeCaloriesData.value?.quantity || 0) : 0;
-      const basalCalories = basalCaloriesData.status === 'fulfilled' ? Math.round(basalCaloriesData.value?.quantity || 0) : 0;
+      const steps = stepsData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(stepsData.value?.samples || [])) : 0;
+      const activeCalories = activeCaloriesData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(activeCaloriesData.value?.samples || [])) : 0;
+      const basalCalories = basalCaloriesData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(basalCaloriesData.value?.samples || [])) : 0;
       const totalCalories = activeCalories + basalCalories;
-      const distance = distanceData.status === 'fulfilled' ? Math.round(distanceData.value?.quantity || 0) : 0;
-      const floors = floorsData.status === 'fulfilled' ? Math.round(floorsData.value?.quantity || 0) : 0;
-      const exerciseMinutes = exerciseData.status === 'fulfilled' ? Math.round((exerciseData.value?.quantity || 0) / 60) : 0;
+      const distance = distanceData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(distanceData.value?.samples || [])) : 0;
+      const floors = floorsData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(floorsData.value?.samples || [])) : 0;
+      const exerciseMinutes = exerciseData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(exerciseData.value?.samples || []) / 60) : 0;
       const weight = weightData.status === 'fulfilled' ? Math.round(weightData.value?.quantity || 0) : 0;
-      const standHours = standData.status === 'fulfilled' ? Math.round((standData.value?.quantity || 0) / 3600) : 0;
+      const standHours = standData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(standData.value?.samples || []) / 3600) : 0;
       
       // Récupérer la fréquence cardiaque
       const heartRate = heartRateData.status === 'fulfilled' ? Math.round(heartRateData.value?.quantity || 0) : 0;
@@ -606,18 +718,40 @@ export function useHealthData(): UseHealthDataReturn {
       
       // Récupérer les données directement depuis HealthKit
       const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
       const [stepsData, caloriesData, distanceData, flightsData] = await Promise.allSettled([
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierStepCount'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierActiveEnergyBurned'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierDistanceWalkingRunning'),
-        getMostRecentQuantitySample('HKQuantityTypeIdentifierFlightsClimbed'),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierStepCount', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierActiveEnergyBurned', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierDistanceWalkingRunning', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
+        queryQuantitySamplesWithAnchor('HKQuantityTypeIdentifierFlightsClimbed', {
+          filter: {
+            startDate: startOfDay,
+            endDate: endOfDay,
+          },
+        }),
       ]);
 
-      const steps = stepsData.status === 'fulfilled' ? Math.round(stepsData.value?.quantity || 0) : 0;
-      const caloriesBurned = caloriesData.status === 'fulfilled' ? Math.round(caloriesData.value?.quantity || 0) : 0;
-      const distance = distanceData.status === 'fulfilled' ? Math.round((distanceData.value?.quantity || 0) * 1000) : 0; // Convertir en mètres
-      const floorsClimbed = flightsData.status === 'fulfilled' ? Math.round(flightsData.value?.quantity || 0) : 0;
+      const steps = stepsData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(stepsData.value?.samples || [])) : 0;
+      const caloriesBurned = caloriesData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(caloriesData.value?.samples || [])) : 0;
+      const distance = distanceData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(distanceData.value?.samples || []) * 1000) : 0; // Convertir en mètres
+      const floorsClimbed = flightsData.status === 'fulfilled' ? Math.round(calculateTotalFromSamples(flightsData.value?.samples || [])) : 0;
 
       console.log('🔍 Données HealthKit récupérées:', { steps, caloriesBurned, distance, floorsClimbed });
 

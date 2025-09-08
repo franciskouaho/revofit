@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useHealthDataSimple } from '../hooks/useHealthData';
 import { StorageService } from '../services/storage';
 
 const BORDER = "rgba(255,255,255,0.12)";
@@ -30,6 +31,17 @@ interface HealthDrawerProps {
 export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Hook pour récupérer les données de santé
+  const { 
+    steps, 
+    calories, 
+    distance, 
+    flights, 
+    isLoading: healthDataLoading,
+    setRefreshTrigger
+  } = useHealthDataSimple();
 
   // Permissions pour HealthKit avec la nouvelle API
   const permissions = [
@@ -130,7 +142,11 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       console.log('✅ HealthKit disponible, demande d\'autorisation...');
       
       // Demander les autorisations
-      await requestAuth();
+      const authResult = await requestAuth();
+      console.log('🔍 Résultat de la demande d\'autorisation:', authResult);
+      
+      // Attendre un peu pour que les permissions se propagent
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setIsLoading(false);
       setIsConnected(true);
@@ -142,7 +158,7 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       
       Alert.alert(
         'Connexion réussie',
-        'Votre application est maintenant connectée à Apple Health !',
+        'Votre application est maintenant connectée à Apple Health !\n\nSi les données ne s\'affichent pas, vérifiez les permissions dans l\'application Santé.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -151,9 +167,45 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
       setIsConnected(false);
       Alert.alert(
         'Erreur de connexion',
-        `Impossible de se connecter à Apple Health.\n\nErreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}\n\nVérifiez que l'application Santé est installée et que les permissions sont accordées.`,
+        `Impossible de se connecter à Apple Health.\n\nVérifiez que l'application Santé est installée et que les permissions sont accordées.\n\nPour activer les permissions :\n1. Ouvrez l'app Santé\n2. Allez dans "Parcourir"\n3. Recherchez "RevoFit"\n4. Activez toutes les permissions`,
         [{ text: 'OK' }]
       );
+    }
+  };
+
+
+  const refreshHealthData = async () => {
+    if (!isConnected) {
+      Alert.alert('Erreur', 'Vous devez d\'abord vous connecter à Apple Health');
+      return;
+    }
+
+    console.log('🔄 Actualisation des données de santé...');
+    setIsRefreshing(true);
+    
+    try {
+      // Déclencher le refresh des données de santé
+      setRefreshTrigger((prev: number) => prev + 1);
+      
+      // Attendre un peu pour que les données se chargent
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('✅ Données de santé actualisées:', { steps, calories, distance, flights });
+      
+      Alert.alert(
+        'Données actualisées',
+        `Nouvelles données récupérées:\n• Pas: ${steps.toLocaleString()}\n• Calories: ${calories} kcal\n• Distance: ${(distance / 1000).toFixed(1)} km\n• Étages: ${flights}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'actualisation des données:', error);
+      Alert.alert(
+        'Erreur',
+        'Une erreur est survenue lors de l\'actualisation des données.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -274,7 +326,8 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                   <View style={styles.connectedActions}>
                     <TouchableOpacity
                       style={styles.refreshButton}
-                      onPress={() => console.log('Actualisation des données...')}
+                      onPress={refreshHealthData}
+                      disabled={isRefreshing || healthDataLoading}
                       activeOpacity={0.8}
                     >
                       <LinearGradient
@@ -283,10 +336,17 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                         end={{ x: 1, y: 1 }}
                         style={styles.buttonGradient}
                       >
-                        <Ionicons name="refresh" size={20} color="#fff" />
-                        <Text style={styles.buttonText}>Actualiser les données</Text>
+                        {isRefreshing || healthDataLoading ? (
+                          <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                          <Ionicons name="refresh" size={20} color="#fff" />
+                        )}
+                        <Text style={styles.buttonText}>
+                          {isRefreshing || healthDataLoading ? 'Actualisation...' : 'Actualiser les données'}
+                        </Text>
                       </LinearGradient>
                     </TouchableOpacity>
+
                     
                     <TouchableOpacity
                       style={styles.disconnectButton}
@@ -301,6 +361,35 @@ export default function HealthDrawer({ visible, onClose }: HealthDrawerProps) {
                   </View>
                 )}
               </View>
+
+              {/* Current Data Section */}
+              {isConnected && (steps > 0 || calories > 0 || distance > 0 || flights > 0) && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Données actuelles</Text>
+                  <View style={styles.dataGrid}>
+                    <View style={styles.dataItem}>
+                      <Ionicons name="footsteps" size={20} color="#4CAF50" />
+                      <Text style={styles.dataValue}>{steps.toLocaleString()}</Text>
+                      <Text style={styles.dataLabel}>Pas</Text>
+                    </View>
+                    <View style={styles.dataItem}>
+                      <Ionicons name="flame" size={20} color="#FF9800" />
+                      <Text style={styles.dataValue}>{calories}</Text>
+                      <Text style={styles.dataLabel}>Calories</Text>
+                    </View>
+                    <View style={styles.dataItem}>
+                      <Ionicons name="location" size={20} color="#2196F3" />
+                      <Text style={styles.dataValue}>{(distance / 1000).toFixed(1)}</Text>
+                      <Text style={styles.dataLabel}>km</Text>
+                    </View>
+                    <View style={styles.dataItem}>
+                      <Ionicons name="trending-up" size={20} color="#9C27B0" />
+                      <Text style={styles.dataValue}>{flights}</Text>
+                      <Text style={styles.dataLabel}>Étages</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
 
               {/* Info Section */}
               <View style={styles.section}>
@@ -464,5 +553,32 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginLeft: 12,
     flex: 1,
+  },
+  dataGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  dataItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  dataValue: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  dataLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
