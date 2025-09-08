@@ -86,23 +86,30 @@ export class ExerciseSetService {
     console.log('🔍 templateId:', templateId);
 
     try {
-      // Vérifier si cette série a déjà été complétée aujourd'hui
+      // Vérifier si cette série a déjà été complétée aujourd'hui (requête simplifiée)
       const today = new Date().toISOString().split('T')[0];
       console.log('🔍 Vérification série déjà complétée pour la date:', today);
       
+      // Requête simplifiée sans index composite (temporaire)
       const q = query(
         collection(firestore, COLLECTIONS.EXERCISE_SETS),
         where('userId', '==', userId),
         where('exerciseId', '==', exerciseId),
-        where('setNumber', '==', setNumber),
-        where('completedAt', '>=', new Date(today + 'T00:00:00.000Z')),
-        where('completedAt', '<=', new Date(today + 'T23:59:59.999Z'))
+        where('setNumber', '==', setNumber)
       );
 
       const snapshot = await getDocs(q);
       console.log('🔍 Nombre de séries déjà complétées trouvées:', snapshot.size);
       
-      if (!snapshot.empty) {
+      // Vérifier côté client si la série a été complétée aujourd'hui
+      const today = new Date().toISOString().split('T')[0];
+      const isCompletedToday = snapshot.docs.some(doc => {
+        const data = doc.data();
+        const completedDate = data.completedAt?.toDate?.() || new Date(data.completedAt);
+        return completedDate.toISOString().split('T')[0] === today;
+      });
+      
+      if (isCompletedToday) {
         console.log('✅ Série déjà complétée aujourd\'hui');
         return true; // Déjà complétée
       }
